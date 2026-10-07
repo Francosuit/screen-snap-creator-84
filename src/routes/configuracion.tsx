@@ -1,7 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import { actionRules, HOTELS } from "@/lib/suite/data";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { actionRules } from "@/lib/suite/data";
 import { useSuite } from "@/lib/suite/store";
 import { Card, PageHeader, SectionTitle } from "@/components/suite/ui";
 
@@ -18,12 +22,12 @@ export const Route = createFileRoute("/configuracion")({
 });
 
 function Configuracion() {
-  const { s } = useSuite();
+  const { s, hotels } = useSuite();
   return (
     <div>
       <PageHeader title="Configuración" sub="Evento → Contexto → Reglas → Acciones → Verificación" />
       <Tabs defaultValue="engine">
-        <TabsList className="mb-4"><TabsTrigger value="engine">Action Engine</TabsTrigger><TabsTrigger value="log">Trazabilidad</TabsTrigger><TabsTrigger value="group">Multi-hotel</TabsTrigger></TabsList>
+        <TabsList className="mb-4"><TabsTrigger value="engine">Action Engine</TabsTrigger><TabsTrigger value="log">Trazabilidad</TabsTrigger><TabsTrigger value="group">Multi-hotel</TabsTrigger><TabsTrigger value="new">Crear hotel</TabsTrigger></TabsList>
         <TabsContent value="engine">
           <div className="grid gap-4 lg:grid-cols-2">
             {actionRules.map((r) => (
@@ -66,7 +70,7 @@ function Configuracion() {
             <SectionTitle>Estructura</SectionTitle>
             <div className="text-sm">
               <div className="rounded-lg bg-primary px-3 py-2 font-semibold text-primary-foreground">Grupo Suite</div>
-              {Object.values(HOTELS).map((h) => (
+              {hotels.map((h) => (
                 <div key={h.name} className="ml-5 mt-2 border-l pl-4">
                   <div className="rounded-lg border px-3 py-2 font-medium">{h.name} <span className="text-muted-foreground">· {h.city}</span></div>
                   <div className="ml-5 mt-2 border-l pl-4 text-muted-foreground"><div className="rounded-lg bg-muted px-3 py-2">{h.rooms} habitaciones</div></div>
@@ -75,7 +79,39 @@ function Configuracion() {
             </div>
           </Card>
         </TabsContent>
+        <TabsContent value="new"><CreateHotel /></TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+function CreateHotel() {
+  const { actions } = useSuite();
+  const [f, setF] = useState({ name: "", address: "", city: "", rooms: "12", category: "Urbano" });
+  const n = Math.min(60, Math.max(1, Number(f.rooms) || 0));
+  const ok = f.name.trim() && f.city.trim() && Number(f.rooms) > 0;
+  const field = (k: keyof typeof f, label: string, ph: string, type = "text") => (
+    <label className="grid gap-1 text-xs text-muted-foreground">{label}
+      <Input type={type} placeholder={ph} value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value })} />
+    </label>
+  );
+  return (
+    <Card className="max-w-xl">
+      <SectionTitle>Nuevo hotel</SectionTitle>
+      <div className="grid gap-3">
+        {field("name", "Nombre del hotel", "Suite Mountain Lodge")}
+        {field("address", "Dirección", "Av. de los Pirineos 4")}
+        <div className="grid grid-cols-2 gap-3">
+          {field("city", "Ciudad", "Jaca")}
+          {field("rooms", "Número de habitaciones (máx. 60)", "12", "number")}
+        </div>
+        <label className="grid gap-1 text-xs text-muted-foreground">Tipo de hotel
+          <Select value={f.category} onValueChange={(v) => setF({ ...f, category: v })}><SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>{["Urbano", "Vacacional", "Boutique", "Rural", "Business"].map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
+        </label>
+        <p className="text-xs text-muted-foreground">Suite generará {n} habitaciones demo (10 por planta) y dejará el hotel listo para añadir personal y reservas.</p>
+        <Button disabled={!ok} onClick={() => { actions.createHotel({ name: f.name.trim(), address: f.address.trim(), city: f.city.trim(), rooms: n, category: f.category }); setF({ name: "", address: "", city: "", rooms: "12", category: "Urbano" }); }}>Crear hotel</Button>
+      </div>
+    </Card>
   );
 }

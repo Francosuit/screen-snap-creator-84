@@ -7,9 +7,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { HOTELS, ROLES, type RoleKey } from "@/lib/suite/data";
+import { ROLES, type RoleKey } from "@/lib/suite/data";
 import { NAV_ACCESS, fmtClock, useSuite } from "@/lib/suite/store";
-import { Card, NoAccess } from "./ui";
+import { NoAccess } from "./ui";
 
 const NAV = [
   { to: "/", label: "Inicio", icon: Home },
@@ -64,14 +64,14 @@ function NavList({ onNav }: { onNav?: () => void }) {
 }
 
 function Sidebar() {
-  const { s } = useSuite();
+  const { hotel } = useSuite();
   return (
     <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col gap-6 border-r bg-sidebar px-3 py-5 lg:flex">
       <Logo />
       <NavList />
       <div className="mt-auto rounded-xl border bg-card p-3 text-xs">
         <div className="text-muted-foreground">Grupo Suite</div>
-        <div className="mt-0.5 font-medium">{HOTELS[s.hotel].name}</div>
+        <div className="mt-0.5 font-medium">{hotel.name}</div>
         <div className="mt-2 flex items-center gap-1.5 text-muted-foreground"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-st-ready" /> Modo demo · datos ficticios</div>
       </div>
     </aside>
@@ -79,7 +79,7 @@ function Sidebar() {
 }
 
 function Topbar() {
-  const { s, actions } = useSuite();
+  const { s, actions, hotel, hotels } = useSuite();
   const [open, setOpen] = useState(false);
   const notifs = s.notifications.filter((n) => n.roles.includes(s.role));
   const unread = notifs.filter((n) => !n.read).length;
@@ -98,15 +98,15 @@ function Topbar() {
         <DropdownMenu>
           <DropdownMenuTrigger className="flex min-w-0 items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium hover:bg-accent">
             <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" />
-            <span className="truncate">{HOTELS[s.hotel].name}</span>
+            <span className="truncate">{hotel.name}</span>
             <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-64">
             <DropdownMenuLabel className="text-xs text-muted-foreground">Grupo Suite</DropdownMenuLabel>
-            {(Object.keys(HOTELS) as (keyof typeof HOTELS)[]).map((k) => (
-              <DropdownMenuItem key={k} onClick={() => actions.setHotel(k)} className="flex items-center justify-between">
-                <div><div className="font-medium">{HOTELS[k].name}</div><div className="text-xs text-muted-foreground">{HOTELS[k].city} · {HOTELS[k].rooms} hab.</div></div>
-                {s.hotel === k && <Check className="h-4 w-4 text-brand" />}
+            {hotels.map((h) => (
+              <DropdownMenuItem key={h.id} onClick={() => actions.setHotel(h.id)} className="flex items-center justify-between">
+                <div><div className="font-medium">{h.name}</div><div className="text-xs text-muted-foreground">{h.city} · {h.rooms} hab. · {h.category}</div></div>
+                {s.hotel === h.id && <Check className="h-4 w-4 text-brand" />}
               </DropdownMenuItem>
             ))}
           </DropdownMenuContent>
@@ -155,34 +155,12 @@ function Topbar() {
                 {s.role === k && <Check className="h-4 w-4 text-brand" />}
               </DropdownMenuItem>
             ))}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => actions.resetDemo()} className="text-muted-foreground">Reiniciar demo</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
     </header>
-  );
-}
-
-function BeachPreview() {
-  const { actions } = useSuite();
-  return (
-    <div className="mx-auto max-w-2xl py-10">
-      <Card className="p-8">
-        <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Estructura multi-hotel</div>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight">Suite Beach Resort</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Marbella · 48 habitaciones. Este hotel aún no tiene datos en la demo; la estructura ya está preparada.</p>
-        <div className="mt-6 space-y-2 text-sm">
-          {[["Grupo", "Grupo Suite"], ["Hotel", "Suite Beach Resort"], ["Habitaciones", "48 · plantas 1–4"]].map(([k, v], i) => (
-            <div key={k} className="flex items-center gap-3" style={{ paddingLeft: i * 20 }}>
-              <span className="w-24 text-xs uppercase tracking-wider text-muted-foreground">{k}</span>
-              <span className="rounded-lg border bg-background px-3 py-1.5 font-medium">{v}</span>
-            </div>
-          ))}
-        </div>
-        <button onClick={() => actions.setHotel("grand")} className="mt-8 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
-          Volver a Hotel Suite Grand
-        </button>
-      </Card>
-    </div>
   );
 }
 
@@ -198,7 +176,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar />
         <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-          {s.hotel === "beach" ? <BeachPreview /> : allowed ? children : <NoAccess />}
+          {allowed ? children : <NoAccess />}
         </main>
       </div>
     </div>

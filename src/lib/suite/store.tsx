@@ -1,20 +1,24 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
+import { useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import {
   DEMO_DATE, ROLES, START_CLOCK, seedGuests, seedIncidents, seedLog, seedNotifications, seedOpportunities,
-  seedReservations, seedRooms, seedRules, seedTasks,
+  seedReservations, seedRooms, seedRules, seedTasks, seedHotels, type Hotel,
   type Guest, type HotelKey, type Incident, type LogEntry, type Notification, type Opportunity, type Priority,
   type Reservation, type RoleKey, type Room, type RoomState, type SentMessage, type Task, type MessageRule,
 } from "./data";
+import { SuiteCtx } from "./context";
 
-interface State {
-  role: RoleKey; hotel: HotelKey; clock: number;
+interface Data {
+  clock: number;
   rooms: Room[]; guests: Guest[]; reservations: Reservation[]; tasks: Task[]; incidents: Incident[];
   log: LogEntry[]; notifications: Notification[]; opportunities: Opportunity[]; rules: MessageRule[]; sent: SentMessage[];
 }
+/** Merged view of the active hotel — what screens read */
+interface State extends Data { role: RoleKey; hotel: HotelKey }
+interface Root { role: RoleKey; hotel: HotelKey; hotels: Hotel[]; data: Record<string, Data> }
 
-const initial: State = {
-  role: "owner", hotel: "grand", clock: START_CLOCK,
+const grandData: Data = {
+  clock: START_CLOCK,
   rooms: seedRooms, guests: seedGuests.map((g) => ({ ...g, messaging: ["g2", "g3", "g5", "g6", "g7", "g8", "g10"].includes(g.id) })),
   reservations: seedReservations, tasks: seedTasks, incidents: seedIncidents, log: seedLog,
   notifications: seedNotifications, opportunities: seedOpportunities, rules: seedRules,
@@ -24,6 +28,39 @@ const initial: State = {
     { id: "s3", time: "08:00", guest: "Elena García", rule: "Buenos días", result: "omitido", reason: "Check-out realizado — no se envía" },
   ],
 };
+
+const TYPES = ["Doble Estándar", "Doble Superior", "Junior Suite", "Suite"];
+const RATES = [120, 150, 210, 290];
+/** Generates rooms for a new hotel: 10 per floor, numbered 101, 102… */
+export function generateRooms(count: number, rateBoost = 0): Room[] {
+  return Array.from({ length: count }, (_, i) => {
+    const floor = Math.floor(i / 10) + 1, t = i % 10 < 5 ? 0 : i % 10 < 8 ? 1 : i % 10 < 9 ? 2 : 3;
+    return { number: `${floor}${String((i % 10) + 1).padStart(2, "0")}`, floor, type: TYPES[t]!, rate: RATES[t]! + rateBoost, hk: "clean", oos: false };
+  });
+}
+export function emptyData(rooms: Room[]): Data {
+  return { clock: START_CLOCK, rooms, guests: [], reservations: [], tasks: [], incidents: [], log: [], notifications: [], opportunities: [], rules: seedRules, sent: [] };
+}
+
+function beachData(): Data {
+  const rooms = generateRooms(20, 60);
+  const mk = (id: string, name: string, country: string, lang: string): Guest => ({ id, name, country, lang, doc: `PAS ${id.toUpperCase()}8841`, phone: "+34 600 900 " + id.slice(1).padStart(3, "0"), email: `${id}@demo-mail.com`, companions: [], notes: "", messaging: true });
+  const guests = [mk("b1", "Sven Larsen", "SE", "Inglés"), mk("b2", "Claire Martin", "FR", "Francés"), mk("b3", "Javier Morales", "ES", "Español"), mk("b4", "Ingrid Berg", "NO", "Inglés"), { ...mk("b5", "Paula Navarro", "ES", "Español"), messaging: false }];
+  const rate = (n: string) => rooms.find((r) => r.number === n)!.rate;
+  const R = (id: string, g: string, room: string, i: number, o: number, eta: string, stay: Reservation["stay"], channel: Reservation["channel"]): Reservation =>
+    ({ id, guestId: g, room, inDay: i, outDay: o, eta, pax: 2, channel, amount: rate(room) * (o - i), status: "confirmed", stay, notes: "", createdDay: -10 });
+  return {
+    ...emptyData(rooms.map((r) => (r.number === "106" ? { ...r, hk: "dirty" as const } : r))),
+    guests,
+    reservations: [R("B-301", "b1", "101", -3, 2, "—", "inhouse", "Booking.com"), R("B-302", "b2", "102", -1, 0, "—", "inhouse", "Expedia"),
+      R("B-303", "b3", "106", 0, 3, "15:00", "none", "Web directa"), R("B-304", "b4", "201", -2, 4, "—", "inhouse", "Airbnb"), R("B-305", "b5", "107", 1, 5, "16:00", "none", "Recepción")],
+    tasks: [{ id: "BT-1", title: "Limpieza post check-out", room: "106", assignee: "María López", dept: "housekeeping", priority: "alta", day: 0, deadline: "14:30", status: "pendiente", comments: "Check-in Javier Morales 15:00.", nextCheckIn: "15:00", kind: "limpieza" }],
+    log: [{ id: "bl1", time: "11:20", actor: "Ana Torres", text: "Check-out habitación 106.", kind: "human" }],
+  };
+}
+
+const initialRoot = (): Root => ({ role: "owner", hotel: "grand", hotels: seedHotels, data: { grand: grandData, beach: beachData() } });
+const STORAGE = "suite-demo-v2";
 
 export const fmtClock = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 export const toMin = (t: string) => { const [h = 0, m = 0] = t.split(":").map(Number); return h * 60 + (m || 0); };
@@ -46,11 +83,24 @@ export function resDisplay(r: Reservation): ResDisplay {
   return "Confirmada";
 }
 
-let uid = 100;
-const id = (p: string) => `${p}-${++uid}`;
+const id = (p: string) => `${p}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
 function useSuiteState() {
-  const [s, setS] = useState<State>(initial);
+  const [root, setRoot] = useState<Root>(initialRoot);
+  const [loaded, setLoaded] = useState(false);
+  useEffect(() => {
+    try { const raw = localStorage.getItem(STORAGE); if (raw) setRoot(JSON.parse(raw) as Root); } catch { /* ignore corrupt storage */ }
+    setLoaded(true);
+  }, []);
+  useEffect(() => { if (loaded) localStorage.setItem(STORAGE, JSON.stringify(root)); }, [root, loaded]);
+
+  const s: State = useMemo(() => ({ ...root.data[root.hotel]!, role: root.role, hotel: root.hotel }), [root]);
+  const hotel = root.hotels.find((h) => h.id === root.hotel)!;
+  /** All actions write through the active hotel's slice — single source of truth */
+  const setS = (fn: (p: State) => State) => setRoot((r) => {
+    const { role, hotel: h, ...d } = fn({ ...r.data[r.hotel]!, role: r.role, hotel: r.hotel });
+    return { ...r, role, hotel: h, data: { ...r.data, [r.hotel]: d } };
+  });
 
   const helpers = useMemo(() => {
     const occupant = (room: string) => s.reservations.find((r) => r.room === room && r.stay === "inhouse");
@@ -90,7 +140,7 @@ function useSuiteState() {
       else if (i.blocking) out.push({ id: `a-inc-${i.id}`, level: "ALTA", title: `Incidencia ${i.category.toLowerCase()} habitación ${i.room}.`, detail: i.description, link: "/tareas" });
     });
     const dirty = s.rooms.filter((r) => ["dirty"].includes(helpers.roomState(r.number))).length;
-    if (dirty > 0) out.push({ id: "a-dirty", level: "MEDIA", title: `${dirty} habitación${dirty > 1 ? "es" : ""} pendiente${dirty > 1 ? "s" : ""} de limpieza.`, detail: "Asignadas a housekeeping.", link: "/tareas" });
+    if (dirty > 0) out.push({ id: "a-dirty", level: "MEDIA", title: `${dirty} ${dirty > 1 ? "habitaciones" : "habitación"} pendiente${dirty > 1 ? "s" : ""} de limpieza.`, detail: "Asignadas a housekeeping.", link: "/tareas" });
     s.opportunities.filter((o) => o.status === "nueva" && o.level === "alta").forEach((o) =>
       out.push({ id: `a-op-${o.id}`, level: "OPORTUNIDAD", title: `Revenue detectó una oportunidad para ${o.dates}.`, detail: `Ocupación ${o.occupancy}% · pickup ${o.pickup} · impacto +${eur(o.impact)}.`, link: "/control" }));
     return out;
@@ -109,7 +159,16 @@ function useSuiteState() {
 
     return {
       setRole: (role: RoleKey) => setS((p) => ({ ...p, role })),
-      setHotel: (hotel: HotelKey) => setS((p) => ({ ...p, hotel })),
+      setHotel: (h: HotelKey) => setRoot((r) => ({ ...r, hotel: h })),
+      resetDemo: () => { setRoot(initialRoot()); toast.success("Demo reiniciada", { description: "Datos iniciales restaurados." }); },
+      createHotel: (input: { name: string; address: string; city: string; rooms: number; category: string }) => {
+        const hid = id("h");
+        const h: Hotel = { ...input, id: hid, logo: input.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase(), status: "configurando" };
+        const d = emptyData(generateRooms(input.rooms));
+        d.log = [{ id: id("l"), time: fmtClock(START_CLOCK), actor: "Suite", text: `Hotel creado con ${input.rooms} habitaciones. Listo para añadir personal y reservas.`, kind: "suite" }];
+        setRoot((r) => ({ ...r, hotel: hid, hotels: [...r.hotels, h], data: { ...r.data, [hid]: d } }));
+        toast.success("Hotel creado", { description: `✓ ${input.rooms} habitaciones generadas\n✓ Entorno listo` });
+      },
       readAll: () => setS((p) => ({ ...p, notifications: p.notifications.map((n) => (n.roles.includes(p.role) ? { ...n, read: true } : n)) })),
 
       checkIn: (resId: string) => {
@@ -133,7 +192,7 @@ function useSuiteState() {
           ]);
           return notify(n, ["director", "owner"], `Check-in completado: ${gName} · ${r.room}.`, "ok");
         });
-        toast.success("Check-in realizado", { description: "✓ Habitación actualizada\n✓ Comunicaciones In-House activadas" });
+        toast.success("Check-in realizado", { description: "✓ Habitación actualizada\n✓ Huésped ahora está IN HOUSE\n✓ Comunicaciones In-House activadas" });
         return true;
       },
 
@@ -267,17 +326,16 @@ function useSuiteState() {
     };
   }, [s, helpers]);
 
-  return { s, ...helpers, alerts, actions };
+  return { s, hotel, hotels: root.hotels, ...helpers, alerts, actions };
 }
 
 type Ctx = ReturnType<typeof useSuiteState>;
-const SuiteCtx = createContext<Ctx | null>(null);
 export function SuiteProvider({ children }: { children: ReactNode }) {
   const v = useSuiteState();
   return <SuiteCtx.Provider value={v}>{children}</SuiteCtx.Provider>;
 }
 export function useSuite() {
-  const v = useContext(SuiteCtx);
+  const v = useContext(SuiteCtx) as Ctx | null;
   if (!v) throw new Error("SuiteProvider missing");
   return v;
 }
@@ -286,7 +344,7 @@ export const NAV_ACCESS: Record<RoleKey, string[]> = {
   owner: ["/", "/reservas", "/habitaciones", "/control", "/personal", "/tareas", "/huespedes", "/mensajes", "/integraciones", "/configuracion"],
   director: ["/", "/reservas", "/habitaciones", "/control", "/personal", "/tareas", "/huespedes", "/mensajes", "/configuracion"],
   reception: ["/", "/reservas", "/habitaciones", "/huespedes", "/tareas", "/mensajes"],
-  housekeeping: ["/", "/tareas"],
-  maintenance: ["/", "/tareas"],
-  revenue: ["/", "/control", "/reservas"],
+  housekeeping: ["/", "/habitaciones", "/tareas"],
+  maintenance: ["/", "/habitaciones", "/tareas"],
+  revenue: ["/", "/control", "/reservas", "/habitaciones"],
 };

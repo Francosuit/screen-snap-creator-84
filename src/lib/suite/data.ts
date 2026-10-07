@@ -2,7 +2,7 @@
 // Demo "today" = Tuesday 10 Nov 2026 (day offset 0). Demo clock starts 13:15.
 
 export type RoleKey = "owner" | "director" | "reception" | "housekeeping" | "maintenance" | "revenue";
-export type HotelKey = "grand" | "beach";
+export type HotelKey = string;
 
 export type Channel = "Booking.com" | "Expedia" | "Web directa" | "Recepción" | "Airbnb";
 /** Commercial state of the booking */
@@ -59,20 +59,21 @@ export const ROLES: Record<RoleKey, { label: string; person: string; title: stri
   revenue: { label: "Revenue", person: "David Sanz", title: "Revenue Manager" },
 };
 
-export const HOTELS: Record<HotelKey, { name: string; rooms: number; city: string }> = {
-  grand: { name: "Hotel Suite Grand", rooms: 15, city: "Madrid" },
-  beach: { name: "Suite Beach Resort", rooms: 48, city: "Marbella" },
-};
+export interface Hotel { id: string; name: string; address: string; city: string; category: string; rooms: number; logo: string; status: "activo" | "configurando" }
+export const seedHotels: Hotel[] = [
+  { id: "grand", name: "Hotel Suite Grand", address: "Calle de Alcalá 120", city: "Madrid", category: "Urbano 4★", rooms: 15, logo: "SG", status: "activo" },
+  { id: "beach", name: "Suite Beach Resort", address: "Paseo Marítimo 8", city: "Marbella", category: "Vacacional 5★", rooms: 20, logo: "SB", status: "activo" },
+];
 
 const r = (number: string, type: string, rate: number, hk: HkStatus = "clean", oos = false): Room => ({
   number, floor: Number(number[0]), type, hk, oos, rate,
 });
 
 export const seedRooms: Room[] = [
-  r("101", "Doble Superior", 145), r("102", "Doble Superior", 145), r("103", "Doble Estándar", 120),
+  r("101", "Doble Superior", 145), r("102", "Doble Superior", 145), r("103", "Doble Estándar", 120, "dirty"),
   r("104", "Doble Estándar", 120), r("105", "Individual", 95, "clean", true),
   r("201", "Doble Superior", 150), r("202", "Doble Estándar", 125), r("203", "Junior Suite", 210),
-  r("204", "Doble Superior", 150, "dirty"), r("205", "Doble Estándar", 125),
+  r("204", "Doble Superior", 150), r("205", "Doble Estándar", 125),
   r("301", "Suite", 290), r("302", "Junior Suite", 220), r("303", "Doble Superior", 155, "inspect"),
   r("304", "Doble Estándar", 130), r("305", "Suite", 290),
 ];
@@ -114,14 +115,14 @@ export const seedReservations: Reservation[] = [
   res("R-2041", "g1", "204", 0, 2, "14:00", 2, "Web directa", "none", "Aniversario: preparar detalle de bienvenida."),
   res("R-2032", "g2", "101", -2, 2, "—", 1, "Booking.com", "inhouse"),
   res("R-2018", "g3", "102", -3, 0, "—", 2, "Expedia", "inhouse", "Salida hoy 11:00 — taxi 12:00."),
-  res("R-2044", "g4", "103", 0, 4, "16:00", 3, "Booking.com", "none", "Familia. Cama supletoria preparada."),
+  res("R-2044", "g4", "103", 0, 4, "14:00", 3, "Booking.com", "none", "Familia. Cama supletoria preparada."),
   res("R-2027", "g5", "104", -1, 3, "—", 1, "Recepción", "inhouse"),
   res("R-2035", "g6", "201", -1, 1, "—", 2, "Airbnb", "inhouse"),
   res("R-2021", "g7", "203", -4, 0, "—", 2, "Web directa", "inhouse", "Cliente repetidor."),
   res("R-2039", "g8", "205", -2, 4, "—", 1, "Expedia", "inhouse", "Late check-out mañana pendiente de confirmar."),
   res("R-2046", "g9", "301", 0, 3, "18:00", 2, "Booking.com", "none"),
   res("R-2030", "g10", "302", -3, 2, "—", 2, "Web directa", "inhouse", "Luna de miel."),
-  res("R-2012", "g11", "204", -3, 0, "—", 1, "Booking.com", "finished", "Check-out 11:54."),
+  res("R-2012", "g11", "103", -3, 0, "—", 1, "Booking.com", "finished", "Check-out 11:54."),
   res("R-1988", "g12", "202", -9, -6, "—", 2, "Recepción", "finished"),
   res("R-2040", "g13", "202", 1, 3, "15:00", 1, "Expedia", "none", "Cancelada por el huésped.", "cancelled"),
   res("R-2036", "g14", "304", -1, 1, "20:00", 1, "Booking.com", "none", "No-show. Garantía cobrada.", "noshow"),
@@ -131,7 +132,7 @@ export const seedReservations: Reservation[] = [
 ];
 
 export const seedTasks: Task[] = [
-  { id: "T-1", title: "Limpieza post check-out", room: "204", assignee: "María López", dept: "housekeeping", priority: "alta", day: 0, deadline: "13:30", status: "pendiente", comments: "Check-in Juan Pérez 14:00. Aniversario: detalle de bienvenida.", nextCheckIn: "14:00", kind: "limpieza" },
+  { id: "T-1", title: "Limpieza post check-out", room: "103", assignee: "María López", dept: "housekeeping", priority: "alta", day: 0, deadline: "13:30", status: "pendiente", comments: "Check-in Emma Wilson 14:00 · familia con cama supletoria.", nextCheckIn: "14:00", kind: "limpieza" },
   { id: "T-2", title: "Repaso habitación", room: "303", assignee: "María López", dept: "housekeeping", priority: "media", day: 0, deadline: "15:30", status: "pendiente", comments: "Revisión tras mantenimiento de grifo.", kind: "repaso" },
   { id: "T-3", title: "Limpieza diaria", room: "304", assignee: "María López", dept: "housekeeping", priority: "baja", day: 0, deadline: "13:00", status: "completada", comments: "", kind: "limpieza", startedAt: "12:10", endedAt: "12:43" },
   { id: "T-4", title: "Reparar aire acondicionado", room: "305", assignee: "Carlos Ruiz", dept: "mantenimiento", priority: "alta", day: 0, deadline: "15:00", status: "en_proceso", comments: "Compresor no arranca. Posible técnico externo.", kind: "mantenimiento", incidentId: "I-1", startedAt: "12:21" },
@@ -151,15 +152,15 @@ export const seedLog: LogEntry[] = [
   { id: "l3", time: "12:43", actor: "María López", text: "Terminó limpieza habitación 304.", kind: "human" },
   { id: "l4", time: "12:37", actor: "Booking.com", text: "Nueva reserva R-2049 · Chen Wei · 11–13 nov.", kind: "channel" },
   { id: "l5", time: "12:21", actor: "Carlos Ruiz", text: "Comenzó mantenimiento habitación 305.", kind: "human" },
-  { id: "l6", time: "11:55", actor: "Suite", text: "Tarea de limpieza 204 creada · prioridad ALTA (check-in 14:00).", kind: "suite" },
-  { id: "l7", time: "11:54", actor: "Ana Torres", text: "Check-out habitación 204 · Lucas Moreau.", kind: "human" },
+  { id: "l6", time: "11:55", actor: "Suite", text: "Tarea de limpieza 103 creada · prioridad ALTA (check-in 14:00).", kind: "suite" },
+  { id: "l7", time: "11:54", actor: "Ana Torres", text: "Check-out habitación 103 · Lucas Moreau.", kind: "human" },
   { id: "l8", time: "11:32", actor: "Revenue", text: "Nueva oportunidad detectada: 17–19 nov.", kind: "revenue" },
   { id: "l9", time: "09:40", actor: "María López", text: "Reportó incidencia climatización 305.", kind: "human" },
 ];
 
 export const seedNotifications: Notification[] = [
-  { id: "n1", roles: ["reception", "director", "owner", "housekeeping"], text: "Check-in 204 en 45 min · habitación no lista.", time: "13:15", read: false, tone: "urgent" },
-  { id: "n2", roles: ["housekeeping"], text: "Nueva habitación asignada: 204 (post check-out).", time: "11:55", read: false, tone: "info" },
+  { id: "n1", roles: ["reception", "director", "owner", "housekeeping"], text: "Check-in 103 en 45 min · habitación no lista.", time: "13:15", read: false, tone: "urgent" },
+  { id: "n2", roles: ["housekeeping"], text: "Nueva habitación asignada: 103 (post check-out).", time: "11:55", read: false, tone: "info" },
   { id: "n3", roles: ["maintenance", "director", "owner"], text: "Nueva incidencia: bombilla 201.", time: "12:05", read: false, tone: "info" },
   { id: "n4", roles: ["revenue", "director", "owner"], text: "Nueva oportunidad Revenue: 17–19 nov.", time: "11:32", read: false, tone: "info" },
   { id: "n5", roles: ["reception", "owner"], text: "Nueva reserva Booking.com · Chen Wei.", time: "12:37", read: true, tone: "ok" },
@@ -203,12 +204,12 @@ export const seedRules: MessageRule[] = [
 ];
 
 export const staff = [
-  { name: "Juan Ibarra", role: "Owner", dept: "Dirección", phone: "+34 600 100 001", shift: "—", status: "Disponible" },
-  { name: "Laura Vidal", role: "Directora", dept: "Dirección", phone: "+34 600 100 002", shift: "09:00–18:00", status: "En turno" },
-  { name: "Ana Torres", role: "Recepción", dept: "Front Office", phone: "+34 600 100 003", shift: "07:00–15:00", status: "En turno" },
-  { name: "María López", role: "Housekeeping", dept: "Pisos", phone: "+34 600 100 004", shift: "08:00–16:00", status: "En turno" },
-  { name: "Carlos Ruiz", role: "Mantenimiento", dept: "Técnico", phone: "+34 600 100 005", shift: "08:00–17:00", status: "En turno" },
-  { name: "David Sanz", role: "Revenue Manager", dept: "Comercial", phone: "+34 600 100 006", shift: "10:00–19:00", status: "En turno" },
+  { id: "st1", roleKey: "owner", name: "Juan Ibarra", role: "Owner", dept: "Dirección", phone: "+34 600 100 001", shift: "—", status: "Disponible" },
+  { id: "st2", roleKey: "director", name: "Laura Vidal", role: "Directora", dept: "Dirección", phone: "+34 600 100 002", shift: "09:00–18:00", status: "En turno" },
+  { id: "st3", roleKey: "reception", name: "Ana Torres", role: "Recepción", dept: "Front Office", phone: "+34 600 100 003", shift: "07:00–15:00", status: "En turno" },
+  { id: "st4", roleKey: "housekeeping", name: "María López", role: "Housekeeping", dept: "Pisos", phone: "+34 600 100 004", shift: "08:00–16:00", status: "En turno" },
+  { id: "st5", roleKey: "maintenance", name: "Carlos Ruiz", role: "Mantenimiento", dept: "Técnico", phone: "+34 600 100 005", shift: "08:00–17:00", status: "En turno" },
+  { id: "st6", roleKey: "revenue", name: "David Sanz", role: "Revenue Manager", dept: "Comercial", phone: "+34 600 100 006", shift: "10:00–19:00", status: "En turno" },
 ];
 
 export const externals = [

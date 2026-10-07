@@ -27,7 +27,7 @@ function Personal() {
             <div className="min-w-0 flex-1">
               <div className="font-medium">{p.name}</div>
               <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{p.role}</div>
-              <div className="mt-1 text-xs text-muted-foreground">{p.dept} · turno {p.shift}</div>
+              <div className="mt-1 text-xs text-muted-foreground">{p.dept} · turno {p.shift} · rol Suite: {p.roleKey.toUpperCase()}</div>
             </div>
             <Pill className="border-st-ready/30 bg-st-ready/10 text-st-ready">{p.status}</Pill>
           </Card>

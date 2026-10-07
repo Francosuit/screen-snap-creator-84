@@ -36,7 +36,7 @@ const LEVEL = {
 } as const;
 
 function Dashboard() {
-  const { s, alerts, roomState } = useSuite();
+  const { s, alerts, roomState, hotel } = useSuite();
   const nav = useNavigate();
   const [openAlert, setOpenAlert] = useState<string | null>(null);
   const AVAIL = s.rooms.filter((r) => !r.oos).length;
@@ -47,8 +47,13 @@ function Dashboard() {
   const nightly = (r: (typeof s.reservations)[number]) => r.amount / (r.outDay - r.inDay);
   const sold = [...inhouse, ...pendingIn];
   const revToday = sold.reduce((a, r) => a + nightly(r), 0);
-  const occ = Math.round((sold.length / AVAIL) * 100);
+  const occ = AVAIL ? Math.round((sold.length / AVAIL) * 100) : 0;
   const adr = sold.length ? revToday / sold.length : 0;
+  // Month revenue: room-nights from 1 Nov (day offset -9) through today, from real bookings
+  const monthRev = s.reservations.filter((r) => r.status !== "cancelled").reduce((acc, r) => {
+    const from = Math.max(r.inDay, -9), to = Math.min(r.outDay, 1);
+    return acc + Math.max(0, to - from) * nightly(r);
+  }, 0);
   const tomorrowStays = s.reservations.filter((r) => r.status === "confirmed" && r.stay !== "finished" && r.inDay <= 1 && r.outDay > 1);
   const isRevenue = s.role === "revenue";
   const a = alerts.find((x) => x.id === openAlert);
@@ -57,14 +62,14 @@ function Dashboard() {
 
   return (
     <div>
-      <PageHeader title={`Buenas tardes, ${ROLES[s.role].person.split(" ")[0]}`} sub="Esto es lo que está pasando hoy en Hotel Suite Grand." />
+      <PageHeader title={`Buenas tardes, ${ROLES[s.role].person.split(" ")[0]}`} sub={`Esto es lo que está pasando hoy en ${hotel.name}.`} />
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
-        <Kpi label="Facturación hoy" value={eur(revToday)} delta="+8,4%" hint="vs. martes pasado" />
-        <Kpi label="Facturación mes" value={eur(41860 + revToday)} delta="+12,1%" hint="vs. nov 2025" />
-        <Kpi label="Ocupación" value={`${occ}%`} delta="+6 pp" hint={`${sold.length}/${AVAIL} hab.`} />
-        <Kpi label="ADR" value={eur(adr)} delta="+4,2%" />
-        <Kpi label="RevPAR" value={eur(revToday / AVAIL)} delta="+11,0%" />
+        <Kpi label="Facturación hoy" value={eur(revToday)} hint={`${sold.length} hab. vendidas`} />
+        <Kpi label="Facturación mes" value={eur(monthRev)} hint="1–10 nov" />
+        <Kpi label="Ocupación" value={`${occ}%`} hint={`${sold.length}/${AVAIL} hab.`} />
+        <Kpi label="ADR" value={eur(adr)} hint="tarifa media" />
+        <Kpi label="RevPAR" value={eur(AVAIL ? revToday / AVAIL : 0)} hint="por hab. disponible" />
       </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
@@ -103,7 +108,7 @@ function Dashboard() {
               <Stats items={[
                 ["Check-ins", s.reservations.filter((r) => r.inDay === 1 && r.status === "confirmed").length],
                 ["Check-outs", s.reservations.filter((r) => r.outDay === 1 && r.status === "confirmed" && r.stay !== "finished").length],
-                ["Ocupación prevista", `${Math.round((tomorrowStays.length / AVAIL) * 100)}%`],
+                ["Ocupación prevista", `${AVAIL ? Math.round((tomorrowStays.length / AVAIL) * 100) : 0}%`],
                 ["Reservas previstas", tomorrowStays.length],
               ]} />
             </Card>

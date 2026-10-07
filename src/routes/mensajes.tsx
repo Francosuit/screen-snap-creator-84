@@ -22,8 +22,9 @@ export const Route = createFileRoute("/mensajes")({
 
 function Mensajes() {
   const { s, actions } = useSuite();
-  const juanRes = s.reservations.find((r) => r.id === "R-2041")!;
-  const juan = s.guests.find((g) => g.id === "g1")!;
+  const juanRes = s.reservations.find((r) => r.id === "R-2041");
+  const juan = s.guests.find((g) => g.id === "g1");
+  if (!juanRes || !juan) return <PageHeader title="Mensajes" sub="Este hotel todavía no tiene huéspedes con comunicaciones." />;
   const stayDays = Array.from({ length: juanRes.outDay - juanRes.inDay + 1 }, (_, i) => dayDate(juanRes.inDay + i).getDay());
   const recos = activities.filter((a) => a.days.some((d) => stayDays.includes(d)));
   return (

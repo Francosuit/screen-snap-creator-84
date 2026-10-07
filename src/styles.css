@@ -54,6 +54,11 @@
   --color-st-maint: var(--st-maint);
   --color-st-oos: var(--st-oos);
   --color-brand: var(--brand);
+  --color-twin-bg: var(--twin-bg);
+  --color-twin-panel: var(--twin-panel);
+  --color-twin-line: var(--twin-line);
+  --color-twin-text: var(--twin-text);
+  --color-twin-muted: var(--twin-muted);
 }
 
 :root {
@@ -89,6 +94,16 @@
   --st-cleaning: oklch(0.7 0.17 50);
   --st-maint: oklch(0.6 0.2 25);
   --st-oos: oklch(0.65 0.01 270);
+  --twin-bg: oklch(0.2 0.018 262);
+  --twin-panel: oklch(0.25 0.02 262);
+  --twin-slab: oklch(0.31 0.02 262);
+  --twin-slab-side: oklch(0.24 0.02 262);
+  --twin-floor: oklch(0.36 0.018 262);
+  --twin-wall: oklch(0.42 0.016 262);
+  --twin-wall-dark: oklch(0.34 0.018 262);
+  --twin-line: oklch(0.4 0.02 262);
+  --twin-text: oklch(0.95 0.005 262);
+  --twin-muted: oklch(0.7 0.015 262);
   --sidebar: oklch(0.975 0.002 85);
   --sidebar-foreground: oklch(0.3 0.01 270);
   --sidebar-primary: oklch(0.24 0.015 270);
@@ -118,3 +133,15 @@
 [data-sonner-toast] [data-description] {
   white-space: pre-line;
 }
+
+@keyframes twin-pulse {
+  0% { transform: scale(1); opacity: 0.9; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+.twin-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: twin-pulse 1.8s ease-out infinite;
+}
+.twin-room { transition: opacity 200ms ease; cursor: pointer; }
+.twin-room polygon { transition: fill 400ms ease, stroke 400ms ease; }

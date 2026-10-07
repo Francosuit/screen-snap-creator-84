@@ -18,7 +18,14 @@ export type Priority = "baja" | "media" | "alta" | "urgente";
 export type TaskStatus = "pendiente" | "en_proceso" | "completada" | "bloqueada";
 export type Dept = "housekeeping" | "mantenimiento" | "recepcion" | "revenue";
 
-export interface Room { number: string; floor: number; type: string; hk: HkStatus; oos: boolean; rate: number }
+export interface Room {
+  number: string; floor: number; type: string; hk: HkStatus; oos: boolean; rate: number;
+  /** Physical configuration (optional: older rooms fall back to defaults by type) */
+  capacity?: number; beds?: string; bath?: string; terrace?: boolean; view?: string; sqm?: number;
+  /** Position inside its floor plan: column along the corridor + side of the corridor */
+  x?: number; side?: "left" | "right";
+}
+export interface Floor { number: number; name: string }
 export interface Guest {
   id: string; name: string; doc: string; phone: string; email: string; lang: string;
   companions: string[]; notes: string; country: string; messaging: boolean;
@@ -59,7 +66,7 @@ export const ROLES: Record<RoleKey, { label: string; person: string; title: stri
   revenue: { label: "Revenue", person: "David Sanz", title: "Revenue Manager" },
 };
 
-export interface Hotel { id: string; name: string; address: string; city: string; category: string; rooms: number; logo: string; status: "activo" | "configurando" }
+export interface Hotel { id: string; name: string; address: string; city: string; category: string; rooms: number; logo: string; status: "activo" | "configurando"; floors?: Floor[]; description?: string }
 export const seedHotels: Hotel[] = [
   { id: "grand", name: "Hotel Suite Grand", address: "Calle de Alcalá 120", city: "Madrid", category: "Urbano 4★", rooms: 15, logo: "SG", status: "activo" },
   { id: "beach", name: "Suite Beach Resort", address: "Paseo Marítimo 8", city: "Marbella", category: "Vacacional 5★", rooms: 20, logo: "SB", status: "activo" },

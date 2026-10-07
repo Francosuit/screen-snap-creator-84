@@ -1,0 +1,59 @@
+import type { RoomState } from "@/lib/suite/data";
+import { box, center, pts, STATE_VAR, type Pt, type Rect, type RoomMeta } from "./geometry";
+
+/**
+ * Simulated isometric interior. Rendered through a single component so it can
+ * later be swapped for a real 3D model (same props: meta + live state).
+ */
+export function RoomInterior({ meta, state, number }: { meta: RoomMeta; state: RoomState; number: string }) {
+  const U = 26;
+  const W = 6, D = 4.6;
+  const c = STATE_VAR[state];
+  type Item = { r: Rect; h: number; top: string; side: string; label?: string };
+  const items: Item[] = [
+    { r: { x: 0, y: 0, w: 2, d: 0.08 }, h: 1.2, top: "var(--twin-wall)", side: "var(--twin-wall-dark)" },
+    { r: { x: 1.95, y: 0, w: 0.08, d: 2 }, h: 1.2, top: "var(--twin-wall)", side: "var(--twin-wall-dark)" },
+    { r: { x: 0.2, y: 0.25, w: 1.4, d: 0.75 }, h: 0.45, top: "var(--twin-text)", side: "var(--twin-muted)", label: meta.bath.includes("Bañera") ? "BAÑERA" : "DUCHA" },
+    { r: { x: 0.25, y: 1.3, w: 0.6, d: 0.5 }, h: 0.6, top: "var(--twin-text)", side: "var(--twin-muted)" },
+    { r: { x: 2.4, y: 0.1, w: 1.0, d: 0.55 }, h: 1.4, top: "var(--twin-floor)", side: "var(--twin-wall-dark)", label: "ARMARIO" },
+    { r: { x: 3.6, y: 0.1, w: 2.2, d: 0.2 }, h: 0.9, top: "var(--twin-wall)", side: "var(--twin-wall-dark)" },
+    { r: { x: 3.7, y: 0.3, w: 2.0, d: 2.3 }, h: 0.45, top: `color-mix(in oklab, ${c} 35%, var(--twin-text))`, side: "var(--twin-wall)", label: meta.beds.toUpperCase() },
+    { r: { x: 3.75, y: 0.35, w: 1.9, d: 0.45 }, h: 0.58, top: "var(--twin-text)", side: "var(--twin-muted)" },
+    { r: { x: 0.3, y: 3.5, w: 1.8, d: 0.7 }, h: 0.75, top: "var(--twin-floor)", side: "var(--twin-wall-dark)", label: "ESCRITORIO" },
+    { r: { x: 0.9, y: 3.0, w: 0.5, d: 0.45 }, h: 0.45, top: "var(--twin-wall)", side: "var(--twin-wall-dark)" },
+  ];
+  const floor = box({ x: 0, y: 0, w: W, d: D }, -0.12, 0.12, U);
+  const terrace = meta.terrace ? box({ x: 0, y: D + 0.1, w: W, d: 1.3 }, -0.12, 0.08, U) : null;
+  const rail = meta.terrace ? box({ x: 0, y: D + 1.32, w: W, d: 0.06 }, 0, 0.45, U) : null;
+  const sorted = [...items].sort((a, b) => a.r.x + a.r.y - (b.r.x + b.r.y));
+  const all: Pt[] = [...floor.top, ...floor.south, ...floor.east, ...(terrace ? terrace.south : []), ...(rail ? rail.south : [])];
+  sorted.forEach((it) => { const b = box(it.r, 0, it.h, U); all.push(...b.top); });
+  const xs = all.map((p) => p[0]), ys = all.map((p) => p[1]);
+  const vb = `${Math.min(...xs) - 16} ${Math.min(...ys) - 16} ${Math.max(...xs) - Math.min(...xs) + 32} ${Math.max(...ys) - Math.min(...ys) + 32}`;
+  return (
+    <svg viewBox={vb} className="w-full" role="img" aria-label={`Vista digital de la habitación ${number}`}>
+      <polygon points={pts(floor.east)} style={{ fill: "var(--twin-slab-side)" }} />
+      <polygon points={pts(floor.south)} style={{ fill: "var(--twin-slab-side)" }} />
+      <polygon points={pts(floor.top)} style={{ fill: "var(--twin-slab)", stroke: c, strokeWidth: 1.2 }} />
+      {terrace && rail && (
+        <>
+          <polygon points={pts(terrace.top)} style={{ fill: "var(--twin-floor)", opacity: 0.7 }} />
+          <text x={center(terrace.top)[0]} y={center(terrace.top)[1]} textAnchor="middle" style={{ fill: "var(--twin-muted)", fontSize: 8, letterSpacing: "0.1em" }}>TERRAZA · VISTA {meta.view.toUpperCase()}</text>
+          <polygon points={pts(rail.south)} style={{ fill: "var(--twin-text)", opacity: 0.25 }} />
+        </>
+      )}
+      {sorted.map((it, i) => {
+        const b = box(it.r, 0, it.h, U);
+        const ct = center(b.top);
+        return (
+          <g key={i}>
+            <polygon points={pts(b.east)} style={{ fill: it.side }} />
+            <polygon points={pts(b.south)} style={{ fill: it.side, opacity: 0.85 }} />
+            <polygon points={pts(b.top)} style={{ fill: it.top }} />
+            {it.label && <text x={ct[0]} y={ct[1]} textAnchor="middle" dominantBaseline="middle" style={{ fill: "var(--twin-bg)", fontSize: 6.5, fontWeight: 600, letterSpacing: "0.06em" }}>{it.label}</text>}
+          </g>
+        );
+      })}
+    </svg>
+  );
+}

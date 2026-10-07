@@ -44,7 +44,7 @@ function Dashboard() {
   const arrivalsToday = s.reservations.filter((r) => r.inDay === 0 && r.status === "confirmed" && r.stay !== "finished" || (r.inDay === 0 && r.stay === "inhouse"));
   const pendingIn = s.reservations.filter((r) => r.inDay === 0 && r.status === "confirmed" && r.stay === "none");
   const departures = s.reservations.filter((r) => r.outDay === 0 && r.status === "confirmed" && r.inDay < 0);
-  const nightly = (r: (typeof s.reservations)[number]) => r.amount / (r.outDay - r.inDay);
+  const nightly = (r: (typeof s.reservations)[number]) => r.amount / Math.max(1, r.outDay - r.inDay);
   const sold = [...inhouse, ...pendingIn];
   const revToday = sold.reduce((a, r) => a + nightly(r), 0);
   const occ = AVAIL ? Math.round((sold.length / AVAIL) * 100) : 0;

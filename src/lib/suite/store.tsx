@@ -139,7 +139,7 @@ function useSuiteState() {
       else if (i.blocking) out.push({ id: `a-inc-${i.id}`, level: "ALTA", title: `Incidencia ${i.category.toLowerCase()} habitación ${i.room}.`, detail: i.description, link: "/tareas" });
     });
     const dirty = s.rooms.filter((r) => ["dirty"].includes(helpers.roomState(r.number))).length;
-    if (dirty > 0) out.push({ id: "a-dirty", level: "MEDIA", title: `${dirty} habitación${dirty > 1 ? "es" : ""} pendiente${dirty > 1 ? "s" : ""} de limpieza.`, detail: "Asignadas a housekeeping.", link: "/tareas" });
+    if (dirty > 0) out.push({ id: "a-dirty", level: "MEDIA", title: `${dirty} ${dirty > 1 ? "habitaciones" : "habitación"} pendiente${dirty > 1 ? "s" : ""} de limpieza.`, detail: "Asignadas a housekeeping.", link: "/tareas" });
     s.opportunities.filter((o) => o.status === "nueva" && o.level === "alta").forEach((o) =>
       out.push({ id: `a-op-${o.id}`, level: "OPORTUNIDAD", title: `Revenue detectó una oportunidad para ${o.dates}.`, detail: `Ocupación ${o.occupancy}% · pickup ${o.pickup} · impacto +${eur(o.impact)}.`, link: "/control" }));
     return out;

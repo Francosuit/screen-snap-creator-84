@@ -111,7 +111,7 @@ function RootComponent() {
         <AppShell>
           <Outlet />
         </AppShell>
-        <Toaster position="bottom-right" toastOptions={{ classNames: { description: "whitespace-pre-line" } }} />
+        <Toaster position="bottom-right" />
       </SuiteProvider>
     </QueryClientProvider>
   );

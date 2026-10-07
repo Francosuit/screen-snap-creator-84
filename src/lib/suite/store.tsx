@@ -26,7 +26,7 @@ const initial: State = {
 };
 
 export const fmtClock = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
-export const toMin = (t: string) => { const [h, m] = t.split(":").map(Number); return h * 60 + (m || 0); };
+export const toMin = (t: string) => { const [h = 0, m = 0] = t.split(":").map(Number); return h * 60 + (m || 0); };
 export const dayDate = (off: number) => new Date(DEMO_DATE.getFullYear(), DEMO_DATE.getMonth(), DEMO_DATE.getDate() + off);
 export const fmtDay = (off: number) => {
   if (off === 0) return "Hoy";

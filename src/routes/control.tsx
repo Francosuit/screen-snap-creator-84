@@ -20,7 +20,7 @@ export const Route = createFileRoute("/control")({
 });
 
 const forecast = Array.from({ length: 21 }, (_, i) => {
-  const base = [64, 70, 58, 52, 61, 78, 81, 66, 60, 72, 84, 82, 79, 63, 48, 44, 41, 55, 69, 74, 71][i];
+  const base = [64, 70, 58, 52, 61, 78, 81, 66, 60, 72, 84, 82, 79, 63, 48, 44, 41, 55, 69, 74, 71][i] ?? 60;
   return { d: dayDate(i).getDate(), dia: dayDate(i).toLocaleDateString("es-ES", { weekday: "short" }), off: i, occ: base, ly: base - 8 + ((i * 7) % 11) - 5 };
 });
 const pickup = [["L", 3], ["M", 5], ["X", 2], ["J", 7], ["V", 9], ["S", 6], ["D", 4]].map(([d, v]) => ({ d, v }));

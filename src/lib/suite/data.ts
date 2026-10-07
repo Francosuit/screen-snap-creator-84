@@ -29,7 +29,7 @@ export interface Reservation {
 }
 export interface Task {
   id: string; title: string; room: string; assignee: string; dept: Dept; priority: Priority;
-  day: number; deadline: string; status: TaskStatus; comments: string; nextCheckIn?: string;
+  day: number; deadline: string; status: TaskStatus; comments: string; nextCheckIn?: string | undefined;
   kind: "limpieza" | "repaso" | "mantenimiento" | "general"; incidentId?: string; startedAt?: string; endedAt?: string;
 }
 export interface Incident {

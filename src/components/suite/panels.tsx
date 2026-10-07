@@ -160,7 +160,7 @@ export function RoomSheet({ room, onClose, onOpenRes }: { room: string | null; o
   );
 }
 
-export function ReportIssueDialog({ open, onOpenChange, defaultRoom }: { open: boolean; onOpenChange: (o: boolean) => void; defaultRoom?: string }) {
+export function ReportIssueDialog({ open, onOpenChange, defaultRoom }: { open: boolean; onOpenChange: (o: boolean) => void; defaultRoom?: string | undefined }) {
   const { s, actions } = useSuite();
   const [room, setRoom] = useState(defaultRoom ?? "204");
   const [category, setCategory] = useState("Climatización");

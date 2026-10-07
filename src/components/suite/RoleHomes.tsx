@@ -46,7 +46,7 @@ export function HousekeepingHome() {
 }
 
 function TaskSheet({ task, onClose, onStart, onFinish, startLabel, finishLabel, onReport }: {
-  task?: Task; onClose: () => void; onStart: () => void; onFinish: () => void; startLabel: string; finishLabel: string; onReport?: () => void;
+  task?: Task | undefined; onClose: () => void; onStart: () => void; onFinish: () => void; startLabel: string; finishLabel: string; onReport?: (() => void) | undefined;
 }) {
   return (
     <Sheet open={!!task} onOpenChange={(o) => !o && onClose()}>

@@ -114,3 +114,7 @@
     font-variant-numeric: tabular-nums;
   }
 }
+
+[data-sonner-toast] [data-description] {
+  white-space: pre-line;
+}

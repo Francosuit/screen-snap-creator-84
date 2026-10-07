@@ -1,8 +1,18 @@
-import { useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
+
+/** Toasts are muted while the activity simulator drives actions */
+let quiet = false;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const say: any = Object.assign((...a: any[]) => (quiet ? undefined : (toast as any)(...a)), {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  success: (...a: any[]) => (quiet ? undefined : (toast.success as any)(...a)),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  error: (...a: any[]) => (quiet ? undefined : (toast.error as any)(...a)),
+});
 import {
   DEMO_DATE, ROLES, START_CLOCK, seedGuests, seedIncidents, seedLog, seedNotifications, seedOpportunities,
-  seedReservations, seedRooms, seedRules, seedTasks, seedHotels, type Hotel,
+  seedReservations, seedRooms, seedRules, seedTasks, seedHotels, type Hotel, type Floor, type Channel,
   type Guest, type HotelKey, type Incident, type LogEntry, type Notification, type Opportunity, type Priority,
   type Reservation, type RoleKey, type Room, type RoomState, type SentMessage, type Task, type MessageRule,
 } from "./data";
@@ -15,7 +25,7 @@ interface Data {
 }
 /** Merged view of the active hotel — what screens read */
 interface State extends Data { role: RoleKey; hotel: HotelKey }
-interface Root { role: RoleKey; hotel: HotelKey; hotels: Hotel[]; data: Record<string, Data> }
+interface Root { role: RoleKey; hotel: HotelKey; hotels: Hotel[]; data: Record<string, Data>; sim?: boolean }
 
 const grandData: Data = {
   clock: START_CLOCK,
@@ -157,25 +167,30 @@ function useSuiteState() {
       ...st, notifications: [{ id: id("n"), roles, text, time: fmtClock(st.clock), read: false, tone }, ...st.notifications],
     });
 
-    return {
+    const api = {
       setRole: (role: RoleKey) => setS((p) => ({ ...p, role })),
       setHotel: (h: HotelKey) => setRoot((r) => ({ ...r, hotel: h })),
-      resetDemo: () => { setRoot(initialRoot()); toast.success("Demo reiniciada", { description: "Datos iniciales restaurados." }); },
-      createHotel: (input: { name: string; address: string; city: string; rooms: number; category: string }) => {
+      resetDemo: () => { setRoot(initialRoot()); say.success("Demo reiniciada", { description: "Datos iniciales restaurados." }); },
+      createHotel: (input: { name: string; address: string; city: string; category: string; description?: string; floors: Floor[]; rooms: Room[] }) => {
         const hid = id("h");
-        const h: Hotel = { ...input, id: hid, logo: input.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase(), status: "configurando" };
-        const d = emptyData(generateRooms(input.rooms));
-        d.log = [{ id: id("l"), time: fmtClock(START_CLOCK), actor: "Suite", text: `Hotel creado con ${input.rooms} habitaciones. Listo para añadir personal y reservas.`, kind: "suite" }];
+        const h: Hotel = {
+          id: hid, name: input.name, address: input.address, city: input.city, category: input.category, description: input.description ?? "",
+          rooms: input.rooms.length, floors: input.floors, status: "activo",
+          logo: input.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase(),
+        };
+        const d = emptyData(input.rooms);
+        d.log = [{ id: id("l"), time: fmtClock(START_CLOCK), actor: "Suite", text: `Hotel digital generado: ${input.floors.length} plantas · ${input.rooms.length} habitaciones.`, kind: "suite" }];
         setRoot((r) => ({ ...r, hotel: hid, hotels: [...r.hotels, h], data: { ...r.data, [hid]: d } }));
-        toast.success("Hotel creado", { description: `✓ ${input.rooms} habitaciones generadas\n✓ Entorno listo` });
+        return hid;
       },
+      setSim: (on: boolean) => setRoot((r) => ({ ...r, sim: on })),
       readAll: () => setS((p) => ({ ...p, notifications: p.notifications.map((n) => (n.roles.includes(p.role) ? { ...n, read: true } : n)) })),
 
       checkIn: (resId: string) => {
         const r = s.reservations.find((x) => x.id === resId)!;
         const gName = helpers.guest(r.guestId).name;
         if (helpers.roomState(r.room) !== "ready") {
-          toast.error(`Habitación ${r.room} no está lista`, { description: "Suite bloquea el check-in hasta que housekeeping la marque como LISTA." });
+          say.error(`Habitación ${r.room} no está lista`, { description: "Suite bloquea el check-in hasta que housekeeping la marque como LISTA." });
           return false;
         }
         setS((p) => {
@@ -192,7 +207,7 @@ function useSuiteState() {
           ]);
           return notify(n, ["director", "owner"], `Check-in completado: ${gName} · ${r.room}.`, "ok");
         });
-        toast.success("Check-in realizado", { description: "✓ Habitación actualizada\n✓ Huésped ahora está IN HOUSE\n✓ Comunicaciones In-House activadas" });
+        say.success("Check-in realizado", { description: "✓ Habitación actualizada\n✓ Huésped ahora está IN HOUSE\n✓ Comunicaciones In-House activadas" });
         return true;
       },
 
@@ -224,7 +239,7 @@ function useSuiteState() {
           ]);
           return notify(n, ["housekeeping"], `Nueva habitación asignada: ${r.room} (post check-out).`);
         });
-        toast.success("Check-out completado", { description: "✓ Comunicaciones detenidas\n✓ Limpieza creada automáticamente" });
+        say.success("Check-out completado", { description: "✓ Comunicaciones detenidas\n✓ Limpieza creada automáticamente" });
       },
 
       startTask: (taskId: string) => {
@@ -242,7 +257,7 @@ function useSuiteState() {
           ]);
           return n;
         });
-        toast(t.dept === "housekeeping" ? `Limpieza en proceso · ${t.room}` : `Tarea iniciada · ${t.room}`, { description: "Recepción y dirección ven el cambio en tiempo real." });
+        say(t.dept === "housekeeping" ? `Limpieza en proceso · ${t.room}` : `Tarea iniciada · ${t.room}`, { description: "Recepción y dirección ven el cambio en tiempo real." });
       },
 
       finishTask: (taskId: string) => {
@@ -270,7 +285,7 @@ function useSuiteState() {
           }
           return n;
         });
-        toast.success(t.dept === "housekeeping" ? `Habitación ${t.room} LISTA` : `Resuelto · ${t.room}`, {
+        say.success(t.dept === "housekeeping" ? `Habitación ${t.room} LISTA` : `Resuelto · ${t.room}`, {
           description: t.dept === "housekeeping" ? "✓ Recepción notificada\n✓ Alerta de check-in actualizada" : "✓ Incidencia cerrada\n✓ Responsables notificados",
         });
       },
@@ -295,7 +310,7 @@ function useSuiteState() {
           ]);
           return notify(n, ["maintenance", "director", "owner"], `Nueva incidencia: ${input.category} · ${input.room}.`, "urgent");
         });
-        toast.success("Incidencia reportada", { description: "✓ Tarea de mantenimiento creada\n✓ Carlos Ruiz notificado" });
+        say.success("Incidencia reportada", { description: "✓ Tarea de mantenimiento creada\n✓ Carlos Ruiz notificado" });
       },
 
       decideOpportunity: (oid: string, decision: "revisada" | "ignorada") => {
@@ -303,7 +318,7 @@ function useSuiteState() {
         setS((p) => push({ ...p, opportunities: p.opportunities.map((x) => (x.id === oid ? { ...x, status: decision } : x)) }, [
           { actor, text: `${decision === "revisada" ? "Marcó para revisar" : "Ignoró"} recomendación “${o.title}” (${o.dates}). Tarifa sin cambios automáticos.`, kind: "revenue" },
         ]));
-        toast(decision === "revisada" ? "Recomendación enviada a revisión" : "Recomendación ignorada", { description: "Suite recomienda. Una persona decide." });
+        say(decision === "revisada" ? "Recomendación enviada a revisión" : "Recomendación ignorada", { description: "Suite recomienda. Una persona decide." });
       },
 
       toggleRule: (rid: string) => setS((p) => ({ ...p, rules: p.rules.map((r) => (r.id === rid ? { ...r, active: !r.active } : r)) })),
@@ -321,12 +336,86 @@ function useSuiteState() {
         setS((p) => push({ ...p, sent: [...entries, ...p.sent] }, [
           { actor: "Suite", text: `Regla “${rule.name}” ejecutada: ${sent} enviados, ${entries.length - sent} omitidos tras verificar estado del huésped.`, kind: "suite" },
         ], 0));
-        toast.success(`“${rule.name}” simulada`, { description: `${sent} enviados · ${entries.length - sent} omitidos por estado` });
+        say.success(`“${rule.name}” simulada`, { description: `${sent} enviados · ${entries.length - sent} omitidos por estado` });
       },
     };
+
+    /** Direct room operations from the digital twin — all go through the same tasks/state */
+    const roomOp = (num: string, op: "dirty" | "start" | "finish" | "oos") => {
+      const room = s.rooms.find((r) => r.number === num)!;
+      const open = s.tasks.find((t) => t.room === num && t.dept === "housekeeping" && t.status !== "completada");
+      if (op === "oos") {
+        setS((p) => push({ ...p, rooms: p.rooms.map((r) => (r.number === num ? { ...r, oos: !r.oos } : r)) }, [
+          { actor, text: `Habitación ${num} → ${room.oos ? "EN SERVICIO" : "FUERA DE SERVICIO"}.`, kind: "human" },
+        ]));
+        say(room.oos ? `Habitación ${num} en servicio` : `Habitación ${num} fuera de servicio`);
+        return;
+      }
+      if (op === "start" && open && open.status === "pendiente") return api.startTask(open.id);
+      if (op === "finish" && open && open.status === "en_proceso") return api.finishTask(open.id);
+      if (op === "dirty" || (op === "start" && !open)) {
+        const task: Task = { id: id("T"), title: op === "dirty" ? "Limpieza solicitada" : "Limpieza", room: num, assignee: "María López", dept: "housekeeping", priority: "media", day: 0, deadline: fmtClock(s.clock + 90), status: op === "start" ? "en_proceso" : "pendiente", comments: "Creada desde el hotel digital.", kind: "limpieza", ...(op === "start" ? { startedAt: fmtClock(s.clock + 1) } : {}) };
+        setS((p) => notify(push({ ...p, tasks: [task, ...p.tasks], rooms: p.rooms.map((r) => (r.number === num ? { ...r, hk: op === "start" ? "cleaning" : "dirty" } : r)) }, [
+          { actor, text: op === "dirty" ? `Marcó habitación ${num} pendiente de limpieza.` : `Empezó limpieza habitación ${num}.`, kind: "human" },
+          { actor: "Suite", text: `Habitación ${num} → ${op === "dirty" ? "PENDIENTE DE LIMPIEZA" : "LIMPIEZA EN PROCESO"}. Tarea asignada a María López.`, kind: "suite" },
+        ]), ["housekeeping"], `Nueva habitación asignada: ${num}.`));
+        say(op === "dirty" ? `Habitación ${num} pendiente de limpieza` : `Limpieza en proceso · ${num}`, { description: "✓ Tarea de housekeeping creada" });
+      }
+    };
+
+    const NAMES = ["Lucía Romero", "Thomas Weber", "Sara Conti", "Ahmed Nasser", "Julia Novak", "Diego Castro", "Mia Jensen", "Oliver King", "Nora Silva", "Leo Fischer"];
+    const CHANNELS: Channel[] = ["Booking.com", "Expedia", "Web directa", "Recepción", "Airbnb"];
+    const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)]!;
+    const addBooking = (today: boolean) => {
+      const free = s.rooms.filter((r) => !r.oos && !s.reservations.some((x) => x.room === r.number && x.status === "confirmed" && x.stay !== "finished"));
+      if (!free.length) return false;
+      const room = pick(free), name = pick(NAMES), gid = id("g"), inDay = today ? 0 : 1 + Math.floor(Math.random() * 6), nights = 1 + Math.floor(Math.random() * 4);
+      const channel = pick(CHANNELS);
+      const g: Guest = { id: gid, name, doc: `PAS ${gid.slice(-6).toUpperCase()}`, phone: "+34 600 000 000", email: `${gid}@demo-mail.com`, lang: "Español", companions: [], notes: "", country: "ES", messaging: false };
+      const res: Reservation = { id: id("R"), guestId: gid, room: room.number, inDay, outDay: inDay + nights, eta: fmtClock(s.clock + 20), pax: 2, channel, amount: room.rate * nights, status: "confirmed", stay: "none", notes: "", createdDay: 0 };
+      setS((p) => notify(push({ ...p, guests: [g, ...p.guests], reservations: [res, ...p.reservations] }, [
+        { actor: channel, text: `Nueva reserva ${res.id} · ${name} · habitación ${room.number} · ${fmtDay(inDay).toLowerCase()}.`, kind: "channel" },
+      ]), ["reception", "owner", "director"], `Nueva reserva ${channel} · ${name}.`, "ok"));
+      return true;
+    };
+
+    /** One controlled event that mutates the real demo state */
+    const simulateStep = () => {
+      const opts: (() => unknown)[] = [];
+      const inhouse = s.reservations.filter((r) => r.stay === "inhouse");
+      const arrivals = s.reservations.filter((r) => r.inDay === 0 && r.status === "confirmed" && r.stay === "none" && helpers.roomState(r.room) === "ready");
+      const hkPend = s.tasks.filter((t) => t.dept === "housekeeping" && t.status === "pendiente" && helpers.roomState(t.room) === "dirty");
+      const hkProg = s.tasks.filter((t) => t.dept === "housekeeping" && t.status === "en_proceso");
+      const mtPend = s.tasks.filter((t) => t.dept === "mantenimiento" && t.status === "pendiente");
+      const mtProg = s.tasks.filter((t) => t.dept === "mantenimiento" && t.status === "en_proceso");
+      if (inhouse.length) opts.push(() => api.checkOut(pick(inhouse.filter((r) => r.outDay <= 0).length ? inhouse.filter((r) => r.outDay <= 0) : inhouse).id));
+      if (arrivals.length) opts.push(() => api.checkIn(pick(arrivals).id), () => api.checkIn(pick(arrivals).id));
+      if (hkPend.length) opts.push(() => api.startTask(pick(hkPend).id));
+      if (hkProg.length) opts.push(() => api.finishTask(pick(hkProg).id), () => api.finishTask(pick(hkProg).id));
+      if (mtPend.length) opts.push(() => api.startTask(pick(mtPend).id));
+      if (mtProg.length) opts.push(() => api.finishTask(pick(mtProg).id));
+      opts.push(() => addBooking(true), () => addBooking(false));
+      if (Math.random() < 0.25) {
+        const cand = s.rooms.filter((r) => !r.oos && !s.incidents.some((i) => i.room === r.number && i.status !== "resuelta"));
+        if (cand.length) opts.push(() => api.reportIssue({ room: pick(cand).number, category: pick(["Electricidad", "Fontanería", "Climatización"]), description: pick(["Luz de baño parpadea.", "Grifo del lavabo gotea.", "Termostato no responde."]), photo: false, blocking: false }));
+      }
+      quiet = true;
+      try { pick(opts)(); } finally { quiet = false; }
+    };
+
+    return { ...api, roomOp, simulateStep };
   }, [s, helpers]);
 
-  return { s, hotel, hotels: root.hotels, ...helpers, alerts, actions };
+  // Activity simulator: fires a real action every few seconds while enabled
+  const actionsRef = useRef(actions);
+  actionsRef.current = actions;
+  useEffect(() => {
+    if (!root.sim) return;
+    const t = setInterval(() => actionsRef.current.simulateStep(), 2800);
+    return () => clearInterval(t);
+  }, [root.sim]);
+
+  return { s, sim: !!root.sim, hotel, hotels: root.hotels, ...helpers, alerts, actions };
 }
 
 type Ctx = ReturnType<typeof useSuiteState>;
@@ -341,10 +430,10 @@ export function useSuite() {
 }
 
 export const NAV_ACCESS: Record<RoleKey, string[]> = {
-  owner: ["/", "/reservas", "/habitaciones", "/control", "/personal", "/tareas", "/huespedes", "/mensajes", "/integraciones", "/configuracion"],
-  director: ["/", "/reservas", "/habitaciones", "/control", "/personal", "/tareas", "/huespedes", "/mensajes", "/configuracion"],
-  reception: ["/", "/reservas", "/habitaciones", "/huespedes", "/tareas", "/mensajes"],
-  housekeeping: ["/", "/habitaciones", "/tareas"],
-  maintenance: ["/", "/habitaciones", "/tareas"],
-  revenue: ["/", "/control", "/reservas", "/habitaciones"],
+  owner: ["/", "/hotel", "/reservas", "/habitaciones", "/control", "/personal", "/tareas", "/huespedes", "/mensajes", "/integraciones", "/configuracion", "/crear-hotel"],
+  director: ["/", "/hotel", "/reservas", "/habitaciones", "/control", "/personal", "/tareas", "/huespedes", "/mensajes", "/configuracion", "/crear-hotel"],
+  reception: ["/", "/hotel", "/reservas", "/habitaciones", "/huespedes", "/tareas", "/mensajes"],
+  housekeeping: ["/", "/hotel", "/habitaciones", "/tareas"],
+  maintenance: ["/", "/hotel", "/habitaciones", "/tareas"],
+  revenue: ["/", "/hotel", "/control", "/reservas", "/habitaciones"],
 };

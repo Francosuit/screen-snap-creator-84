@@ -25,7 +25,7 @@ const forecast = Array.from({ length: 21 }, (_, i) => {
 });
 const pickup = [["L", 3], ["M", 5], ["X", 2], ["J", 7], ["V", 9], ["S", 6], ["D", 4]].map(([d, v]) => ({ d, v }));
 const pace = ["Sep", "Oct", "Nov", "Dic", "Ene", "Feb"].map((m, i) => ({ m, actual: [58, 66, 74, 61, 45, 52][i], ly: [55, 62, 63, 59, 47, 49][i] }));
-const window = [["0–3 d", 18], ["4–7 d", 24], ["8–14 d", 21], ["15–30 d", 19], ["31–60 d", 12], ["60+ d", 6]].map(([k, v]) => ({ k, v }));
+const bookingWindow = [["0–3 d", 18], ["4–7 d", 24], ["8–14 d", 21], ["15–30 d", 19], ["31–60 d", 12], ["60+ d", 6]].map(([k, v]) => ({ k, v }));
 const cancels = ["Jun", "Jul", "Ago", "Sep", "Oct", "Nov"].map((m, i) => ({ m, v: [6.2, 7.8, 9.1, 5.4, 4.8, 3.9][i] }));
 const bookings = ["S40", "S41", "S42", "S43", "S44", "S45"].map((w, i) => ({ w, v: [21, 24, 19, 28, 33, 37][i] }));
 
@@ -107,7 +107,7 @@ function Control() {
           <BarChart data={pickup}><CartesianGrid vertical={false} stroke="var(--border)" /><XAxis dataKey="d" tick={ax} axisLine={false} tickLine={false} /><YAxis tick={ax} axisLine={false} tickLine={false} width={28} /><Tooltip {...tip} /><Bar dataKey="v" fill="var(--chart-1)" radius={[6, 6, 0, 0]} name="RN" /></BarChart>
         </Chart>
         <Chart title="Booking window (%)">
-          <BarChart data={window}><CartesianGrid vertical={false} stroke="var(--border)" /><XAxis dataKey="k" tick={ax} axisLine={false} tickLine={false} /><YAxis tick={ax} axisLine={false} tickLine={false} width={28} /><Tooltip {...tip} /><Bar dataKey="v" fill="var(--chart-2)" radius={[6, 6, 0, 0]} name="%" /></BarChart>
+          <BarChart data={bookingWindow}><CartesianGrid vertical={false} stroke="var(--border)" /><XAxis dataKey="k" tick={ax} axisLine={false} tickLine={false} /><YAxis tick={ax} axisLine={false} tickLine={false} width={28} /><Tooltip {...tip} /><Bar dataKey="v" fill="var(--chart-2)" radius={[6, 6, 0, 0]} name="%" /></BarChart>
         </Chart>
         <Chart title="Cancelaciones (%)">
           <LineChart data={cancels}><CartesianGrid vertical={false} stroke="var(--border)" /><XAxis dataKey="m" tick={ax} axisLine={false} tickLine={false} /><YAxis tick={ax} axisLine={false} tickLine={false} width={28} /><Tooltip {...tip} /><Line dataKey="v" stroke="var(--chart-4)" strokeWidth={2} name="%" /></LineChart>

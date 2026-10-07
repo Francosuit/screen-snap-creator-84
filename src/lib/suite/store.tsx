@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import {
   DEMO_DATE, ROLES, START_CLOCK, seedGuests, seedIncidents, seedLog, seedNotifications, seedOpportunities,
@@ -6,6 +6,7 @@ import {
   type Guest, type HotelKey, type Incident, type LogEntry, type Notification, type Opportunity, type Priority,
   type Reservation, type RoleKey, type Room, type RoomState, type SentMessage, type Task, type MessageRule,
 } from "./data";
+import { SuiteCtx } from "./context";
 
 interface Data {
   clock: number;
@@ -329,13 +330,12 @@ function useSuiteState() {
 }
 
 type Ctx = ReturnType<typeof useSuiteState>;
-const SuiteCtx = createContext<Ctx | null>(null);
 export function SuiteProvider({ children }: { children: ReactNode }) {
   const v = useSuiteState();
   return <SuiteCtx.Provider value={v}>{children}</SuiteCtx.Provider>;
 }
 export function useSuite() {
-  const v = useContext(SuiteCtx);
+  const v = useContext(SuiteCtx) as Ctx | null;
   if (!v) throw new Error("SuiteProvider missing");
   return v;
 }

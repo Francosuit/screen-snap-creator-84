@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ConfiguracionRouteImport } from './routes/configuracion'
 import { Route as ControlRouteImport } from './routes/control'
 import { Route as HabitacionesRouteImport } from './routes/habitaciones'
+import { Route as HotelRouteImport } from './routes/hotel'
 import { Route as HuespedesRouteImport } from './routes/huespedes'
 import { Route as IntegracionesRouteImport } from './routes/integraciones'
 import { Route as MensajesRouteImport } from './routes/mensajes'
@@ -38,6 +39,11 @@ const ControlRoute = ControlRouteImport.update({
 const HabitacionesRoute = HabitacionesRouteImport.update({
   id: '/habitaciones',
   path: '/habitaciones',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HotelRoute = HotelRouteImport.update({
+  id: '/hotel',
+  path: '/hotel',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HuespedesRoute = HuespedesRouteImport.update({
@@ -76,6 +82,7 @@ export interface FileRoutesByFullPath {
   '/configuracion': typeof ConfiguracionRoute
   '/control': typeof ControlRoute
   '/habitaciones': typeof HabitacionesRoute
+  '/hotel': typeof HotelRoute
   '/huespedes': typeof HuespedesRoute
   '/integraciones': typeof IntegracionesRoute
   '/mensajes': typeof MensajesRoute
@@ -88,6 +95,7 @@ export interface FileRoutesByTo {
   '/configuracion': typeof ConfiguracionRoute
   '/control': typeof ControlRoute
   '/habitaciones': typeof HabitacionesRoute
+  '/hotel': typeof HotelRoute
   '/huespedes': typeof HuespedesRoute
   '/integraciones': typeof IntegracionesRoute
   '/mensajes': typeof MensajesRoute
@@ -101,6 +109,7 @@ export interface FileRoutesById {
   '/configuracion': typeof ConfiguracionRoute
   '/control': typeof ControlRoute
   '/habitaciones': typeof HabitacionesRoute
+  '/hotel': typeof HotelRoute
   '/huespedes': typeof HuespedesRoute
   '/integraciones': typeof IntegracionesRoute
   '/mensajes': typeof MensajesRoute
@@ -115,6 +124,7 @@ export interface FileRouteTypes {
     | '/configuracion'
     | '/control'
     | '/habitaciones'
+    | '/hotel'
     | '/huespedes'
     | '/integraciones'
     | '/mensajes'
@@ -127,6 +137,7 @@ export interface FileRouteTypes {
     | '/configuracion'
     | '/control'
     | '/habitaciones'
+    | '/hotel'
     | '/huespedes'
     | '/integraciones'
     | '/mensajes'
@@ -139,6 +150,7 @@ export interface FileRouteTypes {
     | '/configuracion'
     | '/control'
     | '/habitaciones'
+    | '/hotel'
     | '/huespedes'
     | '/integraciones'
     | '/mensajes'
@@ -152,6 +164,7 @@ export interface RootRouteChildren {
   ConfiguracionRoute: typeof ConfiguracionRoute
   ControlRoute: typeof ControlRoute
   HabitacionesRoute: typeof HabitacionesRoute
+  HotelRoute: typeof HotelRoute
   HuespedesRoute: typeof HuespedesRoute
   IntegracionesRoute: typeof IntegracionesRoute
   MensajesRoute: typeof MensajesRoute
@@ -188,6 +201,13 @@ declare module '@tanstack/react-router' {
       path: '/habitaciones'
       fullPath: '/habitaciones'
       preLoaderRoute: typeof HabitacionesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/hotel': {
+      id: '/hotel'
+      path: '/hotel'
+      fullPath: '/hotel'
+      preLoaderRoute: typeof HotelRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/huespedes': {
@@ -240,6 +260,7 @@ const rootRouteChildren: RootRouteChildren = {
   ConfiguracionRoute: ConfiguracionRoute,
   ControlRoute: ControlRoute,
   HabitacionesRoute: HabitacionesRoute,
+  HotelRoute: HotelRoute,
   HuespedesRoute: HuespedesRoute,
   IntegracionesRoute: IntegracionesRoute,
   MensajesRoute: MensajesRoute,

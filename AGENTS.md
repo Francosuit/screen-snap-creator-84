@@ -8,3 +8,6 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Suite demo state lives in one in-memory store (src/lib/suite/store.tsx); every cross-module effect (check-in/out, cleaning, incidents) is an action there so all screens stay consistent.
+- Room display state is derived from separate booking, stay, housekeeping and maintenance fields — never stored directly — to avoid mixing concepts.

@@ -10,33 +10,154 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ConfiguracionRouteImport } from './routes/configuracion'
+import { Route as ControlRouteImport } from './routes/control'
+import { Route as HabitacionesRouteImport } from './routes/habitaciones'
+import { Route as HuespedesRouteImport } from './routes/huespedes'
+import { Route as IntegracionesRouteImport } from './routes/integraciones'
+import { Route as MensajesRouteImport } from './routes/mensajes'
+import { Route as PersonalRouteImport } from './routes/personal'
+import { Route as ReservasRouteImport } from './routes/reservas'
+import { Route as TareasRouteImport } from './routes/tareas'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ConfiguracionRoute = ConfiguracionRouteImport.update({
+  id: '/configuracion',
+  path: '/configuracion',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ControlRoute = ControlRouteImport.update({
+  id: '/control',
+  path: '/control',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HabitacionesRoute = HabitacionesRouteImport.update({
+  id: '/habitaciones',
+  path: '/habitaciones',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HuespedesRoute = HuespedesRouteImport.update({
+  id: '/huespedes',
+  path: '/huespedes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IntegracionesRoute = IntegracionesRouteImport.update({
+  id: '/integraciones',
+  path: '/integraciones',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MensajesRoute = MensajesRouteImport.update({
+  id: '/mensajes',
+  path: '/mensajes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PersonalRoute = PersonalRouteImport.update({
+  id: '/personal',
+  path: '/personal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReservasRoute = ReservasRouteImport.update({
+  id: '/reservas',
+  path: '/reservas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TareasRoute = TareasRouteImport.update({
+  id: '/tareas',
+  path: '/tareas',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/configuracion': typeof ConfiguracionRoute
+  '/control': typeof ControlRoute
+  '/habitaciones': typeof HabitacionesRoute
+  '/huespedes': typeof HuespedesRoute
+  '/integraciones': typeof IntegracionesRoute
+  '/mensajes': typeof MensajesRoute
+  '/personal': typeof PersonalRoute
+  '/reservas': typeof ReservasRoute
+  '/tareas': typeof TareasRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/configuracion': typeof ConfiguracionRoute
+  '/control': typeof ControlRoute
+  '/habitaciones': typeof HabitacionesRoute
+  '/huespedes': typeof HuespedesRoute
+  '/integraciones': typeof IntegracionesRoute
+  '/mensajes': typeof MensajesRoute
+  '/personal': typeof PersonalRoute
+  '/reservas': typeof ReservasRoute
+  '/tareas': typeof TareasRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/configuracion': typeof ConfiguracionRoute
+  '/control': typeof ControlRoute
+  '/habitaciones': typeof HabitacionesRoute
+  '/huespedes': typeof HuespedesRoute
+  '/integraciones': typeof IntegracionesRoute
+  '/mensajes': typeof MensajesRoute
+  '/personal': typeof PersonalRoute
+  '/reservas': typeof ReservasRoute
+  '/tareas': typeof TareasRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/configuracion'
+    | '/control'
+    | '/habitaciones'
+    | '/huespedes'
+    | '/integraciones'
+    | '/mensajes'
+    | '/personal'
+    | '/reservas'
+    | '/tareas'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/configuracion'
+    | '/control'
+    | '/habitaciones'
+    | '/huespedes'
+    | '/integraciones'
+    | '/mensajes'
+    | '/personal'
+    | '/reservas'
+    | '/tareas'
+  id:
+    | '__root__'
+    | '/'
+    | '/configuracion'
+    | '/control'
+    | '/habitaciones'
+    | '/huespedes'
+    | '/integraciones'
+    | '/mensajes'
+    | '/personal'
+    | '/reservas'
+    | '/tareas'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ConfiguracionRoute: typeof ConfiguracionRoute
+  ControlRoute: typeof ControlRoute
+  HabitacionesRoute: typeof HabitacionesRoute
+  HuespedesRoute: typeof HuespedesRoute
+  IntegracionesRoute: typeof IntegracionesRoute
+  MensajesRoute: typeof MensajesRoute
+  PersonalRoute: typeof PersonalRoute
+  ReservasRoute: typeof ReservasRoute
+  TareasRoute: typeof TareasRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +169,83 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/configuracion': {
+      id: '/configuracion'
+      path: '/configuracion'
+      fullPath: '/configuracion'
+      preLoaderRoute: typeof ConfiguracionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/control': {
+      id: '/control'
+      path: '/control'
+      fullPath: '/control'
+      preLoaderRoute: typeof ControlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/habitaciones': {
+      id: '/habitaciones'
+      path: '/habitaciones'
+      fullPath: '/habitaciones'
+      preLoaderRoute: typeof HabitacionesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/huespedes': {
+      id: '/huespedes'
+      path: '/huespedes'
+      fullPath: '/huespedes'
+      preLoaderRoute: typeof HuespedesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/integraciones': {
+      id: '/integraciones'
+      path: '/integraciones'
+      fullPath: '/integraciones'
+      preLoaderRoute: typeof IntegracionesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mensajes': {
+      id: '/mensajes'
+      path: '/mensajes'
+      fullPath: '/mensajes'
+      preLoaderRoute: typeof MensajesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/personal': {
+      id: '/personal'
+      path: '/personal'
+      fullPath: '/personal'
+      preLoaderRoute: typeof PersonalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reservas': {
+      id: '/reservas'
+      path: '/reservas'
+      fullPath: '/reservas'
+      preLoaderRoute: typeof ReservasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tareas': {
+      id: '/tareas'
+      path: '/tareas'
+      fullPath: '/tareas'
+      preLoaderRoute: typeof TareasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ConfiguracionRoute: ConfiguracionRoute,
+  ControlRoute: ControlRoute,
+  HabitacionesRoute: HabitacionesRoute,
+  HuespedesRoute: HuespedesRoute,
+  IntegracionesRoute: IntegracionesRoute,
+  MensajesRoute: MensajesRoute,
+  PersonalRoute: PersonalRoute,
+  ReservasRoute: ReservasRoute,
+  TareasRoute: TareasRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

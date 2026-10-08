@@ -12,7 +12,7 @@ const say: any = Object.assign((...a: any[]) => (quiet ? undefined : (toast as a
 });
 import {
   DEMO_DATE, ROLES, START_CLOCK, seedGuests, seedIncidents, seedLog, seedNotifications, seedOpportunities,
-  seedReservations, seedRooms, seedRules, seedTasks, seedHotels, type Hotel, type Floor, type Channel,
+  seedReservations, seedRooms, seedRules, seedTasks, seedHotels, type Hotel, type Floor, type Organization, type Channel,
   type Guest, type HotelKey, type Incident, type LogEntry, type Notification, type Opportunity, type Priority,
   type Reservation, type RoleKey, type Room, type RoomState, type SentMessage, type Task, type MessageRule,
 } from "./data";
@@ -25,7 +25,7 @@ interface Data {
 }
 /** Merged view of the active hotel — what screens read */
 interface State extends Data { role: RoleKey; hotel: HotelKey }
-interface Root { role: RoleKey; hotel: HotelKey; hotels: Hotel[]; data: Record<string, Data>; sim?: boolean }
+interface Root { role: RoleKey; hotel: HotelKey; hotels: Hotel[]; data: Record<string, Data>; sim?: boolean; org?: Organization }
 
 const grandData: Data = {
   clock: START_CLOCK,
@@ -70,7 +70,7 @@ function beachData(): Data {
 }
 
 const initialRoot = (): Root => ({ role: "owner", hotel: "grand", hotels: seedHotels, data: { grand: grandData, beach: beachData() } });
-const STORAGE = "suite-demo-v2";
+const STORAGE = "suite-demo-v3";
 
 export const fmtClock = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 export const toMin = (t: string) => { const [h = 0, m = 0] = t.split(":").map(Number); return h * 60 + (m || 0); };
@@ -171,15 +171,16 @@ function useSuiteState() {
       setRole: (role: RoleKey) => setS((p) => ({ ...p, role })),
       setHotel: (h: HotelKey) => setRoot((r) => ({ ...r, hotel: h })),
       resetDemo: () => { setRoot(initialRoot()); say.success("Demo reiniciada", { description: "Datos iniciales restaurados." }); },
-      createHotel: (input: { name: string; address: string; city: string; category: string; description?: string; floors: Floor[]; rooms: Room[] }) => {
+      setOrg: (org: Organization) => setRoot((r) => ({ ...r, org })),
+      createHotel: (input: { name: string; address: string; city: string; category: string; description?: string; floors: Floor[]; rooms: Room[]; zones?: string[]; departments?: string[]; checkIn?: string; checkOut?: string }) => {
         const hid = id("h");
         const h: Hotel = {
           id: hid, name: input.name, address: input.address, city: input.city, category: input.category, description: input.description ?? "",
-          rooms: input.rooms.length, floors: input.floors, status: "activo",
+          rooms: input.rooms.length, floors: input.floors, status: "activo", zones: input.zones ?? [], departments: input.departments ?? [], checkIn: input.checkIn ?? "14:00", checkOut: input.checkOut ?? "12:00",
           logo: input.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase(),
         };
         const d = emptyData(input.rooms);
-        d.log = [{ id: id("l"), time: fmtClock(START_CLOCK), actor: "Suite", text: `Hotel digital generado: ${input.floors.length} plantas · ${input.rooms.length} habitaciones.`, kind: "suite" }];
+        d.log = [{ id: id("l"), time: fmtClock(START_CLOCK), actor: "Suite", text: `Hotel digital generado: ${input.floors.length} plantas · ${input.rooms.length} habitaciones · ${(input.zones ?? []).length} zonas.`, kind: "suite" }];
         setRoot((r) => ({ ...r, hotel: hid, hotels: [...r.hotels, h], data: { ...r.data, [hid]: d } }));
         return hid;
       },
@@ -267,7 +268,7 @@ function useSuiteState() {
             ...p,
             tasks: p.tasks.map((x) => (x.id === taskId ? { ...x, status: "completada", endedAt: fmtClock(p.clock + 1) } : x)),
             rooms: t.dept === "housekeeping" ? p.rooms.map((x) => (x.number === t.room ? { ...x, hk: "clean" } : x)) : p.rooms,
-            incidents: t.incidentId ? p.incidents.map((i) => (i.id === t.incidentId ? { ...i, status: "resuelta", resolvedAt: fmtClock(p.clock + 1) } : i)) : p.incidents,
+            incidents: t.incidentId ? p.incidents.map((i) => (i.id === t.incidentId ? { ...i, status: "resuelta", arrivedAt: i.arrivedAt ?? fmtClock(p.clock + 1), resolvedAt: fmtClock(p.clock + 1) } : i)) : p.incidents,
           };
           if (t.dept === "housekeeping") {
             n = push(n, [
@@ -311,6 +312,16 @@ function useSuiteState() {
           return notify(n, ["maintenance", "director", "owner"], `Nueva incidencia: ${input.category} · ${input.room}.`, "urgent");
         });
         say.success("Incidencia reportada", { description: "✓ Tarea de mantenimiento creada\n✓ Carlos Ruiz notificado" });
+      },
+
+      /** Technician reaches the room of an incident in progress */
+      arriveIncident: (incId: string) => {
+        const inc = s.incidents.find((i) => i.id === incId);
+        if (!inc || inc.status !== "en_proceso" || inc.arrivedAt) return;
+        setS((p) => push({ ...p, incidents: p.incidents.map((i) => (i.id === incId ? { ...i, arrivedAt: fmtClock(p.clock + 1) } : i)) }, [
+          { actor: inc.assignee, text: `Llegó a habitación ${inc.room} · incidencia ${inc.category.toLowerCase()}.`, kind: "human" },
+        ], 2));
+        say(`${inc.assignee} en habitación ${inc.room}`);
       },
 
       decideOpportunity: (oid: string, decision: "revisada" | "ignorada") => {
@@ -393,7 +404,10 @@ function useSuiteState() {
       if (hkPend.length) opts.push(() => api.startTask(pick(hkPend).id));
       if (hkProg.length) opts.push(() => api.finishTask(pick(hkProg).id), () => api.finishTask(pick(hkProg).id));
       if (mtPend.length) opts.push(() => api.startTask(pick(mtPend).id));
-      if (mtProg.length) opts.push(() => api.finishTask(pick(mtProg).id));
+      const enRoute = s.incidents.filter((i) => i.status === "en_proceso" && !i.arrivedAt);
+      if (enRoute.length) opts.push(() => api.arriveIncident(pick(enRoute).id), () => api.arriveIncident(pick(enRoute).id));
+      const onsite = mtProg.filter((t) => !t.incidentId || s.incidents.find((i) => i.id === t.incidentId)?.arrivedAt);
+      if (onsite.length) opts.push(() => api.finishTask(pick(onsite).id));
       opts.push(() => addBooking(true), () => addBooking(false));
       if (Math.random() < 0.25) {
         const cand = s.rooms.filter((r) => !r.oos && !s.incidents.some((i) => i.room === r.number && i.status !== "resuelta"));
@@ -415,7 +429,7 @@ function useSuiteState() {
     return () => clearInterval(t);
   }, [root.sim]);
 
-  return { s, sim: !!root.sim, hotel, hotels: root.hotels, ...helpers, alerts, actions };
+  return { s, sim: !!root.sim, hotel, hotels: root.hotels, world: root.data, org: root.org, ...helpers, alerts, actions };
 }
 
 type Ctx = ReturnType<typeof useSuiteState>;
@@ -430,10 +444,10 @@ export function useSuite() {
 }
 
 export const NAV_ACCESS: Record<RoleKey, string[]> = {
-  owner: ["/", "/hotel", "/reservas", "/habitaciones", "/control", "/personal", "/tareas", "/huespedes", "/mensajes", "/integraciones", "/configuracion", "/crear-hotel"],
-  director: ["/", "/hotel", "/reservas", "/habitaciones", "/control", "/personal", "/tareas", "/huespedes", "/mensajes", "/configuracion", "/crear-hotel"],
-  reception: ["/", "/hotel", "/reservas", "/habitaciones", "/huespedes", "/tareas", "/mensajes"],
-  housekeeping: ["/", "/hotel", "/habitaciones", "/tareas"],
-  maintenance: ["/", "/hotel", "/habitaciones", "/tareas"],
-  revenue: ["/", "/hotel", "/control", "/reservas", "/habitaciones"],
+  owner: ["/", "/mundo", "/hotel", "/reservas", "/habitaciones", "/control", "/personal", "/tareas", "/huespedes", "/mensajes", "/integraciones", "/configuracion", "/crear-hotel"],
+  director: ["/", "/mundo", "/hotel", "/reservas", "/habitaciones", "/control", "/personal", "/tareas", "/huespedes", "/mensajes", "/configuracion", "/crear-hotel"],
+  reception: ["/", "/mundo", "/hotel", "/reservas", "/habitaciones", "/huespedes", "/tareas", "/mensajes"],
+  housekeeping: ["/", "/mundo", "/hotel", "/habitaciones", "/tareas"],
+  maintenance: ["/", "/mundo", "/hotel", "/habitaciones", "/tareas"],
+  revenue: ["/", "/mundo", "/hotel", "/control", "/reservas", "/habitaciones"],
 };

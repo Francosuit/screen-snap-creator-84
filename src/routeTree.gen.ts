@@ -17,6 +17,7 @@ import { Route as HotelRouteImport } from './routes/hotel'
 import { Route as HuespedesRouteImport } from './routes/huespedes'
 import { Route as IntegracionesRouteImport } from './routes/integraciones'
 import { Route as MensajesRouteImport } from './routes/mensajes'
+import { Route as MundoRouteImport } from './routes/mundo'
 import { Route as PersonalRouteImport } from './routes/personal'
 import { Route as ReservasRouteImport } from './routes/reservas'
 import { Route as TareasRouteImport } from './routes/tareas'
@@ -61,6 +62,11 @@ const MensajesRoute = MensajesRouteImport.update({
   path: '/mensajes',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MundoRoute = MundoRouteImport.update({
+  id: '/mundo',
+  path: '/mundo',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PersonalRoute = PersonalRouteImport.update({
   id: '/personal',
   path: '/personal',
@@ -86,6 +92,7 @@ export interface FileRoutesByFullPath {
   '/huespedes': typeof HuespedesRoute
   '/integraciones': typeof IntegracionesRoute
   '/mensajes': typeof MensajesRoute
+  '/mundo': typeof MundoRoute
   '/personal': typeof PersonalRoute
   '/reservas': typeof ReservasRoute
   '/tareas': typeof TareasRoute
@@ -99,6 +106,7 @@ export interface FileRoutesByTo {
   '/huespedes': typeof HuespedesRoute
   '/integraciones': typeof IntegracionesRoute
   '/mensajes': typeof MensajesRoute
+  '/mundo': typeof MundoRoute
   '/personal': typeof PersonalRoute
   '/reservas': typeof ReservasRoute
   '/tareas': typeof TareasRoute
@@ -113,6 +121,7 @@ export interface FileRoutesById {
   '/huespedes': typeof HuespedesRoute
   '/integraciones': typeof IntegracionesRoute
   '/mensajes': typeof MensajesRoute
+  '/mundo': typeof MundoRoute
   '/personal': typeof PersonalRoute
   '/reservas': typeof ReservasRoute
   '/tareas': typeof TareasRoute
@@ -128,6 +137,7 @@ export interface FileRouteTypes {
     | '/huespedes'
     | '/integraciones'
     | '/mensajes'
+    | '/mundo'
     | '/personal'
     | '/reservas'
     | '/tareas'
@@ -141,6 +151,7 @@ export interface FileRouteTypes {
     | '/huespedes'
     | '/integraciones'
     | '/mensajes'
+    | '/mundo'
     | '/personal'
     | '/reservas'
     | '/tareas'
@@ -154,6 +165,7 @@ export interface FileRouteTypes {
     | '/huespedes'
     | '/integraciones'
     | '/mensajes'
+    | '/mundo'
     | '/personal'
     | '/reservas'
     | '/tareas'
@@ -168,6 +180,7 @@ export interface RootRouteChildren {
   HuespedesRoute: typeof HuespedesRoute
   IntegracionesRoute: typeof IntegracionesRoute
   MensajesRoute: typeof MensajesRoute
+  MundoRoute: typeof MundoRoute
   PersonalRoute: typeof PersonalRoute
   ReservasRoute: typeof ReservasRoute
   TareasRoute: typeof TareasRoute
@@ -231,6 +244,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MensajesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/mundo': {
+      id: '/mundo'
+      path: '/mundo'
+      fullPath: '/mundo'
+      preLoaderRoute: typeof MundoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/personal': {
       id: '/personal'
       path: '/personal'
@@ -264,6 +284,7 @@ const rootRouteChildren: RootRouteChildren = {
   HuespedesRoute: HuespedesRoute,
   IntegracionesRoute: IntegracionesRoute,
   MensajesRoute: MensajesRoute,
+  MundoRoute: MundoRoute,
   PersonalRoute: PersonalRoute,
   ReservasRoute: ReservasRoute,
   TareasRoute: TareasRoute,

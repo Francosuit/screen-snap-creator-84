@@ -1,10 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { actionRules } from "@/lib/suite/data";
 import { useSuite } from "@/lib/suite/store";
 import { Card, PageHeader, SectionTitle } from "@/components/suite/ui";
@@ -86,32 +83,11 @@ function Configuracion() {
 }
 
 function CreateHotel() {
-  const { actions } = useSuite();
-  const [f, setF] = useState({ name: "", address: "", city: "", rooms: "12", category: "Urbano" });
-  const n = Math.min(60, Math.max(1, Number(f.rooms) || 0));
-  const ok = f.name.trim() && f.city.trim() && Number(f.rooms) > 0;
-  const field = (k: keyof typeof f, label: string, ph: string, type = "text") => (
-    <label className="grid gap-1 text-xs text-muted-foreground">{label}
-      <Input type={type} placeholder={ph} value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value })} />
-    </label>
-  );
   return (
     <Card className="max-w-xl">
       <SectionTitle>Nuevo hotel</SectionTitle>
-      <div className="grid gap-3">
-        {field("name", "Nombre del hotel", "Suite Mountain Lodge")}
-        {field("address", "Dirección", "Av. de los Pirineos 4")}
-        <div className="grid grid-cols-2 gap-3">
-          {field("city", "Ciudad", "Jaca")}
-          {field("rooms", "Número de habitaciones (máx. 60)", "12", "number")}
-        </div>
-        <label className="grid gap-1 text-xs text-muted-foreground">Tipo de hotel
-          <Select value={f.category} onValueChange={(v) => setF({ ...f, category: v })}><SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>{["Urbano", "Vacacional", "Boutique", "Rural", "Business"].map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
-        </label>
-        <p className="text-xs text-muted-foreground">Suite generará {n} habitaciones demo (10 por planta) y dejará el hotel listo para añadir personal y reservas.</p>
-        <Button disabled={!ok} onClick={() => { actions.createHotel({ name: f.name.trim(), address: f.address.trim(), city: f.city.trim(), rooms: n, category: f.category }); setF({ name: "", address: "", city: "", rooms: "12", category: "Urbano" }); }}>Crear hotel</Button>
-      </div>
+      <p className="mb-4 text-sm text-muted-foreground">El constructor guiado crea organización, plantas, habitaciones, zonas y equipo, y genera el hotel digital automáticamente.</p>
+      <Button asChild><Link to="/crear-hotel">Abrir constructor de hotel</Link></Button>
     </Card>
   );
 }

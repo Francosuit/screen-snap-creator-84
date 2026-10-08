@@ -42,7 +42,7 @@ export interface Task {
 export interface Incident {
   id: string; room: string; category: string; description: string; photo: boolean; blocking: boolean;
   status: "abierta" | "en_proceso" | "resuelta"; createdAt: string; reporter: string; assignee: string;
-  startedAt?: string; resolvedAt?: string; taskId?: string;
+  startedAt?: string; arrivedAt?: string; resolvedAt?: string; taskId?: string;
 }
 export interface LogEntry { id: string; time: string; actor: string; text: string; kind: "human" | "suite" | "channel" | "revenue" }
 export interface Notification { id: string; roles: RoleKey[]; text: string; time: string; read: boolean; tone: "urgent" | "info" | "ok" }
@@ -66,10 +66,14 @@ export const ROLES: Record<RoleKey, { label: string; person: string; title: stri
   revenue: { label: "Revenue", person: "David Sanz", title: "Revenue Manager" },
 };
 
-export interface Hotel { id: string; name: string; address: string; city: string; category: string; rooms: number; logo: string; status: "activo" | "configurando"; floors?: Floor[]; description?: string }
+export interface Hotel { id: string; name: string; address: string; city: string; category: string; rooms: number; logo: string; status: "activo" | "configurando"; floors?: Floor[]; description?: string; zones?: string[]; departments?: string[]; checkIn?: string; checkOut?: string }
+export interface Organization { name: string; owner: string; email: string }
+/** Common zones a hotel can declare; each one becomes a visible object in the Digital World */
+export const ZONE_OPTIONS = ["Recepción", "Lobby", "Restaurante", "Bar", "Piscina", "Gimnasio", "Spa", "Parking", "Cocina", "Lavandería", "Jardín", "Salas de reuniones", "Mantenimiento"];
+export const DEPT_OPTIONS = ["Recepción", "Housekeeping", "Mantenimiento", "Restaurante", "Cocina", "Dirección", "Revenue", "Ventas", "Eventos", "Seguridad"];
 export const seedHotels: Hotel[] = [
-  { id: "grand", name: "Hotel Suite Grand", address: "Calle de Alcalá 120", city: "Madrid", category: "Urbano 4★", rooms: 15, logo: "SG", status: "activo" },
-  { id: "beach", name: "Suite Beach Resort", address: "Paseo Marítimo 8", city: "Marbella", category: "Vacacional 5★", rooms: 20, logo: "SB", status: "activo" },
+  { id: "grand", name: "Hotel Suite Grand", address: "Calle de Alcalá 120", city: "Madrid", category: "Urbano 4★", rooms: 15, logo: "SG", status: "activo", zones: ["Recepción", "Lobby", "Restaurante", "Bar", "Gimnasio", "Parking", "Mantenimiento"] },
+  { id: "beach", name: "Suite Beach Resort", address: "Paseo Marítimo 8", city: "Marbella", category: "Vacacional 5★", rooms: 20, logo: "SB", status: "activo", zones: ["Recepción", "Restaurante", "Piscina", "Spa", "Jardín", "Mantenimiento"] },
 ];
 
 const r = (number: string, type: string, rate: number, hk: HkStatus = "clean", oos = false): Room => ({

@@ -145,3 +145,5 @@
 }
 .twin-room { transition: opacity 200ms ease; cursor: pointer; }
 .twin-room polygon { transition: fill 400ms ease, stroke 400ms ease; }
+.twin-route { animation: twin-dash 1s linear infinite; }
+@keyframes twin-dash { to { stroke-dashoffset: -14; } }

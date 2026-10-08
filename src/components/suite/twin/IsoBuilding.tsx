@@ -8,6 +8,8 @@ import {
   type HotelLayout, type Pt, type Rect, type TwinLayer,
 } from "./geometry";
 
+/** Staff shown inside the twin: derived from incident/task state, never stored as coordinates */
+export interface StaffMarker { id: string; name: string; room: string; phase: "route" | "onsite" }
 export interface RoomInfo { state: RoomState; guest?: string | undefined; type: string; capacity: number }
 
 interface Props {
@@ -20,16 +22,18 @@ interface Props {
   compact?: boolean;
   className?: string;
   toolbar?: ReactNode;
+  staff?: StaffMarker[];
 }
 
 type Shape =
   | { k: "poly"; key: string; p: Pt[]; fill: string; stroke?: string; sw?: number; op?: number; glow?: boolean }
   | { k: "text"; key: string; at: Pt; text: string; size: number; fill: string; weight?: number; anchor?: "start" | "middle" }
+  | { k: "anchor"; key: string; floor: number; at: Pt }
   | { k: "room"; key: string; room: Room; faces: ReturnType<typeof box>; win: Pt[]; info: RoomInfo; topC: Pt; markAt: Pt; size: number };
 
 const mix = (c: string, pct: number, base = "var(--twin-slab)") => `color-mix(in oklab, ${c} ${pct}%, ${base})`;
 
-export function IsoBuilding({ layout, info, focusFloor, selected, onSelect, layer = STATUS_LAYER, compact, className, toolbar }: Props) {
+export function IsoBuilding({ layout, info, focusFloor, selected, onSelect, layer = STATUS_LAYER, compact, className, toolbar, staff = [] }: Props) {
   const [rot, setRot] = useState(0);
   const [zoom, setZoom] = useState(1);
   const [off, setOff] = useState({ x: 0, y: 0 });
@@ -40,7 +44,7 @@ export function IsoBuilding({ layout, info, focusFloor, selected, onSelect, laye
   view.current = { zoom, off };
 
   const U = focusFloor != null ? 34 : compact ? 15 : 20;
-  const { W, D } = layout;
+  const W = focusFloor == null ? layout.GW : layout.W, D = focusFloor == null ? layout.GD : layout.D;
   const RW_ = rot % 2 ? D : W, RD_ = rot % 2 ? W : D;
   const R = (r: Rect) => rotRect(r, rot, W, D);
 
@@ -52,9 +56,19 @@ export function IsoBuilding({ layout, info, focusFloor, selected, onSelect, laye
     const g = box({ x: -1.2, y: -1.2, w: RW_ + 2.4, d: RD_ + 2.4 }, -0.5, 0.06, U);
     out.push({ k: "poly", key: "ground", p: g.top, fill: "var(--twin-panel)", stroke: "var(--twin-line)", sw: 0.6, op: 0.7 });
 
+    if (focusFloor == null) {
+      layout.outdoor.forEach((o, i) => {
+        const b = box(R(o.rect), -0.44, o.h, U);
+        out.push({ k: "poly", key: `oz${i}e`, p: b.east, fill: mix(o.tone, 35, "var(--twin-slab-side)") });
+        out.push({ k: "poly", key: `oz${i}s`, p: b.south, fill: mix(o.tone, 45, "var(--twin-slab-side)") });
+        out.push({ k: "poly", key: `oz${i}t`, p: b.top, fill: mix(o.tone, 55), stroke: o.tone, sw: 0.8 });
+        out.push({ k: "text", key: `oz${i}l`, at: center(b.top), text: o.label.toUpperCase(), size: compact ? 7 : 9, fill: "var(--twin-text)", weight: 600, anchor: "middle" });
+      });
+    }
+    const slabRect = R({ x: 0, y: 0, w: layout.W, d: layout.D });
     floors.forEach((fl, i) => {
       const z = focusFloor != null ? 0 : i * FLOOR_GAP;
-      const slab = box({ x: 0, y: 0, w: RW_, d: RD_ }, z - SLAB, SLAB, U);
+      const slab = box(slabRect, z - SLAB, SLAB, U);
       const f = fl.floor.number;
       out.push({ k: "poly", key: `s${f}e`, p: slab.east, fill: "var(--twin-slab-side)" });
       out.push({ k: "poly", key: `s${f}s`, p: slab.south, fill: "var(--twin-slab-side)" });
@@ -82,6 +96,7 @@ export function IsoBuilding({ layout, info, focusFloor, selected, onSelect, laye
         });
       };
       service(fl.elevator, ROOM_H, "ASCENSORES", `el${f}`, "var(--twin-floor)");
+      out.push({ k: "anchor", key: `an${f}`, floor: f, at: center(box(R(fl.elevator), z, ROOM_H, U).top) });
       service(fl.stairs, ROOM_H * 0.7, "ESCALERAS", `st${f}`, "var(--twin-floor)");
       service(fl.common, 0.35, fl.commonLabel.toUpperCase(), `cm${f}`, mix("var(--brand)", 18));
 
@@ -169,6 +184,7 @@ export function IsoBuilding({ layout, info, focusFloor, selected, onSelect, laye
               <filter id="twin-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.2" /></filter>
             </defs>
             {shapes.map((s) => {
+              if (s.k === "anchor") return null;
               if (s.k === "poly") return <polygon key={s.key} points={pts(s.p)} style={{ fill: s.fill, stroke: s.stroke ?? "none", strokeWidth: s.sw ?? 0, opacity: s.op ?? 1 }} />;
               if (s.k === "text") return <text key={s.key} x={s.at[0]} y={s.at[1]} textAnchor={s.anchor ?? "start"} dominantBaseline="middle" style={{ fill: s.fill, fontSize: s.size, fontWeight: s.weight ?? 500, letterSpacing: "0.08em", fontFamily: "var(--font-sans)" }}>{s.text}</text>;
               const c = STATE_VAR[s.info.state];
@@ -197,6 +213,37 @@ export function IsoBuilding({ layout, info, focusFloor, selected, onSelect, laye
                       {badge.pulse && <circle cx={s.markAt[0]} cy={s.markAt[1]} r={3.5} className="twin-pulse" style={{ fill: badge.color }} />}
                       <circle cx={s.markAt[0]} cy={s.markAt[1]} r={3.5} style={{ fill: badge.color, stroke: "var(--twin-bg)", strokeWidth: 1.2 }} />
                     </g>
+                  )}
+                </g>
+              );
+            })}
+            {staff.map((m) => {
+              const rs = shapes.find((x) => x.k === "room" && x.room.number === m.room) as Extract<Shape, { k: "room" }> | undefined;
+              if (!rs) return null;
+              const an = shapes.find((x) => x.k === "anchor" && x.floor === rs.room.floor) as Extract<Shape, { k: "anchor" }> | undefined;
+              const to: Pt = [rs.topC[0] + U * 0.35, rs.topC[1] - U * 0.15];
+              const from: Pt = an ? an.at : to;
+              const r = Math.max(4, U * 0.22);
+              return (
+                <g key={m.id} style={{ pointerEvents: "none" }}>
+                  {m.phase === "route" && (
+                    <>
+                      <path d={`M${from[0]},${from[1]} L${to[0]},${to[1]}`} style={{ stroke: "var(--st-maint)", strokeWidth: 1.4, strokeDasharray: "4 3", fill: "none" }} className="twin-route" />
+                      <circle r={r} style={{ fill: "var(--st-maint)", stroke: "var(--twin-text)", strokeWidth: 1.4 }}>
+                        <animateMotion dur="2.4s" repeatCount="indefinite" path={`M${from[0]},${from[1]} L${to[0]},${to[1]}`} />
+                      </circle>
+                    </>
+                  )}
+                  {m.phase === "onsite" && (
+                    <>
+                      <circle cx={to[0]} cy={to[1]} r={r} className="twin-pulse" style={{ fill: "var(--twin-text)" }} />
+                      <circle cx={to[0]} cy={to[1]} r={r} style={{ fill: "var(--st-maint)", stroke: "var(--twin-text)", strokeWidth: 1.4 }} />
+                    </>
+                  )}
+                  {(focusFloor != null || !compact) && (
+                    <text x={(m.phase === "route" ? (from[0] + to[0]) / 2 : to[0]) + r + 3} y={(m.phase === "route" ? (from[1] + to[1]) / 2 : to[1])} dominantBaseline="middle" style={{ fill: "var(--twin-text)", fontSize: Math.max(8, U * 0.3), fontWeight: 600, fontFamily: "var(--font-sans)" }}>
+                      {m.name.split(" ")[0]}{m.phase === "route" ? " · en camino" : ""}
+                    </text>
                   )}
                 </g>
               );

@@ -48,7 +48,21 @@ export interface FloorLayout {
   floor: Floor; rooms: { room: Room; rect: Rect }[];
   elevator: Rect; stairs: Rect; corridor: Rect; common: Rect; commonLabel: string;
 }
-export interface HotelLayout { W: number; D: number; floors: FloorLayout[] }
+export interface OutdoorZone { label: string; rect: Rect; h: number; tone: string }
+export interface HotelLayout { W: number; D: number; floors: FloorLayout[]; outdoor: OutdoorZone[]; GW: number; GD: number }
+
+/** Zones that live outside the main block; indoor ones label the ground floor */
+const OUTDOOR: Record<string, { w: number; h: number; tone: string }> = {
+  Piscina: { w: 4.2, h: 0.08, tone: "var(--st-occupied)" },
+  Jardín: { w: 3.4, h: 0.05, tone: "var(--st-ready)" },
+  Parking: { w: 4, h: 0.04, tone: "var(--twin-floor)" },
+  Mantenimiento: { w: 2.6, h: 0.9, tone: "var(--st-maint)" },
+  Spa: { w: 2.8, h: 0.7, tone: "var(--brand)" },
+  Gimnasio: { w: 2.6, h: 0.7, tone: "var(--brand)" },
+  "Salas de reuniones": { w: 2.8, h: 0.7, tone: "var(--twin-wall)" },
+  Lavandería: { w: 2.2, h: 0.6, tone: "var(--twin-wall)" },
+};
+const INDOOR = ["Recepción", "Lobby", "Restaurante", "Bar", "Cocina"];
 
 export function layoutHotel(hotel: Hotel, allRooms: Room[]): HotelLayout {
   const floors = floorsOf(hotel, allRooms);
@@ -57,9 +71,18 @@ export function layoutHotel(hotel: Hotel, allRooms: Room[]): HotelLayout {
   const coreX = cols * RW;
   const W = coreX + CORE + COMMON;
   const D = RD * 2 + COR;
+  const lobby = (hotel.zones ?? []).filter((z) => INDOOR.includes(z)).slice(0, 3).join(" · ") || "Lobby · Recepción";
+  const outdoor: OutdoorZone[] = [];
+  let ox = 0;
+  (hotel.zones ?? []).filter((z) => OUTDOOR[z]).forEach((z) => {
+    const o = OUTDOOR[z]!;
+    outdoor.push({ label: z, rect: { x: ox, y: RD * 2 + COR + 1.4, w: o.w, d: 2.6 }, h: o.h, tone: o.tone });
+    ox += o.w + 0.5;
+  });
   const inset = (r: Rect): Rect => ({ x: r.x + 0.06, y: r.y + 0.06, w: r.w - 0.12, d: r.d - 0.12 });
+  const GW = Math.max(W, ox), GD = outdoor.length ? D + 1.4 + 2.6 : D;
   return {
-    W, D,
+    W, D, outdoor, GW, GD,
     floors: floors.map((floor, i) => ({
       floor,
       rooms: slotted[i]!.map(({ room, x, side }) => ({ room, rect: inset({ x: x * RW, y: side === "left" ? 0 : RD + COR, w: RW, d: RD }) })),
@@ -67,7 +90,7 @@ export function layoutHotel(hotel: Hotel, allRooms: Room[]): HotelLayout {
       stairs: inset({ x: coreX, y: RD + COR, w: CORE, d: RD }),
       corridor: { x: 0, y: RD, w: coreX + CORE, d: COR },
       common: inset({ x: coreX + CORE, y: 0, w: COMMON, d: D }),
-      commonLabel: i === 0 ? "Lobby · Recepción" : "Office · Zona común",
+      commonLabel: i === 0 ? lobby : "Office · Zona común",
     })),
   };
 }

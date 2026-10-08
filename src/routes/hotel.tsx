@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { AlertTriangle, LogIn, LogOut, Play, CheckCircle2, Sparkles, Ban, Plus } from "lucide-react";
+import { AlertTriangle, LogIn, LogOut, Play, CheckCircle2, Sparkles, Ban, Plus, Globe2, Wrench, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { fmtDay, resDisplay, useSuite, eur } from "@/lib/suite/store";
 import { IsoBuilding, TwinLegend } from "@/components/suite/twin/IsoBuilding";
 import { RoomInterior } from "@/components/suite/twin/RoomInterior";
 import { FloorChips, SimToggle } from "@/components/suite/twin/LiveHotel";
-import { useTwin } from "@/components/suite/twin/useTwin";
+import { useTwin, techPhase } from "@/components/suite/twin/useTwin";
 import { roomMeta, STATE_VAR } from "@/components/suite/twin/geometry";
 import { PageHeader, RoomPill, Row } from "@/components/suite/ui";
 import { ReportIssueDialog } from "@/components/suite/panels";
@@ -26,7 +26,7 @@ export const Route = createFileRoute("/hotel")({
 
 function HotelTwin() {
   const { s, hotel, roomState } = useSuite();
-  const { layout, floors, info } = useTwin();
+  const { layout, floors, info, staff } = useTwin();
   const [floor, setFloor] = useState<number | null>(null);
   const [sel, setSel] = useState<string | null>(null);
   const counts = {} as Record<RoomState, number>;
@@ -35,7 +35,7 @@ function HotelTwin() {
   return (
     <div>
       <PageHeader title="Hotel digital" sub={`${hotel.name} · ${floors.length} plantas · ${s.rooms.length} habitaciones`}
-        right={<Button asChild variant="outline" size="sm"><Link to="/crear-hotel"><Plus className="mr-1 h-4 w-4" />Crear hotel</Link></Button>} />
+        right={<div className="flex gap-2"><Button asChild variant="outline" size="sm"><Link to="/mundo"><Globe2 className="mr-1 h-4 w-4" />Volver a la ciudad</Link></Button><Button asChild variant="outline" size="sm"><Link to="/crear-hotel"><Plus className="mr-1 h-4 w-4" />Crear hotel</Link></Button></div>} />
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
         <div className="overflow-hidden rounded-2xl bg-twin-bg text-twin-text">
           <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-4">
@@ -45,7 +45,7 @@ function HotelTwin() {
             </div>
             <div className="flex flex-wrap items-center gap-2"><FloorChips floors={floors} value={floor} onChange={(v) => { setFloor(v); }} dark /><SimToggle dark /></div>
           </div>
-          <IsoBuilding layout={layout} info={info} focusFloor={floor} selected={sel} onSelect={(n) => { setSel(n); }} className="h-[460px] rounded-none sm:h-[600px]" />
+          <IsoBuilding layout={layout} info={info} staff={staff} focusFloor={floor} selected={sel} onSelect={(n) => { setSel(n); }} className="h-[460px] rounded-none sm:h-[600px]" />
           <div className="flex flex-wrap items-center justify-between gap-2 px-5 pb-4 pt-2">
             <TwinLegend />
             <div className="tnum flex gap-3 text-[11px] text-twin-muted">
@@ -111,6 +111,8 @@ function RoomPanel({ num, onClose, onFloor }: { num: string; onClose: () => void
         </div>
       </div>
 
+      {s.incidents.filter((i) => i.room === num).slice(0, 2).map((i) => <IncidentCard key={i.id} id={i.id} />)}
+
       <div className="divide-y border-t px-5 py-2">
         <Row k="Huésped" v={occ ? guest(occ.guestId).name : "—"} />
         <Row k="Reserva" v={occ ? `${occ.id} · ${resDisplay(occ)}` : "—"} />
@@ -124,6 +126,43 @@ function RoomPanel({ num, onClose, onFloor }: { num: string; onClose: () => void
       </div>
       <div className="px-5 pb-4"><button onClick={onClose} className="text-xs text-muted-foreground hover:text-foreground">Cerrar ficha</button></div>
       <ReportIssueDialog open={report} onOpenChange={setReport} defaultRoom={num} />
+    </div>
+  );
+}
+
+/** Incident lifecycle with technician movement — every step is a store action and lands in the history */
+function IncidentCard({ id }: { id: string }) {
+  const { s, actions } = useSuite();
+  const i = s.incidents.find((x) => x.id === id);
+  if (!i) return null;
+  const ph = techPhase(i);
+  const steps: [string, string | undefined][] = [
+    [`Creada · ${i.reporter}`, i.createdAt], [`Asignada a ${i.assignee}`, i.createdAt],
+    ["Técnico sale de la base", i.startedAt], ["Técnico llega a la habitación", i.arrivedAt], ["Resuelta y cerrada", i.resolvedAt],
+  ];
+  return (
+    <div className="mx-5 mb-4 rounded-xl border p-4">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 text-sm font-semibold"><Wrench className="h-4 w-4 text-st-maint" />Incidencia {i.id} · {i.category}</div>
+        <span className="text-[11px] uppercase tracking-wide text-muted-foreground">{{ base: "En base", route: "En camino", onsite: "En habitación", done: "Cerrada" }[ph]}</span>
+      </div>
+      <p className="mt-1 text-xs text-muted-foreground">{i.description}</p>
+      <ol className="mt-3 space-y-1.5">
+        {steps.map(([l, t]) => (
+          <li key={l} className="flex items-center gap-2 text-xs">
+            <span className={`h-2 w-2 rounded-full ${t ? "bg-st-ready" : "bg-muted"}`} />
+            <span className="tnum w-10 text-muted-foreground">{t ?? "—"}</span>
+            <span className={t ? "" : "text-muted-foreground"}>{l}</span>
+          </li>
+        ))}
+      </ol>
+      {ph !== "done" && i.taskId && (
+        <div className="mt-3">
+          {ph === "base" && <Button size="sm" className="w-full" onClick={() => actions.startTask(i.taskId!)}><MapPin className="mr-1.5 h-3.5 w-3.5" />Enviar a {i.assignee.split(" ")[0]}</Button>}
+          {ph === "route" && <Button size="sm" className="w-full" onClick={() => actions.arriveIncident(i.id)}>Marcar llegada del técnico</Button>}
+          {ph === "onsite" && <Button size="sm" className="w-full" onClick={() => actions.finishTask(i.taskId!)}><CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />Cerrar incidencia</Button>}
+        </div>
+      )}
     </div>
   );
 }

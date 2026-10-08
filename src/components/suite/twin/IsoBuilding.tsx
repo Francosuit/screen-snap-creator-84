@@ -44,12 +44,9 @@ export function IsoBuilding({ layout, info, focusFloor, selected, onSelect, laye
   view.current = { zoom, off };
 
   const U = focusFloor != null ? 34 : compact ? 15 : 20;
-  const W = layout.GW, D = layout.GD;
+  const W = focusFloor == null ? layout.GW : layout.W, D = focusFloor == null ? layout.GD : layout.D;
   const RW_ = rot % 2 ? D : W, RD_ = rot % 2 ? W : D;
   const R = (r: Rect) => rotRect(r, rot, W, D);
-  const BW = rot % 2 ? layout.D : layout.W, BD = rot % 2 ? layout.W : layout.D;
-  const Rb = (r: Rect) => { const q = R({ x: 0, y: 0, w: layout.W, d: layout.D }); const a = R(r); return { ...a, _o: q }; };
-  void Rb;
 
   const shapes = useMemo(() => {
     const out: Shape[] = [];
@@ -69,7 +66,6 @@ export function IsoBuilding({ layout, info, focusFloor, selected, onSelect, laye
       });
     }
     const slabRect = R({ x: 0, y: 0, w: layout.W, d: layout.D });
-    void BW; void BD;
     floors.forEach((fl, i) => {
       const z = focusFloor != null ? 0 : i * FLOOR_GAP;
       const slab = box(slabRect, z - SLAB, SLAB, U);

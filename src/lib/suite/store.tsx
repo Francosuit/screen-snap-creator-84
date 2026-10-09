@@ -25,7 +25,7 @@ interface Data {
 }
 /** Merged view of the active hotel — what screens read */
 interface State extends Data { role: RoleKey; hotel: HotelKey }
-interface Root { role: RoleKey; hotel: HotelKey; hotels: Hotel[]; data: Record<string, Data>; sim?: boolean; org?: Organization; accounts?: Account[]; user?: string }
+interface Root { role: RoleKey; hotel: HotelKey; hotels: Hotel[]; data: Record<string, Data>; sim?: boolean; org?: Organization; accounts?: Account[]; user?: string | undefined }
 
 const grandData: Data = {
   clock: START_CLOCK,

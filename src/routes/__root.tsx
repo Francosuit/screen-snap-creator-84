@@ -13,7 +13,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { SuiteProvider } from "@/lib/suite/store";
-import { AppShell } from "@/components/suite/AppShell";
+import { SessionGate } from "@/components/suite/SessionGate";
 import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
@@ -108,9 +108,9 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <SuiteProvider>
-        <AppShell>
+        <SessionGate>
           <Outlet />
-        </AppShell>
+        </SessionGate>
         <Toaster position="bottom-right" />
       </SuiteProvider>
     </QueryClientProvider>

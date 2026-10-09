@@ -66,8 +66,9 @@ export const ROLES: Record<RoleKey, { label: string; person: string; title: stri
   revenue: { label: "Revenue", person: "David Sanz", title: "Revenue Manager" },
 };
 
-export interface Hotel { id: string; name: string; address: string; city: string; category: string; rooms: number; logo: string; status: "activo" | "configurando"; floors?: Floor[]; description?: string; zones?: string[]; departments?: string[]; checkIn?: string; checkOut?: string }
-export interface Organization { name: string; owner: string; email: string }
+export interface Hotel { id: string; name: string; address: string; city: string; category: string; rooms: number; logo: string; status: "activo" | "configurando"; floors?: Floor[]; description?: string; zones?: string[]; departments?: string[]; checkIn?: string; checkOut?: string; owner?: string }
+export interface Organization { name: string; owner: string; email: string; tradeName?: string; country?: string; city?: string; phone?: string; type?: string; employees?: string }
+export interface Account { email: string; password: string; name: string; surname: string; position: string; role: string; org: Organization }
 /** Common zones a hotel can declare; each one becomes a visible object in the Digital World */
 export const ZONE_OPTIONS = ["Recepción", "Lobby", "Restaurante", "Bar", "Piscina", "Gimnasio", "Spa", "Parking", "Cocina", "Lavandería", "Jardín", "Salas de reuniones", "Mantenimiento"];
 export const DEPT_OPTIONS = ["Recepción", "Housekeeping", "Mantenimiento", "Restaurante", "Cocina", "Dirección", "Revenue", "Ventas", "Eventos", "Seguridad"];

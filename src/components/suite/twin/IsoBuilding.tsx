@@ -109,7 +109,7 @@ export function IsoBuilding({ layout, info, focusFloor, selected, onSelect, laye
             const s = faces.south;
             // window strip on the front wall
             const lerp = (a: Pt, b: Pt, t: number): Pt => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
-            const bl = lerp(s[0], s[3], 0.45), br = lerp(s[1], s[2], 0.45), tr = lerp(s[1], s[2], 0.82), tl = lerp(s[0], s[3], 0.82);
+            const bl = lerp(s[0]!, s[3]!, 0.45), br = lerp(s[1]!, s[2]!, 0.45), tr = lerp(s[1]!, s[2]!, 0.82), tl = lerp(s[0]!, s[3]!, 0.82);
             const win: Pt[] = [lerp(bl, br, 0.15), lerp(bl, br, 0.85), lerp(tl, tr, 0.85), lerp(tl, tr, 0.15)];
             const topC = center(faces.top);
             out.push({ k: "room", key: `r${room.number}`, room, faces, win, info: info(room), topC, markAt: [topC[0], topC[1] - U * 0.9], size: showLabels ? U * 0.42 : 0 });

@@ -174,7 +174,7 @@ function useSuiteState() {
       setOrg: (org: Organization) => setRoot((r) => ({ ...r, org })),
       signUp: (a: Account) => {
         if ((root.accounts ?? []).some((x) => x.email === a.email)) { say.error("Ese email ya tiene cuenta"); return false; }
-        setRoot((r) => ({ ...r, accounts: [...(r.accounts ?? []), a], user: a.email, org: a.org, role: "direccion" as RoleKey }));
+        setRoot((r) => ({ ...r, accounts: [...(r.accounts ?? []), a], user: a.email, org: a.org, role: "owner" as RoleKey }));
         return true;
       },
       signIn: (email: string, password: string) => {

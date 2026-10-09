@@ -12,10 +12,12 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ConfiguracionRouteImport } from './routes/configuracion'
 import { Route as ControlRouteImport } from './routes/control'
+import { Route as CrearHotelRouteImport } from './routes/crear-hotel'
 import { Route as HabitacionesRouteImport } from './routes/habitaciones'
 import { Route as HotelRouteImport } from './routes/hotel'
 import { Route as HuespedesRouteImport } from './routes/huespedes'
 import { Route as IntegracionesRouteImport } from './routes/integraciones'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as MensajesRouteImport } from './routes/mensajes'
 import { Route as MundoRouteImport } from './routes/mundo'
 import { Route as PersonalRouteImport } from './routes/personal'
@@ -37,6 +39,11 @@ const ControlRoute = ControlRouteImport.update({
   path: '/control',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CrearHotelRoute = CrearHotelRouteImport.update({
+  id: '/crear-hotel',
+  path: '/crear-hotel',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HabitacionesRoute = HabitacionesRouteImport.update({
   id: '/habitaciones',
   path: '/habitaciones',
@@ -55,6 +62,11 @@ const HuespedesRoute = HuespedesRouteImport.update({
 const IntegracionesRoute = IntegracionesRouteImport.update({
   id: '/integraciones',
   path: '/integraciones',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MensajesRoute = MensajesRouteImport.update({
@@ -87,10 +99,12 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/configuracion': typeof ConfiguracionRoute
   '/control': typeof ControlRoute
+  '/crear-hotel': typeof CrearHotelRoute
   '/habitaciones': typeof HabitacionesRoute
   '/hotel': typeof HotelRoute
   '/huespedes': typeof HuespedesRoute
   '/integraciones': typeof IntegracionesRoute
+  '/login': typeof LoginRoute
   '/mensajes': typeof MensajesRoute
   '/mundo': typeof MundoRoute
   '/personal': typeof PersonalRoute
@@ -101,10 +115,12 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/configuracion': typeof ConfiguracionRoute
   '/control': typeof ControlRoute
+  '/crear-hotel': typeof CrearHotelRoute
   '/habitaciones': typeof HabitacionesRoute
   '/hotel': typeof HotelRoute
   '/huespedes': typeof HuespedesRoute
   '/integraciones': typeof IntegracionesRoute
+  '/login': typeof LoginRoute
   '/mensajes': typeof MensajesRoute
   '/mundo': typeof MundoRoute
   '/personal': typeof PersonalRoute
@@ -116,10 +132,12 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/configuracion': typeof ConfiguracionRoute
   '/control': typeof ControlRoute
+  '/crear-hotel': typeof CrearHotelRoute
   '/habitaciones': typeof HabitacionesRoute
   '/hotel': typeof HotelRoute
   '/huespedes': typeof HuespedesRoute
   '/integraciones': typeof IntegracionesRoute
+  '/login': typeof LoginRoute
   '/mensajes': typeof MensajesRoute
   '/mundo': typeof MundoRoute
   '/personal': typeof PersonalRoute
@@ -132,10 +150,12 @@ export interface FileRouteTypes {
     | '/'
     | '/configuracion'
     | '/control'
+    | '/crear-hotel'
     | '/habitaciones'
     | '/hotel'
     | '/huespedes'
     | '/integraciones'
+    | '/login'
     | '/mensajes'
     | '/mundo'
     | '/personal'
@@ -146,10 +166,12 @@ export interface FileRouteTypes {
     | '/'
     | '/configuracion'
     | '/control'
+    | '/crear-hotel'
     | '/habitaciones'
     | '/hotel'
     | '/huespedes'
     | '/integraciones'
+    | '/login'
     | '/mensajes'
     | '/mundo'
     | '/personal'
@@ -160,10 +182,12 @@ export interface FileRouteTypes {
     | '/'
     | '/configuracion'
     | '/control'
+    | '/crear-hotel'
     | '/habitaciones'
     | '/hotel'
     | '/huespedes'
     | '/integraciones'
+    | '/login'
     | '/mensajes'
     | '/mundo'
     | '/personal'
@@ -175,10 +199,12 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ConfiguracionRoute: typeof ConfiguracionRoute
   ControlRoute: typeof ControlRoute
+  CrearHotelRoute: typeof CrearHotelRoute
   HabitacionesRoute: typeof HabitacionesRoute
   HotelRoute: typeof HotelRoute
   HuespedesRoute: typeof HuespedesRoute
   IntegracionesRoute: typeof IntegracionesRoute
+  LoginRoute: typeof LoginRoute
   MensajesRoute: typeof MensajesRoute
   MundoRoute: typeof MundoRoute
   PersonalRoute: typeof PersonalRoute
@@ -209,6 +235,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ControlRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/crear-hotel': {
+      id: '/crear-hotel'
+      path: '/crear-hotel'
+      fullPath: '/crear-hotel'
+      preLoaderRoute: typeof CrearHotelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/habitaciones': {
       id: '/habitaciones'
       path: '/habitaciones'
@@ -235,6 +268,13 @@ declare module '@tanstack/react-router' {
       path: '/integraciones'
       fullPath: '/integraciones'
       preLoaderRoute: typeof IntegracionesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/mensajes': {
@@ -279,10 +319,12 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ConfiguracionRoute: ConfiguracionRoute,
   ControlRoute: ControlRoute,
+  CrearHotelRoute: CrearHotelRoute,
   HabitacionesRoute: HabitacionesRoute,
   HotelRoute: HotelRoute,
   HuespedesRoute: HuespedesRoute,
   IntegracionesRoute: IntegracionesRoute,
+  LoginRoute: LoginRoute,
   MensajesRoute: MensajesRoute,
   MundoRoute: MundoRoute,
   PersonalRoute: PersonalRoute,

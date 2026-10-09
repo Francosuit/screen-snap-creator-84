@@ -14,7 +14,7 @@ import {
   DEMO_DATE, ROLES, START_CLOCK, seedGuests, seedIncidents, seedLog, seedNotifications, seedOpportunities,
   seedReservations, seedRooms, seedRules, seedTasks, seedHotels, type Hotel, type Floor, type Organization, type Channel,
   type Guest, type HotelKey, type Incident, type LogEntry, type Notification, type Opportunity, type Priority,
-  type Reservation, type RoleKey, type Room, type RoomState, type SentMessage, type Task, type MessageRule,
+  type Reservation, type Account, type RoleKey, type Room, type RoomState, type SentMessage, type Task, type MessageRule,
 } from "./data";
 import { SuiteCtx } from "./context";
 
@@ -25,7 +25,7 @@ interface Data {
 }
 /** Merged view of the active hotel — what screens read */
 interface State extends Data { role: RoleKey; hotel: HotelKey }
-interface Root { role: RoleKey; hotel: HotelKey; hotels: Hotel[]; data: Record<string, Data>; sim?: boolean; org?: Organization }
+interface Root { role: RoleKey; hotel: HotelKey; hotels: Hotel[]; data: Record<string, Data>; sim?: boolean; org?: Organization; accounts?: Account[]; user?: string | undefined }
 
 const grandData: Data = {
   clock: START_CLOCK,
@@ -172,11 +172,24 @@ function useSuiteState() {
       setHotel: (h: HotelKey) => setRoot((r) => ({ ...r, hotel: h })),
       resetDemo: () => { setRoot(initialRoot()); say.success("Demo reiniciada", { description: "Datos iniciales restaurados." }); },
       setOrg: (org: Organization) => setRoot((r) => ({ ...r, org })),
+      signUp: (a: Account) => {
+        if ((root.accounts ?? []).some((x) => x.email === a.email)) { say.error("Ese email ya tiene cuenta"); return false; }
+        setRoot((r) => ({ ...r, accounts: [...(r.accounts ?? []), a], user: a.email, org: a.org, role: "owner" as RoleKey }));
+        return true;
+      },
+      signIn: (email: string, password: string) => {
+        const a = (root.accounts ?? []).find((x) => x.email === email && x.password === password);
+        if (!a) { say.error("Email o contraseña incorrectos"); return false; }
+        const mine = root.hotels.find((h) => h.owner === a.email);
+        setRoot((r) => ({ ...r, user: a.email, org: a.org, hotel: mine?.id ?? r.hotel }));
+        return true;
+      },
+      signOut: () => setRoot((r) => ({ ...r, user: undefined })),
       createHotel: (input: { name: string; address: string; city: string; category: string; description?: string; floors: Floor[]; rooms: Room[]; zones?: string[]; departments?: string[]; checkIn?: string; checkOut?: string }) => {
         const hid = id("h");
         const h: Hotel = {
           id: hid, name: input.name, address: input.address, city: input.city, category: input.category, description: input.description ?? "",
-          rooms: input.rooms.length, floors: input.floors, status: "activo", zones: input.zones ?? [], departments: input.departments ?? [], checkIn: input.checkIn ?? "14:00", checkOut: input.checkOut ?? "12:00",
+          rooms: input.rooms.length, floors: input.floors, owner: root.user, status: "activo", zones: input.zones ?? [], departments: input.departments ?? [], checkIn: input.checkIn ?? "14:00", checkOut: input.checkOut ?? "12:00",
           logo: input.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase(),
         };
         const d = emptyData(input.rooms);
@@ -429,7 +442,7 @@ function useSuiteState() {
     return () => clearInterval(t);
   }, [root.sim]);
 
-  return { s, sim: !!root.sim, hotel, hotels: root.hotels, world: root.data, org: root.org, ...helpers, alerts, actions };
+  return { s, sim: !!root.sim, hotel, hotels: root.hotels.filter((h) => !h.owner || h.owner === root.user), world: root.data, org: root.org, ready: loaded, user: (root.accounts ?? []).find((a) => a.email === root.user), ...helpers, alerts, actions };
 }
 
 type Ctx = ReturnType<typeof useSuiteState>;

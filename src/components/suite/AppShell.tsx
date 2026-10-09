@@ -157,6 +157,7 @@ function Topbar() {
             ))}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => actions.resetDemo()} className="text-muted-foreground">Reiniciar demo</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => actions.signOut()}>Cerrar sesión</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

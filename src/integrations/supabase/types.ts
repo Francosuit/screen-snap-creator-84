@@ -14,7 +14,66 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      company_worlds: {
+        Row: {
+          id: string
+          name: string
+          owner_id: string
+          state: Json
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name?: string
+          owner_id: string
+          state?: Json
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          owner_id?: string
+          state?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          company_name: string
+          created_at: string
+          display_name: string
+          id: string
+        }
+        Insert: {
+          company_name?: string
+          created_at?: string
+          display_name?: string
+          id: string
+        }
+        Update: {
+          company_name?: string
+          created_at?: string
+          display_name?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          role: string
+          user_id: string
+        }
+        Insert: {
+          role?: string
+          user_id: string
+        }
+        Update: {
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

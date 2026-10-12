@@ -127,8 +127,8 @@ function useSuiteState() {
           const email = st.account!.email;
           const keep = r.hotels.filter((h) => h.owner !== email);
           const accounts = [...(r.accounts ?? []).filter((a) => a.email !== email), st.account!];
-          const mine = st.hotels[0]?.id;
-          return { ...r, accounts, user: email, org: st.account!.org, role: "owner", hotels: [...keep, ...st.hotels], data: { ...r.data, ...st.data }, hotel: mine ?? r.hotel };
+          const mine = sh[0]?.id;
+          return { ...r, accounts, user: email, org: st.account!.org, role: "owner", hotels: [...keep, ...sh], data: { ...r.data, ...st.data }, hotel: mine ?? r.hotel };
         });
       }
       remoteLoaded.current = true;

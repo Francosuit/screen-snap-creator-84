@@ -115,6 +115,7 @@ function Topbar() {
         </DropdownMenu>
 
         <div className="ml-auto hidden text-sm text-muted-foreground md:block">
+          <span className="mr-3 text-xs">{{ local: "Guardado solo en este navegador", loading: "Cargando…", saved: "Guardado en la nube", pending: "Guardando…", error: "Error al guardar" }[cloud]}</span>
           Martes, 10 nov 2026 · <span className="tnum font-medium text-foreground">{fmtClock(s.clock)}</span>
         </div>
 

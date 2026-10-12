@@ -39,7 +39,7 @@ function LoginPage() {
   const [f, setF] = useState({ email: "", password: "", name: "", surname: "", position: "Director/a", phone: "", company: "", tradeName: "", country: "España", city: "", type: "Hotel independiente", employees: "" });
   const set = (k: keyof typeof f) => (v: string) => setF((p) => ({ ...p, [k]: v }));
 
-  const doLogin = () => { if (actions.signIn(f.email.trim(), f.password)) navigate({ to: "/" }); };
+  const doLogin = async () => { if (await actions.signIn(f.email.trim(), f.password)) navigate({ to: "/mundo" }); };
   const doSignup = () => {
     const ok = actions.signUp({
       email: f.email.trim(), password: f.password, name: f.name, surname: f.surname, position: f.position, role: "Owner / Admin",

@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  Bell, BedDouble, CalendarRange, ChevronDown, ClipboardList, Home, LineChart, Menu, MessageSquare, Plug, Settings, Users, UserRound, Building2, Check,
+  Bell, BedDouble, CalendarRange, ChevronDown, ClipboardList, Home, LineChart, Menu, MessageSquare, Plug, Settings, Users, UserRound, Building2, Check, Globe2,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -12,7 +12,9 @@ import { NAV_ACCESS, fmtClock, useSuite } from "@/lib/suite/store";
 import { NoAccess } from "./ui";
 
 const NAV = [
-  { to: "/", label: "Inicio", icon: Home },
+  { to: "/mundo", label: "Mi mundo", icon: Globe2 },
+  { to: "/hotel", label: "Hotel en vivo", icon: Building2 },
+  { to: "/", label: "Dashboard", icon: Home },
   { to: "/reservas", label: "Reservas", icon: CalendarRange },
   { to: "/habitaciones", label: "Habitaciones", icon: BedDouble },
   { to: "/control", label: "Control", icon: LineChart },

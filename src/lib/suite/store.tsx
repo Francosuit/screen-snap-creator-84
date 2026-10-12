@@ -225,16 +225,24 @@ function useSuiteState() {
       signUp: (a: Account) => {
         if ((root.accounts ?? []).some((x) => x.email === a.email)) { say.error("Ese email ya tiene cuenta"); return false; }
         setRoot((r) => ({ ...r, accounts: [...(r.accounts ?? []), a], user: a.email, org: a.org, role: "owner" as RoleKey }));
+        // Also create the secure account so the hotel is saved in the database
+        supabase.auth.signUp({ email: a.email, password: a.password, options: { emailRedirectTo: window.location.origin, data: { display_name: `${a.name} ${a.surname}`.trim(), company_name: a.org.name } } })
+          .then(({ data, error }) => {
+            if (error) say.error("No se pudo crear la cuenta segura", { description: error.message });
+            else if (!data.session) say("Revisa tu correo", { description: "Confirma tu email para guardar tu hotel en la nube." });
+          });
         return true;
       },
-      signIn: (email: string, password: string) => {
+      signIn: async (email: string, password: string) => {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (!error) return true; // saved world loads automatically
         const a = (root.accounts ?? []).find((x) => x.email === email && x.password === password);
-        if (!a) { say.error("Email o contraseña incorrectos"); return false; }
+        if (!a) { say.error("Email o contraseña incorrectos", { description: error.message }); return false; }
         const mine = root.hotels.find((h) => h.owner === a.email);
         setRoot((r) => ({ ...r, user: a.email, org: a.org, hotel: mine?.id ?? r.hotel }));
         return true;
       },
-      signOut: () => setRoot((r) => ({ ...r, user: undefined })),
+      signOut: () => { supabase.auth.signOut(); setRoot((r) => ({ ...r, user: undefined })); },
       createHotel: (input: { name: string; address: string; city: string; category: string; description?: string; floors: Floor[]; rooms: Room[]; zones?: string[]; departments?: string[]; checkIn?: string; checkOut?: string }) => {
         const hid = id("h");
         const h: Hotel = {
@@ -492,7 +500,7 @@ function useSuiteState() {
     return () => clearInterval(t);
   }, [root.sim]);
 
-  return { s, sim: !!root.sim, hotel, hotels: root.hotels.filter((h) => !h.owner || h.owner === root.user), world: root.data, org: root.org, ready: loaded, user: (root.accounts ?? []).find((a) => a.email === root.user), ...helpers, alerts, actions };
+  return { s, sim: !!root.sim, hotel, hotels: visible, world: root.data, org: root.org, ready: loaded && cloud !== "loading", cloud, user: (root.accounts ?? []).find((a) => a.email === root.user), ...helpers, alerts, actions };
 }
 
 type Ctx = ReturnType<typeof useSuiteState>;

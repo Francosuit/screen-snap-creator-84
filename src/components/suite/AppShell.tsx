@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  Bell, BedDouble, CalendarRange, ChevronDown, ClipboardList, Home, LineChart, Menu, MessageSquare, Plug, Settings, Users, UserRound, Building2, Check,
+  Bell, BedDouble, CalendarRange, ChevronDown, ClipboardList, Home, LineChart, Menu, MessageSquare, Plug, Settings, Users, UserRound, Building2, Check, Globe2,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -12,7 +12,9 @@ import { NAV_ACCESS, fmtClock, useSuite } from "@/lib/suite/store";
 import { NoAccess } from "./ui";
 
 const NAV = [
-  { to: "/", label: "Inicio", icon: Home },
+  { to: "/mundo", label: "Mi mundo", icon: Globe2 },
+  { to: "/hotel", label: "Hotel en vivo", icon: Building2 },
+  { to: "/", label: "Dashboard", icon: Home },
   { to: "/reservas", label: "Reservas", icon: CalendarRange },
   { to: "/habitaciones", label: "Habitaciones", icon: BedDouble },
   { to: "/control", label: "Control", icon: LineChart },
@@ -79,7 +81,7 @@ function Sidebar() {
 }
 
 function Topbar() {
-  const { s, actions, hotel, hotels } = useSuite();
+  const { s, actions, hotel, hotels, cloud } = useSuite();
   const [open, setOpen] = useState(false);
   const notifs = s.notifications.filter((n) => n.roles.includes(s.role));
   const unread = notifs.filter((n) => !n.read).length;
@@ -113,6 +115,7 @@ function Topbar() {
         </DropdownMenu>
 
         <div className="ml-auto hidden text-sm text-muted-foreground md:block">
+          <span className="mr-3 text-xs">{{ local: "Guardado solo en este navegador", loading: "Cargando…", saved: "Guardado en la nube", pending: "Guardando…", error: "Error al guardar" }[cloud]}</span>
           Martes, 10 nov 2026 · <span className="tnum font-medium text-foreground">{fmtClock(s.clock)}</span>
         </div>
 

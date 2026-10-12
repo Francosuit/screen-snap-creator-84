@@ -17,6 +17,8 @@ import {
   type Reservation, type Account, type RoleKey, type Room, type RoomState, type SentMessage, type Task, type MessageRule,
 } from "./data";
 import { SuiteCtx } from "./context";
+import { supabase } from "@/integrations/supabase/client";
+interface CloudState { account?: Account; hotels?: Hotel[]; data?: Record<string, Data> }
 
 interface Data {
   clock: number;
@@ -98,14 +100,62 @@ const id = (p: string) => `${p}-${Date.now().toString(36)}${Math.random().toStri
 function useSuiteState() {
   const [root, setRoot] = useState<Root>(initialRoot);
   const [loaded, setLoaded] = useState(false);
+  const [uid, setUid] = useState<string | null>(null);
+  const [cloud, setCloud] = useState<"local" | "loading" | "saved" | "pending" | "error">("local");
+  const remoteLoaded = useRef(false);
   useEffect(() => {
     try { const raw = localStorage.getItem(STORAGE); if (raw) setRoot(JSON.parse(raw) as Root); } catch { /* ignore corrupt storage */ }
     setLoaded(true);
+    supabase.auth.getSession().then(({ data }) => setUid(data.session?.user.id ?? null));
+    const { data: sub } = supabase.auth.onAuthStateChange((ev, sess) => {
+      if (ev === "SIGNED_IN" || ev === "SIGNED_OUT" || ev === "INITIAL_SESSION") setUid(sess?.user.id ?? null);
+    });
+    return () => sub.subscription.unsubscribe();
   }, []);
   useEffect(() => { if (loaded) localStorage.setItem(STORAGE, JSON.stringify(root)); }, [root, loaded]);
 
-  const s: State = useMemo(() => ({ ...root.data[root.hotel]!, role: root.role, hotel: root.hotel }), [root]);
-  const hotel = root.hotels.find((h) => h.id === root.hotel)!;
+  /** Load the company's saved world from the backend once signed in */
+  useEffect(() => {
+    remoteLoaded.current = false;
+    if (!uid) { setCloud("local"); return; }
+    setCloud("loading");
+    supabase.from("company_worlds").select("state").eq("owner_id", uid).maybeSingle().then(({ data, error }) => {
+      if (error) { setCloud("error"); return; }
+      const st = data?.state as CloudState | undefined; const sh = st?.hotels ?? [];
+      if (st?.account && Array.isArray(st.hotels)) {
+        setRoot((r) => {
+          const email = st.account!.email;
+          const keep = r.hotels.filter((h) => h.owner !== email);
+          const accounts = [...(r.accounts ?? []).filter((a) => a.email !== email), st.account!];
+          const mine = sh[0]?.id;
+          return { ...r, accounts, user: email, org: st.account!.org, role: "owner", hotels: [...keep, ...sh], data: { ...r.data, ...st.data }, hotel: mine ?? r.hotel };
+        });
+      }
+      remoteLoaded.current = true;
+      setCloud("saved");
+    });
+  }, [uid]);
+
+  /** Save the signed-in owner's hotels + operational data (debounced) */
+  useEffect(() => {
+    if (!uid || !remoteLoaded.current || !root.user) return;
+    const account = (root.accounts ?? []).find((a) => a.email === root.user);
+    if (!account) return;
+    setCloud("pending");
+    const t = setTimeout(async () => {
+      const hotels = root.hotels.filter((h) => h.owner === root.user);
+      const data: Record<string, Data> = {};
+      hotels.forEach((h) => { if (root.data[h.id]) data[h.id] = root.data[h.id]!; });
+      const state = JSON.parse(JSON.stringify({ account: { ...account, password: "" }, hotels, data }));
+      const { error } = await supabase.from("company_worlds").upsert({ owner_id: uid, name: "Mi Isla", state }, { onConflict: "owner_id" });
+      setCloud(error ? "error" : "saved");
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [root, uid]);
+
+  const visible = root.hotels.filter((h) => !h.owner || h.owner === root.user);
+  const hotel = visible.find((h) => h.id === root.hotel) ?? root.hotels.find((h) => h.id === root.hotel) ?? root.hotels[0]!;
+  const s: State = useMemo(() => ({ ...(root.data[hotel.id] ?? root.data[root.hotels[0]!.id])!, role: root.role, hotel: hotel.id }), [root, hotel.id]);
   /** All actions write through the active hotel's slice — single source of truth */
   const setS = (fn: (p: State) => State) => setRoot((r) => {
     const { role, hotel: h, ...d } = fn({ ...r.data[r.hotel]!, role: r.role, hotel: r.hotel });
@@ -175,16 +225,24 @@ function useSuiteState() {
       signUp: (a: Account) => {
         if ((root.accounts ?? []).some((x) => x.email === a.email)) { say.error("Ese email ya tiene cuenta"); return false; }
         setRoot((r) => ({ ...r, accounts: [...(r.accounts ?? []), a], user: a.email, org: a.org, role: "owner" as RoleKey }));
+        // Also create the secure account so the hotel is saved in the database
+        supabase.auth.signUp({ email: a.email, password: a.password, options: { emailRedirectTo: window.location.origin, data: { display_name: `${a.name} ${a.surname}`.trim(), company_name: a.org.name } } })
+          .then(({ data, error }) => {
+            if (error) say.error("No se pudo crear la cuenta segura", { description: error.message });
+            else if (!data.session) say("Revisa tu correo", { description: "Confirma tu email para guardar tu hotel en la nube." });
+          });
         return true;
       },
-      signIn: (email: string, password: string) => {
+      signIn: async (email: string, password: string) => {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (!error) return true; // saved world loads automatically
         const a = (root.accounts ?? []).find((x) => x.email === email && x.password === password);
-        if (!a) { say.error("Email o contraseña incorrectos"); return false; }
+        if (!a) { say.error("Email o contraseña incorrectos", { description: error.message }); return false; }
         const mine = root.hotels.find((h) => h.owner === a.email);
         setRoot((r) => ({ ...r, user: a.email, org: a.org, hotel: mine?.id ?? r.hotel }));
         return true;
       },
-      signOut: () => setRoot((r) => ({ ...r, user: undefined })),
+      signOut: () => { supabase.auth.signOut(); setRoot((r) => ({ ...r, user: undefined })); },
       createHotel: (input: { name: string; address: string; city: string; category: string; description?: string; floors: Floor[]; rooms: Room[]; zones?: string[]; departments?: string[]; checkIn?: string; checkOut?: string }) => {
         const hid = id("h");
         const h: Hotel = {
@@ -442,7 +500,7 @@ function useSuiteState() {
     return () => clearInterval(t);
   }, [root.sim]);
 
-  return { s, sim: !!root.sim, hotel, hotels: root.hotels.filter((h) => !h.owner || h.owner === root.user), world: root.data, org: root.org, ready: loaded, user: (root.accounts ?? []).find((a) => a.email === root.user), ...helpers, alerts, actions };
+  return { s, sim: !!root.sim, hotel, hotels: visible, world: root.data, org: root.org, ready: loaded && cloud !== "loading", cloud, user: (root.accounts ?? []).find((a) => a.email === root.user), ...helpers, alerts, actions };
 }
 
 type Ctx = ReturnType<typeof useSuiteState>;

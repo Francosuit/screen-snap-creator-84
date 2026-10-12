@@ -81,7 +81,7 @@ function Sidebar() {
 }
 
 function Topbar() {
-  const { s, actions, hotel, hotels } = useSuite();
+  const { s, actions, hotel, hotels, cloud } = useSuite();
   const [open, setOpen] = useState(false);
   const notifs = s.notifications.filter((n) => n.roles.includes(s.role));
   const unread = notifs.filter((n) => !n.read).length;

@@ -121,7 +121,7 @@ function useSuiteState() {
     setCloud("loading");
     supabase.from("company_worlds").select("state").eq("owner_id", uid).maybeSingle().then(({ data, error }) => {
       if (error) { setCloud("error"); return; }
-      const st = data?.state as CloudState | undefined;
+      const st = data?.state as CloudState | undefined; const sh = st?.hotels ?? [];
       if (st?.account && Array.isArray(st.hotels)) {
         setRoot((r) => {
           const email = st.account!.email;

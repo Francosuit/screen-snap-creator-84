@@ -17,6 +17,8 @@ import {
   type Reservation, type Account, type RoleKey, type Room, type RoomState, type SentMessage, type Task, type MessageRule,
 } from "./data";
 import { SuiteCtx } from "./context";
+import { supabase } from "@/integrations/supabase/client";
+interface CloudState { account?: Account; hotels?: Hotel[]; data?: Record<string, Data> }
 
 interface Data {
   clock: number;
@@ -98,14 +100,62 @@ const id = (p: string) => `${p}-${Date.now().toString(36)}${Math.random().toStri
 function useSuiteState() {
   const [root, setRoot] = useState<Root>(initialRoot);
   const [loaded, setLoaded] = useState(false);
+  const [uid, setUid] = useState<string | null>(null);
+  const [cloud, setCloud] = useState<"local" | "loading" | "saved" | "pending" | "error">("local");
+  const remoteLoaded = useRef(false);
   useEffect(() => {
     try { const raw = localStorage.getItem(STORAGE); if (raw) setRoot(JSON.parse(raw) as Root); } catch { /* ignore corrupt storage */ }
     setLoaded(true);
+    supabase.auth.getSession().then(({ data }) => setUid(data.session?.user.id ?? null));
+    const { data: sub } = supabase.auth.onAuthStateChange((ev, sess) => {
+      if (ev === "SIGNED_IN" || ev === "SIGNED_OUT" || ev === "INITIAL_SESSION") setUid(sess?.user.id ?? null);
+    });
+    return () => sub.subscription.unsubscribe();
   }, []);
   useEffect(() => { if (loaded) localStorage.setItem(STORAGE, JSON.stringify(root)); }, [root, loaded]);
 
-  const s: State = useMemo(() => ({ ...root.data[root.hotel]!, role: root.role, hotel: root.hotel }), [root]);
-  const hotel = root.hotels.find((h) => h.id === root.hotel)!;
+  /** Load the company's saved world from the backend once signed in */
+  useEffect(() => {
+    remoteLoaded.current = false;
+    if (!uid) { setCloud("local"); return; }
+    setCloud("loading");
+    supabase.from("company_worlds").select("state").eq("owner_id", uid).maybeSingle().then(({ data, error }) => {
+      if (error) { setCloud("error"); return; }
+      const st = data?.state as CloudState | undefined;
+      if (st?.account && Array.isArray(st.hotels)) {
+        setRoot((r) => {
+          const email = st.account!.email;
+          const keep = r.hotels.filter((h) => h.owner !== email);
+          const accounts = [...(r.accounts ?? []).filter((a) => a.email !== email), st.account!];
+          const mine = st.hotels[0]?.id;
+          return { ...r, accounts, user: email, org: st.account!.org, role: "owner", hotels: [...keep, ...st.hotels], data: { ...r.data, ...st.data }, hotel: mine ?? r.hotel };
+        });
+      }
+      remoteLoaded.current = true;
+      setCloud("saved");
+    });
+  }, [uid]);
+
+  /** Save the signed-in owner's hotels + operational data (debounced) */
+  useEffect(() => {
+    if (!uid || !remoteLoaded.current || !root.user) return;
+    const account = (root.accounts ?? []).find((a) => a.email === root.user);
+    if (!account) return;
+    setCloud("pending");
+    const t = setTimeout(async () => {
+      const hotels = root.hotels.filter((h) => h.owner === root.user);
+      const data: Record<string, Data> = {};
+      hotels.forEach((h) => { if (root.data[h.id]) data[h.id] = root.data[h.id]!; });
+      const state = JSON.parse(JSON.stringify({ account: { ...account, password: "" }, hotels, data }));
+      const { error } = await supabase.from("company_worlds").upsert({ owner_id: uid, name: "Mi Isla", state }, { onConflict: "owner_id" });
+      setCloud(error ? "error" : "saved");
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [root, uid]);
+
+  const visible = root.hotels.filter((h) => !h.owner || h.owner === root.user);
+  const hotel = visible.find((h) => h.id === root.hotel) ?? root.hotels.find((h) => h.id === root.hotel) ?? root.hotels[0]!;
+  const s: State = useMemo(() => ({ ...(root.data[hotel.id] ?? root.data[root.hotels[0]!.id])!, role: root.role, hotel: hotel.id }), [root, hotel.id]);
   /** All actions write through the active hotel's slice — single source of truth */
   const setS = (fn: (p: State) => State) => setRoot((r) => {
     const { role, hotel: h, ...d } = fn({ ...r.data[r.hotel]!, role: r.role, hotel: r.hotel });

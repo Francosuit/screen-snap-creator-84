@@ -89,6 +89,11 @@
   --chart-4: oklch(0.7 0.15 45);
   --chart-5: oklch(0.65 0.02 270);
   --st-ready: oklch(0.62 0.14 155);
+  --ch-booking: oklch(0.45 0.15 260);
+  --ch-expedia: oklch(0.72 0.15 85);
+  --ch-airbnb: oklch(0.63 0.2 15);
+  --ch-direct: oklch(0.55 0.12 175);
+  --ch-manual: oklch(0.5 0.02 260);
   --st-occupied: oklch(0.57 0.15 255);
   --st-dirty: oklch(0.8 0.15 88);
   --st-cleaning: oklch(0.7 0.17 50);

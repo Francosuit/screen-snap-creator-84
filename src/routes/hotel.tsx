@@ -21,14 +21,16 @@ export const Route = createFileRoute("/hotel")({
       { property: "og:description", content: "Explora tu hotel planta por planta, en tiempo real." },
     ],
   }),
+  validateSearch: (q: Record<string, unknown>): { room?: string } => (typeof q["room"] === "string" ? { room: q["room"] as string } : {}),
   component: HotelTwin,
 });
 
 function HotelTwin() {
   const { s, hotel, roomState } = useSuite();
   const { layout, floors, info, staff } = useTwin();
-  const [floor, setFloor] = useState<number | null>(null);
-  const [sel, setSel] = useState<string | null>(null);
+  const { room: wanted } = Route.useSearch();
+  const [floor, setFloor] = useState<number | null>(() => s.rooms.find((r) => r.number === wanted)?.floor ?? null);
+  const [sel, setSel] = useState<string | null>(wanted && s.rooms.some((r) => r.number === wanted) ? wanted : null);
   const counts = {} as Record<RoomState, number>;
   s.rooms.forEach((r) => { const st = roomState(r.number); counts[st] = (counts[st] ?? 0) + 1; });
 

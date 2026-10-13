@@ -462,6 +462,22 @@ function useSuiteState() {
     };
 
     /** One controlled event that mutates the real demo state */
+    /** Manual booking from reception — rejects overlapping stays in the same room */
+    const createReservation = (input: { name: string; room: string; inDay: number; outDay: number; pax: number; notes: string }) => {
+      if (!input.name.trim() || input.outDay <= input.inDay) { say.error("Revisa nombre y fechas"); return false; }
+      const room = s.rooms.find((r) => r.number === input.room);
+      if (!room || room.oos) { say.error("Habitación no disponible"); return false; }
+      const clash = s.reservations.find((x) => x.room === input.room && x.status === "confirmed" && x.stay !== "finished" && x.inDay < input.outDay && input.inDay < x.outDay);
+      if (clash) { say.error(`Habitación ${input.room} ocupada en esas fechas`, { description: `Choca con ${clash.id}` }); return false; }
+      const gid = id("g");
+      const g: Guest = { id: gid, name: input.name.trim(), doc: "—", phone: "—", email: "—", lang: "—", companions: [], notes: "", country: "—", messaging: false };
+      const res: Reservation = { id: id("R"), guestId: gid, room: room.number, inDay: input.inDay, outDay: input.outDay, eta: "—", pax: input.pax, channel: "Recepción", amount: room.rate * (input.outDay - input.inDay), status: "confirmed", stay: "none", notes: input.notes, createdDay: 0 };
+      setS((p) => notify(push({ ...p, guests: [g, ...p.guests], reservations: [res, ...p.reservations] }, [
+        { actor, text: `Reserva manual ${res.id} · ${g.name} · habitación ${room.number} · ${fmtDay(input.inDay).toLowerCase()} → ${fmtDay(input.outDay).toLowerCase()}.`, kind: "human" },
+      ]), ["reception", "owner", "director"], `Reserva manual · ${g.name} · ${room.number}.`, "ok"));
+      say.success("Reserva creada");
+      return true;
+    };
     const simulateStep = () => {
       const opts: (() => unknown)[] = [];
       const inhouse = s.reservations.filter((r) => r.stay === "inhouse");
@@ -488,7 +504,7 @@ function useSuiteState() {
       try { pick(opts)(); } finally { quiet = false; }
     };
 
-    return { ...api, roomOp, simulateStep };
+    return { ...api, roomOp, simulateStep, createReservation };
   }, [s, helpers]);
 
   // Activity simulator: fires a real action every few seconds while enabled

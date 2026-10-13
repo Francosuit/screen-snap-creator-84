@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { useState, type ReactNode } from "react";
 import { Camera, LogIn, LogOut, Wrench } from "lucide-react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -84,9 +85,11 @@ export function ReservationSheet({ resId, onClose }: { resId: string | null; onC
               <Row k="Salida" v={`${fmtDay(r.outDay)} · 11:00`} />
               <Row k="Noches" v={r.outDay - r.inDay} /><Row k="Huéspedes" v={r.pax} />
               <Row k="Habitación" v={`${r.room} · ${s.rooms.find((x) => x.number === r.room)!.type}`} />
-              <Row k="Canal" v={r.channel} /><Row k="Importe" v={eur(r.amount)} />
+              <Row k="Canal" v={r.channel === "Recepción" ? "Manual" : r.channel === "Web directa" ? "Motor directo" : r.channel} /><Row k="Importe" v={eur(r.amount)} />
             </Section>
             <Section title="Notas"><p className="py-2 text-sm">{r.notes || g.notes || "—"}</p></Section>
+            <div className="px-6 pb-2"><Link to="/hotel" search={{ room: r.room }} onClick={onClose} className="inline-flex w-full items-center justify-center rounded-md border px-3 py-2 text-sm font-medium hover:bg-accent">Localizar habitación {r.room} en Mi mundo</Link></div>
+            <Section title="Historial">{s.log.filter((l) => l.text.includes(r.id)).map((l) => <p key={l.id} className="py-1 text-xs"><span className="tnum text-muted-foreground">{l.time}</span> · {l.text}</p>)}{!s.log.some((l) => l.text.includes(r.id)) && <p className="py-2 text-xs text-muted-foreground">Sin cambios registrados.</p>}</Section>
             <StayActions resId={r.id} />
           </>
         )}

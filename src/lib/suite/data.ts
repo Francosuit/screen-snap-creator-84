@@ -304,10 +304,10 @@ export function bedsText(c: BedCounts): string {
 export function parseBeds(text: string | undefined): BedCounts {
   const out: BedCounts = {};
   for (const part of (text ?? "").toLowerCase().split("+")) {
-    const m = part.trim().match(/^(\d+)\s+(.+)$/);
+    const m = part.trim().match(/^(?:(\d+)\s+)?(.+)$/);
     if (!m) continue;
     const k = BED_KINDS.find((b) => m[2] === b.one || m[2] === b.many);
-    if (k) out[k.key] = (out[k.key] ?? 0) + Number(m[1]);
+    if (k) out[k.key] = (out[k.key] ?? 0) + Number(m[1] ?? 1);
   }
   return out;
 }

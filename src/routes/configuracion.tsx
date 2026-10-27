@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { actionRules } from "@/lib/suite/data";
 import { useSuite } from "@/lib/suite/store";
 import { Card, PageHeader, SectionTitle } from "@/components/suite/ui";
+import { HistoryPanel, TeamPanel } from "@/components/suite/TeamPanel";
 
 export const Route = createFileRoute("/configuracion")({
   head: () => ({

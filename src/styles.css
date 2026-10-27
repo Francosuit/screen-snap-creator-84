@@ -83,6 +83,7 @@
   --input: oklch(0.92 0.004 85);
   --ring: oklch(0.55 0.12 160);
   --brand: oklch(0.52 0.11 165);
+  --suite-gold: oklch(0.78 0.12 80);
   --chart-1: oklch(0.52 0.11 165);
   --chart-2: oklch(0.6 0.13 250);
   --chart-3: oklch(0.75 0.14 75);
@@ -156,12 +157,12 @@
 /* Suite Solutions entrance loop */
 .suite-loop-ring {
   position: absolute; inset: 20%; border-radius: 9999px;
-  border: 1.5px solid color-mix(in oklab, var(--brand) 80%, transparent);
+  border: 1.5px solid color-mix(in oklab, var(--suite-gold) 80%, transparent);
   animation: suite-ring 6s cubic-bezier(0.4, 0, 0.2, 1) infinite; opacity: 0;
 }
 .suite-loop-glow {
   position: absolute; inset: 22%; border-radius: 9999px;
-  background: radial-gradient(circle, color-mix(in oklab, var(--brand) 45%, transparent), transparent 70%);
+  background: radial-gradient(circle, color-mix(in oklab, var(--suite-gold) 45%, transparent), transparent 70%);
   animation: suite-glow 6s ease-in-out infinite;
 }
 .suite-loop-logo { animation: suite-approach 6s cubic-bezier(0.4, 0, 0.2, 1) infinite; }

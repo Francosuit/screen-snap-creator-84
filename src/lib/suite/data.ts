@@ -22,8 +22,42 @@ export interface Room {
   number: string; floor: number; type: string; hk: HkStatus; oos: boolean; rate: number;
   /** Physical configuration (optional: older rooms fall back to defaults by type) */
   capacity?: number; beds?: string; bath?: string; terrace?: boolean; view?: string; sqm?: number;
+  /** Internal staff notes */
+  notes?: string;
   /** Position inside its floor plan: column along the corridor + side of the corridor */
   x?: number; side?: "left" | "right";
+}
+
+/** Fields a manager may edit on a room; number/floor/state are intentionally excluded */
+export type RoomEdit = Pick<Room, "type" | "rate"> & Partial<Pick<Room, "capacity" | "beds" | "bath" | "terrace" | "view" | "sqm" | "notes">>;
+export const ROOM_EDIT_LABELS: Record<keyof RoomEdit, string> = {
+  type: "tipo", rate: "tarifa", capacity: "capacidad", beds: "camas", bath: "baño", terrace: "terraza", view: "vista", sqm: "m²", notes: "observaciones",
+};
+
+/** Returns an error message, or null when the edit is valid */
+export function validateRoomEdit(e: RoomEdit): string | null {
+  if (!e.type?.trim()) return "El tipo es obligatorio";
+  if (!Number.isFinite(e.rate) || e.rate <= 0) return "La tarifa debe ser mayor que 0";
+  if (e.capacity != null && (!Number.isInteger(e.capacity) || e.capacity < 1 || e.capacity > 10)) return "La capacidad debe estar entre 1 y 10";
+  if (e.sqm != null && (!Number.isFinite(e.sqm) || e.sqm <= 0)) return "Los metros deben ser positivos";
+  return null;
+}
+
+/** Applies only allowed fields; returns the new room and the list of changed field labels */
+export function applyRoomEdit(room: Room, e: RoomEdit): { room: Room; changed: string[] } {
+  const next: Room = { ...room };
+  const changed: string[] = [];
+  (Object.keys(ROOM_EDIT_LABELS) as (keyof RoomEdit)[]).forEach((k) => {
+    if (!(k in e)) return;
+    const v = e[k];
+    if ((room[k] ?? undefined) !== (v ?? undefined)) { (next as unknown as Record<string, unknown>)[k] = v; changed.push(ROOM_EDIT_LABELS[k]); }
+  });
+  return { room: next, changed };
+}
+
+/** Upcoming, non-cancelled reservations for a room (not yet checked in) */
+export function futureReservations(list: Reservation[], room: string): Reservation[] {
+  return list.filter((r) => r.room === room && r.status === "confirmed" && r.stay === "none");
 }
 export interface Floor { number: number; name: string }
 export interface Guest {

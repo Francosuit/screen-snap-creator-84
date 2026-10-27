@@ -11,3 +11,4 @@
 - [ ] Floor plan view (rooms, corridor, lifts, stairs, common areas) + room interior view
 - [ ] Live Hotel on dashboard + activity side-by-side
 - [ ] Simulate activity button (real state changes)
+- [x] Edición completa de cada cuarto desde el mapa: ocupación (doble/triple), camas separadas, extras; visible en mapa y ficha

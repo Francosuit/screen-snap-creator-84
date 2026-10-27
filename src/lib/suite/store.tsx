@@ -1,3 +1,4 @@
+import { claimInvites, loadConfig, overlayHotel } from "./cloud";
 import { useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 
@@ -157,6 +158,18 @@ function useSuiteState() {
           });
         }
       }
+      // Stored hotel/floor/room records are the source of truth for configuration
+      await claimInvites();
+      const cfg = await loadConfig();
+      if (cfg) setRoot((r) => {
+        const hotels = [...r.hotels]; const data = { ...r.data };
+        hotels.forEach((h, i) => {
+          if (!h.owner || !data[h.id]) return;
+          const o = overlayHotel(h, data[h.id]!.rooms, cfg);
+          hotels[i] = o.hotel; data[h.id] = { ...data[h.id]!, rooms: o.rooms };
+        });
+        return { ...r, hotels, data };
+      });
       remoteLoaded.current = true;
       setCloud("saved");
     });

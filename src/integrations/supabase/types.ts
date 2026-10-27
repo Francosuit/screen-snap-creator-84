@@ -103,6 +103,35 @@ export type Database = {
           },
         ]
       }
+      hotel_invites: {
+        Row: {
+          created_at: string
+          email: string
+          hotel_id: string
+          role: Database["public"]["Enums"]["hotel_role"]
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          hotel_id: string
+          role: Database["public"]["Enums"]["hotel_role"]
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          hotel_id?: string
+          role?: Database["public"]["Enums"]["hotel_role"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hotel_invites_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hotel_members: {
         Row: {
           hotel_id: string
@@ -292,6 +321,7 @@ export type Database = {
         Args: { _hotel: string; _uid: string }
         Returns: boolean
       }
+      suite_claim_invites: { Args: never; Returns: number }
     }
     Enums: {
       hotel_role:

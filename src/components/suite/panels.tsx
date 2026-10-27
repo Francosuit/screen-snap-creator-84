@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { eur, fmtDay, resDisplay, useSuite } from "@/lib/suite/store";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { futureReservations, validateRoomEdit, type Room, type RoomEdit } from "@/lib/suite/data";
+import { futureReservations, BED_KINDS, OCCUPANCY, ROOM_EXTRAS, bedSleeps, bedsText, parseBeds, validateRoomEdit, type Room, type RoomEdit } from "@/lib/suite/data";
 import { PrioPill, ResPill, RoomPill, Row, TaskPill } from "./ui";
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
@@ -106,7 +106,7 @@ function RoomEditor({ num }: { num: string }) {
   const { s, actions } = useSuite();
   const rm: Room | undefined = s.rooms.find((x: Room) => x.number === num);
   const [edit, setEdit] = useState(false);
-  const [f, setF] = useState<RoomEdit>(() => ({ type: rm?.type ?? "", rate: rm?.rate ?? 0, capacity: rm?.capacity, beds: rm?.beds ?? "", bath: rm?.bath ?? "", view: rm?.view ?? "", sqm: rm?.sqm, terrace: !!rm?.terrace, notes: rm?.notes ?? "" }));
+  const [f, setF] = useState<RoomEdit>(() => ({ type: rm?.type ?? "", rate: rm?.rate ?? 0, capacity: rm?.capacity, beds: rm?.beds ?? "", bath: rm?.bath ?? "", view: rm?.view ?? "", sqm: rm?.sqm, terrace: !!rm?.terrace, notes: rm?.notes ?? "", extras: rm?.extras ?? [] }));
   if (!rm) return null;
   const future = futureReservations(s.reservations, num);
   const priceChange = f.type !== rm.type || f.rate !== rm.rate;
@@ -116,7 +116,7 @@ function RoomEditor({ num }: { num: string }) {
   if (!edit) return (
     <Section title="Características">
       <Row k="Capacidad" v={rm.capacity ?? "—"} /><Row k="Camas" v={rm.beds || "—"} /><Row k="Baño" v={rm.bath || "—"} />
-      <Row k="Vista" v={rm.view || "—"} /><Row k="Superficie" v={rm.sqm ? `${rm.sqm} m²` : "—"} /><Row k="Terraza" v={rm.terrace ? "Sí" : "No"} />
+      <Row k="Vista" v={rm.view || "—"} /><Row k="Superficie" v={rm.sqm ? `${rm.sqm} m²` : "—"} /><Row k="Terraza" v={rm.terrace ? "Sí" : "No"} /><Row k="Equipamiento" v={rm.extras?.length ? rm.extras.join(", ") : "—"} />
       {rm.notes && <p className="py-2 text-sm text-muted-foreground">{rm.notes}</p>}
       <Button size="sm" variant="outline" className="mt-2" onClick={() => setEdit(true)}>Editar habitación</Button>
     </Section>
@@ -128,7 +128,19 @@ function RoomEditor({ num }: { num: string }) {
         {field("Tarifa base (€)", <Input type="number" min={1} value={f.rate || ""} onChange={(e) => setF({ ...f, rate: Number(e.target.value) })} />)}
         {field("Capacidad", <Input type="number" min={1} max={10} value={f.capacity ?? ""} onChange={(e) => setF({ ...f, capacity: num0(e.target.value) })} />)}
         {field("Superficie (m²)", <Input type="number" min={1} value={f.sqm ?? ""} onChange={(e) => setF({ ...f, sqm: num0(e.target.value) })} />)}
-        {field("Camas", <Input value={f.beds ?? ""} onChange={(e) => setF({ ...f, beds: e.target.value })} />)}
+        <div className="col-span-2 space-y-1"><Label className="text-xs">Ocupación</Label>
+          <div className="flex flex-wrap gap-1">{OCCUPANCY.map((o) => <Button key={o.n} type="button" size="sm" variant={f.capacity === o.n ? "default" : "outline"} onClick={() => setF({ ...f, capacity: o.n })}>{o.label}</Button>)}</div>
+        </div>
+        <div className="col-span-2 space-y-1"><Label className="text-xs">Camas {f.beds ? `· ${f.beds}` : ""}</Label>
+          <div className="grid grid-cols-2 gap-2">{BED_KINDS.map((k) => { const c = parseBeds(f.beds); const n = c[k.key] ?? 0; const set = (v: number) => setF({ ...f, beds: bedsText({ ...c, [k.key]: Math.max(0, Math.min(6, v)) }) }); return (
+            <div key={k.key} className="flex items-center justify-between rounded-md border px-2 py-1 text-sm"><span className="capitalize">{k.one}</span>
+              <span className="flex items-center gap-1"><Button type="button" size="sm" variant="ghost" aria-label={`Quitar ${k.one}`} onClick={() => set(n - 1)}>−</Button><b className="w-4 text-center">{n}</b><Button type="button" size="sm" variant="ghost" aria-label={`Añadir ${k.one}`} onClick={() => set(n + 1)}>+</Button></span>
+            </div>); })}</div>
+          <p className="text-xs text-muted-foreground">Duermen {bedSleeps(parseBeds(f.beds))} persona(s).</p>
+        </div>
+        <div className="col-span-2 space-y-1"><Label className="text-xs">Equipamiento y extras</Label>
+          <div className="flex flex-wrap gap-1">{ROOM_EXTRAS.map((x) => { const on = (f.extras ?? []).includes(x); return <Button key={x} type="button" size="sm" variant={on ? "default" : "outline"} onClick={() => setF({ ...f, extras: on ? (f.extras ?? []).filter((y) => y !== x) : [...(f.extras ?? []), x] })}>{x}</Button>; })}</div>
+        </div>
         {field("Baño", <Input value={f.bath ?? ""} onChange={(e) => setF({ ...f, bath: e.target.value })} />)}
         {field("Vista", <Input value={f.view ?? ""} onChange={(e) => setF({ ...f, view: e.target.value })} />)}
         <div className="flex items-end gap-2 pb-2"><Switch checked={!!f.terrace} onCheckedChange={(v) => setF({ ...f, terrace: v })} /><Label className="text-xs">Terraza</Label></div>

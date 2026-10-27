@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_log: {
+        Row: {
+          action: string
+          actor: string | null
+          after: Json | null
+          at: string
+          before: Json | null
+          entity: string
+          entity_key: string
+          hotel_id: string
+          id: number
+        }
+        Insert: {
+          action: string
+          actor?: string | null
+          after?: Json | null
+          at?: string
+          before?: Json | null
+          entity: string
+          entity_key: string
+          hotel_id: string
+          id?: number
+        }
+        Update: {
+          action?: string
+          actor?: string | null
+          after?: Json | null
+          at?: string
+          before?: Json | null
+          entity?: string
+          entity_key?: string
+          hotel_id?: string
+          id?: number
+        }
+        Relationships: []
+      }
       company_worlds: {
         Row: {
           id: string
@@ -35,6 +71,171 @@ export type Database = {
           owner_id?: string
           state?: Json
           updated_at?: string
+        }
+        Relationships: []
+      }
+      hotel_floors: {
+        Row: {
+          hotel_id: string
+          id: string
+          name: string
+          number: number
+        }
+        Insert: {
+          hotel_id: string
+          id?: string
+          name?: string
+          number: number
+        }
+        Update: {
+          hotel_id?: string
+          id?: string
+          name?: string
+          number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hotel_floors_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hotel_members: {
+        Row: {
+          hotel_id: string
+          role: Database["public"]["Enums"]["hotel_role"]
+          user_id: string
+        }
+        Insert: {
+          hotel_id: string
+          role: Database["public"]["Enums"]["hotel_role"]
+          user_id: string
+        }
+        Update: {
+          hotel_id?: string
+          role?: Database["public"]["Enums"]["hotel_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hotel_members_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hotel_rooms: {
+        Row: {
+          archived: boolean
+          bath: string | null
+          beds: string | null
+          capacity: number | null
+          floor: number
+          hotel_id: string
+          id: string
+          notes: string | null
+          number: string
+          rate: number
+          sqm: number | null
+          terrace: boolean | null
+          type: string
+          updated_at: string
+          view: string | null
+        }
+        Insert: {
+          archived?: boolean
+          bath?: string | null
+          beds?: string | null
+          capacity?: number | null
+          floor: number
+          hotel_id: string
+          id?: string
+          notes?: string | null
+          number: string
+          rate?: number
+          sqm?: number | null
+          terrace?: boolean | null
+          type?: string
+          updated_at?: string
+          view?: string | null
+        }
+        Update: {
+          archived?: boolean
+          bath?: string | null
+          beds?: string | null
+          capacity?: number | null
+          floor?: number
+          hotel_id?: string
+          id?: string
+          notes?: string | null
+          number?: string
+          rate?: number
+          sqm?: number | null
+          terrace?: boolean | null
+          type?: string
+          updated_at?: string
+          view?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hotel_rooms_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hotels: {
+        Row: {
+          address: string
+          archived: boolean
+          category: string
+          check_in: string | null
+          check_out: string | null
+          city: string
+          departments: string[]
+          id: string
+          key: string
+          name: string
+          org_owner: string
+          updated_at: string
+          zones: string[]
+        }
+        Insert: {
+          address?: string
+          archived?: boolean
+          category?: string
+          check_in?: string | null
+          check_out?: string | null
+          city?: string
+          departments?: string[]
+          id?: string
+          key: string
+          name?: string
+          org_owner: string
+          updated_at?: string
+          zones?: string[]
+        }
+        Update: {
+          address?: string
+          archived?: boolean
+          category?: string
+          check_in?: string | null
+          check_out?: string | null
+          city?: string
+          departments?: string[]
+          id?: string
+          key?: string
+          name?: string
+          org_owner?: string
+          updated_at?: string
+          zones?: string[]
         }
         Relationships: []
       }
@@ -79,10 +280,27 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_hotel_role: {
+        Args: {
+          _hotel: string
+          _roles: Database["public"]["Enums"]["hotel_role"][]
+          _uid: string
+        }
+        Returns: boolean
+      }
+      is_hotel_member: {
+        Args: { _hotel: string; _uid: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      hotel_role:
+        | "owner"
+        | "director"
+        | "reception"
+        | "housekeeping"
+        | "maintenance"
+        | "revenue"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -209,6 +427,15 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      hotel_role: [
+        "owner",
+        "director",
+        "reception",
+        "housekeeping",
+        "maintenance",
+        "revenue",
+      ],
+    },
   },
 } as const

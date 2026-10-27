@@ -29,7 +29,7 @@ export interface Room {
 }
 
 /** Fields a manager may edit on a room; number/floor/state are intentionally excluded */
-export type RoomEdit = Pick<Room, "type" | "rate"> & Partial<Pick<Room, "capacity" | "beds" | "bath" | "terrace" | "view" | "sqm" | "notes">>;
+export type RoomEdit = Pick<Room, "type" | "rate"> & { [K in "capacity" | "beds" | "bath" | "terrace" | "view" | "sqm" | "notes"]?: Room[K] | undefined };
 export const ROOM_EDIT_LABELS: Record<keyof RoomEdit, string> = {
   type: "tipo", rate: "tarifa", capacity: "capacidad", beds: "camas", bath: "baño", terrace: "terraza", view: "vista", sqm: "m²", notes: "observaciones",
 };

@@ -523,6 +523,20 @@ function useSuiteState() {
       say.success("Reserva creada");
       return true;
     };
+    /** Extend or shorten a stay: rechecks availability and recalculates the amount at the current nightly rate */
+    const changeStay = (rid: string, outDay: number) => {
+      const r = s.reservations.find((x) => x.id === rid);
+      const nightly = r ? Math.round(r.amount / Math.max(1, r.outDay - r.inDay)) : 0;
+      const res = checkStayChange(s.reservations, rid, outDay, nightly);
+      if ("error" in res) { say.error(res.error); return false; }
+      if (!r || r.outDay === outDay) return false;
+      const longer = outDay > r.outDay;
+      setS((p) => notify(push({ ...p, reservations: p.reservations.map((x) => x.id === rid ? { ...x, outDay, amount: res.amount } : x) }, [
+        { actor, text: `Estancia ${rid} ${longer ? "ampliada" : "acortada"}: salida ${fmtDay(r.outDay).toLowerCase()} → ${fmtDay(outDay).toLowerCase()} · importe ${r.amount} € → ${res.amount} €.`, kind: "human" },
+      ]), ["reception", "housekeeping", "owner", "director"], `Habitación ${r.room}: salida ${longer ? "retrasada" : "adelantada"} a ${fmtDay(outDay).toLowerCase()}. Ajusta la limpieza de salida.`, "info"));
+      say.success(longer ? "Estancia ampliada" : "Estancia acortada", { description: `Nuevo importe: ${res.amount} €` });
+      return true;
+    };
     const simulateStep = () => {
       const opts: (() => unknown)[] = [];
       const inhouse = s.reservations.filter((r) => r.stay === "inhouse");
@@ -564,7 +578,7 @@ function useSuiteState() {
       return true;
     };
 
-    return { ...api, roomOp, simulateStep, createReservation, updateRoom };
+    return { ...api, roomOp, simulateStep, createReservation, updateRoom, changeStay };
   }, [s, helpers]);
 
   // Activity simulator: fires a real action every few seconds while enabled

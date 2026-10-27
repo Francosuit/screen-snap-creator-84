@@ -9,7 +9,7 @@ import { FloorChips, SimToggle } from "@/components/suite/twin/LiveHotel";
 import { useTwin, techPhase } from "@/components/suite/twin/useTwin";
 import { roomMeta, STATE_VAR } from "@/components/suite/twin/geometry";
 import { PageHeader, RoomPill, Row } from "@/components/suite/ui";
-import { ReportIssueDialog } from "@/components/suite/panels";
+import { ReportIssueDialog, RoomSheet } from "@/components/suite/panels";
 import type { RoomState } from "@/lib/suite/data";
 
 export const Route = createFileRoute("/hotel")({
@@ -76,6 +76,7 @@ function HotelTwin() {
 function RoomPanel({ num, onClose, onFloor }: { num: string; onClose: () => void; onFloor: (f: number) => void }) {
   const { s, actions, roomState, occupant, nextArrival, guest } = useSuite();
   const [report, setReport] = useState(false);
+  const [sheet, setSheet] = useState(false);
   const room = s.rooms.find((r) => r.number === num);
   if (!room) return null;
   const st = roomState(num);
@@ -97,6 +98,8 @@ function RoomPanel({ num, onClose, onFloor }: { num: string; onClose: () => void
         <div className="flex flex-col items-end gap-2">
           <RoomPill state={st} />
           <button onClick={() => { onFloor(room.floor); }} className="text-xs text-brand hover:underline">Ver planta {room.floor}</button>
+          <button onClick={() => setSheet(true)} className="text-xs text-brand hover:underline">Abrir ficha</button>
+          <RoomSheet room={sheet ? num : null} onClose={() => setSheet(false)} />
         </div>
       </div>
       <div className="mx-5 rounded-xl bg-twin-bg p-2"><RoomInterior meta={meta} state={st} number={room.number} /></div>

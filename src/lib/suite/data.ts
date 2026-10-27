@@ -269,15 +269,19 @@ export const externals = [
   { name: "ClimaPro Servicios", specialty: "Técnico climatización", phone: "+34 910 112 234", notes: "Mantenimiento equipos Daikin.", availability: "Mañana 09:00" },
 ];
 
-export const integrations = [
-  { name: "Booking.com", desc: "Reservas, disponibilidad y tarifas", status: "conectado", sync: "hace 2 min" },
-  { name: "Expedia", desc: "Reservas y disponibilidad", status: "conectado", sync: "hace 4 min" },
-  { name: "Web Booking Engine", desc: "Motor de reservas directo", status: "conectado", sync: "hace 1 min" },
-  { name: "WhatsApp", desc: "Comunicación con huéspedes", status: "conectado", sync: "hace 30 s" },
-  { name: "Airbnb", desc: "Reservas y mensajería", status: "pendiente", sync: "Autorización pendiente" },
-  { name: "PMS externo", desc: "Migración o convivencia con tu PMS", status: "disponible", sync: "—" },
-  { name: "Channel Manager", desc: "Distribución a más canales", status: "disponible", sync: "—" },
-] as const;
+/** Honest integration catalogue: nothing is shown as connected unless a real connection exists */
+export type IntegrationStatus = "demo" | "disponible" | "credenciales";
+export const integrations: { name: string; cat: string; desc: string; status: IntegrationStatus; note: string }[] = [
+  { name: "Booking.com", cat: "Canales de venta", desc: "Reservas, disponibilidad y tarifas", status: "demo", note: "Las reservas de Booking.com que ves son de prueba. Requiere acceso oficial de socio." },
+  { name: "Expedia", cat: "Canales de venta", desc: "Reservas y disponibilidad", status: "demo", note: "Datos de prueba. Requiere acceso de socio de Expedia." },
+  { name: "Airbnb", cat: "Canales de venta", desc: "Reservas y mensajería", status: "credenciales", note: "Necesita autorización de Airbnb para el hotel." },
+  { name: "Motor de reservas directo", cat: "Motor de reservas", desc: "Reservas desde tu web", status: "demo", note: "Las reservas «Motor directo» son de prueba." },
+  { name: "WhatsApp Business", cat: "Mensajería", desc: "Comunicación con huéspedes", status: "credenciales", note: "Se activa cuando el hotel tenga cuenta oficial de WhatsApp Business. Hoy los mensajes no se envían." },
+  { name: "PMS externo", cat: "Sistemas de gestión", desc: "Convivencia o migración con tu PMS", status: "disponible", note: "Sin conectar." },
+  { name: "Channel Manager", cat: "Canales de venta", desc: "Distribución a más canales", status: "disponible", note: "Sin conectar." },
+  { name: "Cerraduras y sensores", cat: "Dispositivos", desc: "Llaves digitales y sensores de habitación", status: "disponible", note: "Sin conectar." },
+  { name: "Facturación", cat: "Facturación", desc: "Facturas y cobros", status: "disponible", note: "Sin conectar." },
+];
 
 export const actionRules = [
   { event: "CHECK-OUT", conditions: ["Habitación asignada"], actions: ["Finalizar estancia", "Detener mensajes", "Habitación → pendiente limpieza", "Crear tarea housekeeping", "Comprobar próximo check-in", "Calcular prioridad", "Notificar responsable"] },

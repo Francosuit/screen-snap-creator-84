@@ -12,3 +12,4 @@
 - [ ] Live Hotel on dashboard + activity side-by-side
 - [ ] Simulate activity button (real state changes)
 - [x] Edición completa de cada cuarto desde el mapa: ocupación (doble/triple), camas separadas, extras; visible en mapa y ficha
+- [ ] Detalle de cada habitación (ducha, escritorio, baño, ventana y lado) editable y también en Crear hotel

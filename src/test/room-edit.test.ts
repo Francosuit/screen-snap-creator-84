@@ -35,7 +35,6 @@ describe("bed configuration", () => {
 });
 
 import { checkStayChange } from "@/lib/suite/data";
-import type { Reservation } from "@/lib/suite/data";
 const R = (id: string, room: string, inDay: number, outDay: number): Reservation => ({ id, guestId: "g", room, inDay, outDay, eta: "", pax: 2, channel: "Recepción" as Reservation["channel"], amount: 100 * (outDay - inDay), status: "confirmed", stay: "none", notes: "", createdDay: 0 });
 describe("stay change", () => {
   const list = [R("A", "101", 0, 2), R("B", "101", 4, 6)];

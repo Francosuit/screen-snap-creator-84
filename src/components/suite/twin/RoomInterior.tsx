@@ -1,4 +1,4 @@
-import type { RoomState } from "@/lib/suite/data";
+import { parseBeds, BED_KINDS, type RoomState } from "@/lib/suite/data";
 import { box, center, pts, STATE_VAR, type Pt, type Rect, type RoomMeta } from "./geometry";
 
 /**
@@ -15,13 +15,24 @@ export function RoomInterior({ meta, state, number }: { meta: RoomMeta; state: R
     { r: { x: 1.95, y: 0, w: 0.08, d: 2 }, h: 1.2, top: "var(--twin-wall)", side: "var(--twin-wall-dark)" },
     { r: { x: 0.2, y: 0.25, w: 1.4, d: 0.75 }, h: 0.45, top: "var(--twin-text)", side: "var(--twin-muted)", label: meta.bath.includes("Bañera") ? "BAÑERA" : "DUCHA" },
     { r: { x: 0.25, y: 1.3, w: 0.6, d: 0.5 }, h: 0.6, top: "var(--twin-text)", side: "var(--twin-muted)" },
-    { r: { x: 2.4, y: 0.1, w: 1.0, d: 0.55 }, h: 1.4, top: "var(--twin-floor)", side: "var(--twin-wall-dark)", label: "ARMARIO" },
+    { r: { x: 1.0, y: 2.2, w: 0.55, d: 1.0 }, h: 1.4, top: "var(--twin-floor)", side: "var(--twin-wall-dark)", label: "ARMARIO" },
     { r: { x: 3.6, y: 0.1, w: 2.2, d: 0.2 }, h: 0.9, top: "var(--twin-wall)", side: "var(--twin-wall-dark)" },
-    { r: { x: 3.7, y: 0.3, w: 2.0, d: 2.3 }, h: 0.45, top: `color-mix(in oklab, ${c} 35%, var(--twin-text))`, side: "var(--twin-wall)", label: meta.beds.toUpperCase() },
-    { r: { x: 3.75, y: 0.35, w: 1.9, d: 0.45 }, h: 0.58, top: "var(--twin-text)", side: "var(--twin-muted)" },
     { r: { x: 0.3, y: 3.5, w: 1.8, d: 0.7 }, h: 0.75, top: "var(--twin-floor)", side: "var(--twin-wall-dark)", label: "ESCRITORIO" },
     { r: { x: 0.9, y: 3.0, w: 0.5, d: 0.45 }, h: 0.45, top: "var(--twin-wall)", side: "var(--twin-wall-dark)" },
   ];
+  // One block per configured bed, laid out from the back wall
+  const SIZE: Record<string, [number, number]> = { doble: [1.9, 2.0], king: [2.1, 2.1], individual: [0.95, 1.95], sofa: [1.6, 0.8], litera: [0.95, 1.95], cuna: [0.7, 0.6] };
+  const counts = parseBeds(meta.beds);
+  const beds = BED_KINDS.flatMap((k) => Array.from({ length: Math.min(counts[k.key] ?? 0, 4) }, () => k));
+  if (!beds.length) beds.push(BED_KINDS[0]);
+  let bx = 2.4, by = 0.75, rowD = 0;
+  beds.forEach((k) => {
+    const [w, d] = SIZE[k.key]!;
+    if (bx + w > W - 0.05) { bx = 2.4; by += rowD + 0.25; rowD = 0; }
+    const label = k.key === "litera" ? "LITERA" : k.one.toUpperCase();
+    items.push({ r: { x: bx, y: by, w, d }, h: k.key === "litera" ? 1.3 : 0.45, top: `color-mix(in oklab, ${c} 35%, var(--twin-text))`, side: "var(--twin-wall)", label });
+    bx += w + 0.2; rowD = Math.max(rowD, d);
+  });
   const floor = box({ x: 0, y: 0, w: W, d: D }, -0.12, 0.12, U);
   const terrace = meta.terrace ? box({ x: 0, y: D + 0.1, w: W, d: 1.3 }, -0.12, 0.08, U) : null;
   const rail = meta.terrace ? box({ x: 0, y: D + 1.32, w: W, d: 0.06 }, 0, 0.45, U) : null;

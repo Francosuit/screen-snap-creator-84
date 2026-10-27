@@ -18,3 +18,18 @@ describe("room editing rules", () => {
     expect(futureReservations([r("a", "confirmed", "none"), r("b", "cancelled", "none"), r("c", "confirmed", "inhouse")], "101").map((x) => x.id)).toEqual(["a"]);
   });
 });
+
+import { bedsText, parseBeds, bedSleeps, validateRoomEdit as vre } from "@/lib/suite/data";
+describe("bed configuration", () => {
+  it("writes and reads a twin room with separate beds", () => {
+    const t = bedsText({ individual: 2 });
+    expect(t).toBe("2 individuales"); expect(parseBeds(t)).toEqual({ individual: 2 });
+  });
+  it("a triple with 1 double + 1 single sleeps 3", () => {
+    expect(bedSleeps(parseBeds("1 doble + 1 individual"))).toBe(3);
+  });
+  it("cribs do not count as guests", () => { expect(bedSleeps({ cuna: 1, doble: 1 })).toBe(2); });
+  it("rejects capacity larger than the beds", () => {
+    expect(vre({ type: "Triple", rate: 100, capacity: 3, beds: "1 doble" })).toMatch(/no alcanzan/);
+  });
+});

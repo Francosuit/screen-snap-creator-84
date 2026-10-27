@@ -26,14 +26,16 @@ export interface Room {
   notes?: string;
   /** Equipment and extras of the room */
   extras?: string[];
+  /** Window: which wall it is on, or none */
+  window?: WindowSide;
   /** Position inside its floor plan: column along the corridor + side of the corridor */
   x?: number; side?: "left" | "right";
 }
 
 /** Fields a manager may edit on a room; number/floor/state are intentionally excluded */
-export type RoomEdit = Pick<Room, "type" | "rate"> & { [K in "capacity" | "beds" | "bath" | "terrace" | "view" | "sqm" | "notes" | "extras"]?: Room[K] | undefined };
+export type RoomEdit = Pick<Room, "type" | "rate"> & { [K in "capacity" | "beds" | "bath" | "terrace" | "view" | "sqm" | "notes" | "extras" | "window"]?: Room[K] | undefined };
 export const ROOM_EDIT_LABELS: Record<keyof RoomEdit, string> = {
-  type: "tipo", rate: "tarifa", capacity: "capacidad", beds: "camas", bath: "baño", terrace: "terraza", view: "vista", sqm: "m²", notes: "observaciones", extras: "equipamiento",
+  type: "tipo", rate: "tarifa", capacity: "capacidad", beds: "camas", bath: "baño", terrace: "terraza", view: "vista", sqm: "m²", notes: "observaciones", extras: "equipamiento", window: "ventana",
 };
 
 /** Returns an error message, or null when the edit is valid */
@@ -330,5 +332,24 @@ export function checkStayChange(list: Reservation[], id: string, outDay: number,
   if (outDay <= r.inDay) return { error: "La estancia debe tener al menos 1 noche" };
   const clash = list.find((x) => x.id !== id && x.room === r.room && x.status === "confirmed" && x.stay !== "finished" && x.inDay < outDay && r.inDay < x.outDay);
   if (clash) return { error: `Choca con la reserva ${clash.id}` };
-  return { amount: nightly * (outDay - r.inDay) };
+  return { amount: stayAmount(nightly, outDay - r.inDay) };
 }
+
+/** Calendar drag → stay. Each dragged cell is one night: check-in = first cell (included),
+ *  check-out = day after the last cell (excluded). Works in both drag directions; past days are cut off. */
+export function dragToStay(a: number, b: number, firstBookable = 0): { inDay: number; outDay: number; nights: number } | null {
+  const inDay = Math.max(Math.min(a, b), firstBookable);
+  const outDay = Math.max(a, b) + 1;
+  if (outDay <= inDay) return null;
+  return { inDay, outDay, nights: outDay - inDay };
+}
+export const stayAmount = (nightly: number, nights: number) => nightly * nights;
+
+export type WindowSide = "ninguna" | "izquierda" | "derecha" | "fondo" | "frente";
+export const WINDOW_SIDES: { v: WindowSide; label: string }[] = [
+  { v: "ninguna", label: "Sin ventana" }, { v: "fondo", label: "Pared del fondo (exterior)" }, { v: "izquierda", label: "Lado izquierdo" },
+  { v: "derecha", label: "Lado derecho" }, { v: "frente", label: "Hacia el pasillo / patio" },
+];
+export const BATH_OPTIONS = ["Ducha", "Bañera", "Ducha + bañera", "Ducha de obra (accesible)", "Sin baño privado"];
+/** Detailed defaults for a room type, used by the hotel builder */
+export interface TypeDetail { capacity: number; beds: string; bath: string; window: WindowSide; sqm: number; extras: string[] }

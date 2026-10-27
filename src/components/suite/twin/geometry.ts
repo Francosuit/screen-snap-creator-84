@@ -1,3 +1,4 @@
+import type { WindowSide } from "@/lib/suite/data";
 // Digital twin geometry: turns hotel + room configuration into isometric shapes.
 // Pure functions only — the twin never owns state; it renders the store's rooms.
 import type { Floor, Hotel, Room, RoomState } from "@/lib/suite/data";
@@ -14,7 +15,7 @@ export const FLOOR_GAP = 2.2;
 export type Rect = { x: number; y: number; w: number; d: number };
 export type Pt = [number, number];
 
-export interface RoomMeta { capacity: number; beds: string; bath: string; terrace: boolean; view: string; sqm: number; price: number }
+export interface RoomMeta { capacity: number; beds: string; bath: string; terrace: boolean; view: string; sqm: number; price: number; window?: WindowSide | undefined; extras?: string[] | undefined }
 
 const META_BY_TYPE: Record<string, Omit<RoomMeta, "price">> = {
   Individual: { capacity: 1, beds: "1 individual", bath: "Ducha", terrace: false, view: "Interior", sqm: 16 },
@@ -29,7 +30,7 @@ export function roomMeta(r: Room): RoomMeta {
   const d = META_BY_TYPE[r.type] ?? META_BY_TYPE["Doble Estándar"]!;
   return {
     capacity: r.capacity ?? d.capacity, beds: r.beds ?? d.beds, bath: r.bath ?? d.bath,
-    terrace: r.terrace ?? d.terrace, view: r.view ?? d.view, sqm: r.sqm ?? d.sqm, price: r.rate,
+    terrace: r.terrace ?? d.terrace, view: r.view ?? d.view, sqm: r.sqm ?? d.sqm, price: r.rate, window: r.window, extras: r.extras,
   };
 }
 export const defaultsForType = (type: string) => META_BY_TYPE[type] ?? META_BY_TYPE["Doble Estándar"]!;

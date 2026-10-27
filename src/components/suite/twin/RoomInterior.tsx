@@ -13,13 +13,22 @@ export function RoomInterior({ meta, state, number }: { meta: RoomMeta; state: R
   const items: Item[] = [
     { r: { x: 0, y: 0, w: 2, d: 0.08 }, h: 1.2, top: "var(--twin-wall)", side: "var(--twin-wall-dark)" },
     { r: { x: 1.95, y: 0, w: 0.08, d: 2 }, h: 1.2, top: "var(--twin-wall)", side: "var(--twin-wall-dark)" },
-    { r: { x: 0.2, y: 0.25, w: 1.4, d: 0.75 }, h: 0.45, top: "var(--twin-text)", side: "var(--twin-muted)", label: meta.bath.includes("Bañera") ? "BAÑERA" : "DUCHA" },
+    { r: { x: 0.2, y: 0.25, w: 1.4, d: 0.75 }, h: 0.45, top: "var(--twin-text)", side: "var(--twin-muted)", label: meta.bath.startsWith("Sin") ? "LAVABO" : meta.bath.includes("Bañera") && !meta.bath.includes("Ducha") ? "BAÑERA" : meta.bath.includes("+") ? "DUCHA+BAÑERA" : "DUCHA" },
     { r: { x: 0.25, y: 1.3, w: 0.6, d: 0.5 }, h: 0.6, top: "var(--twin-text)", side: "var(--twin-muted)" },
     { r: { x: 1.0, y: 2.2, w: 0.55, d: 1.0 }, h: 1.4, top: "var(--twin-floor)", side: "var(--twin-wall-dark)", label: "ARMARIO" },
     { r: { x: 3.6, y: 0.1, w: 2.2, d: 0.2 }, h: 0.9, top: "var(--twin-wall)", side: "var(--twin-wall-dark)" },
     { r: { x: 0.3, y: 3.5, w: 1.8, d: 0.7 }, h: 0.75, top: "var(--twin-floor)", side: "var(--twin-wall-dark)", label: "ESCRITORIO" },
     { r: { x: 0.9, y: 3.0, w: 0.5, d: 0.45 }, h: 0.45, top: "var(--twin-wall)", side: "var(--twin-wall-dark)" },
   ];
+  // Desk only when the room has one (rooms without configured extras keep it by default)
+  if (meta.extras && !meta.extras.includes("Escritorio")) {
+    const i = items.findIndex((it) => it.label === "ESCRITORIO");
+    if (i >= 0) items.splice(i, 2);
+  }
+  // Window on the chosen wall
+  const WIN: Record<string, Rect> = { fondo: { x: 3.4, y: -0.02, w: 1.8, d: 0.1 }, izquierda: { x: -0.02, y: 2.2, w: 0.1, d: 1.6 }, derecha: { x: W - 0.08, y: 1.6, w: 0.1, d: 1.6 }, frente: { x: 3.4, y: D - 0.08, w: 1.8, d: 0.1 } };
+  const win = meta.window && meta.window !== "ninguna" ? WIN[meta.window] : undefined;
+  if (win) items.push({ r: win, h: 1.1, top: "color-mix(in oklab, var(--st-occupied) 45%, var(--twin-text))", side: "color-mix(in oklab, var(--st-occupied) 60%, var(--twin-wall))", label: "VENTANA" });
   // One block per configured bed, laid out from the back wall
   const SIZE: Record<string, [number, number]> = { doble: [1.9, 2.0], king: [2.1, 2.1], individual: [0.95, 1.95], sofa: [1.6, 0.8], litera: [0.95, 1.95], cuna: [0.7, 0.6] };
   const counts = parseBeds(meta.beds);

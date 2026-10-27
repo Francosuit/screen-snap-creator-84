@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSuite } from "@/lib/suite/store";
-import { DEPT_OPTIONS, ZONE_OPTIONS, type Floor, type Room } from "@/lib/suite/data";
+import { BATH_OPTIONS, BED_KINDS, DEPT_OPTIONS, OCCUPANCY, ROOM_EXTRAS, WINDOW_SIDES, ZONE_OPTIONS, bedSleeps, bedsText, parseBeds, type Floor, type Room, type TypeDetail, type WindowSide } from "@/lib/suite/data";
 
 export const Route = createFileRoute("/crear-hotel")({
   head: () => ({
@@ -26,6 +26,41 @@ const TYPES = [
   { type: "Doble Estándar", rate: 120 }, { type: "Doble Superior", rate: 150 },
   { type: "Junior Suite", rate: 210 }, { type: "Suite", rate: 290 },
 ];
+const DEFAULT_DETAIL: Record<string, TypeDetail & { rate: number }> = {
+  "Doble Estándar": { rate: 120, capacity: 2, beds: "1 doble", bath: "Ducha", window: "fondo", sqm: 22, extras: ["Escritorio", "Aire acondicionado", "Smart TV"] },
+  "Doble Superior": { rate: 150, capacity: 2, beds: "1 king", bath: "Ducha", window: "fondo", sqm: 26, extras: ["Escritorio", "Aire acondicionado", "Smart TV", "Minibar", "Caja fuerte"] },
+  "Junior Suite": { rate: 210, capacity: 3, beds: "1 king + 1 sofá cama", bath: "Bañera", window: "fondo", sqm: 34, extras: ["Escritorio", "Sofá", "Aire acondicionado", "Smart TV", "Minibar", "Cafetera", "Caja fuerte"] },
+  Suite: { rate: 290, capacity: 4, beds: "1 king + 2 individuales", bath: "Ducha + bañera", window: "fondo", sqm: 48, extras: ["Escritorio", "Sofá", "Aire acondicionado", "Smart TV", "Minibar", "Cafetera", "Caja fuerte", "Bañera de hidromasaje"] },
+};
+
+function TypeDetailCard({ type, d, onChange }: { type: string; d: TypeDetail & { rate: number }; onChange: (d: TypeDetail & { rate: number }) => void }) {
+  const beds = parseBeds(d.beds);
+  const sleeps = bedSleeps(beds);
+  const sel = "h-9 w-full rounded-md border bg-background px-2 text-sm";
+  return (
+    <details className="rounded-lg border p-3">
+      <summary className="cursor-pointer text-sm font-medium">{type} <span className="font-normal text-muted-foreground">· {d.capacity} pers. · {d.beds} · {d.bath} · {WINDOW_SIDES.find((w) => w.v === d.window)?.label} · {d.rate} €</span></summary>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <label className="space-y-1 text-xs">Tarifa por noche (€)<Input type="number" min={1} value={d.rate} onChange={(e) => onChange({ ...d, rate: Math.max(1, Number(e.target.value) || 1) })} /></label>
+        <label className="space-y-1 text-xs">Superficie (m²)<Input type="number" min={5} value={d.sqm} onChange={(e) => onChange({ ...d, sqm: Math.max(5, Number(e.target.value) || 5) })} /></label>
+        <div className="space-y-1 text-xs sm:col-span-2">Ocupación
+          <div className="flex flex-wrap gap-1">{OCCUPANCY.map((o) => <Button key={o.n} type="button" size="sm" variant={d.capacity === o.n ? "default" : "outline"} onClick={() => onChange({ ...d, capacity: o.n })}>{o.label}</Button>)}</div>
+        </div>
+        <div className="space-y-1 text-xs sm:col-span-2">Camas · duermen {sleeps}{sleeps < d.capacity && <span className="text-destructive"> · no alcanzan para {d.capacity}</span>}
+          <div className="grid grid-cols-2 gap-1 sm:grid-cols-3">{BED_KINDS.map((k) => { const n = beds[k.key] ?? 0; const set = (v: number) => onChange({ ...d, beds: bedsText({ ...beds, [k.key]: Math.max(0, Math.min(6, v)) }) }); return (
+            <div key={k.key} className="flex items-center justify-between rounded-md border px-2 text-sm"><span className="capitalize">{k.one}</span>
+              <span className="flex items-center"><Button type="button" size="sm" variant="ghost" aria-label={`Quitar ${k.one} en ${type}`} onClick={() => set(n - 1)}>−</Button><b className="w-4 text-center">{n}</b><Button type="button" size="sm" variant="ghost" aria-label={`Añadir ${k.one} en ${type}`} onClick={() => set(n + 1)}>+</Button></span>
+            </div>); })}</div>
+        </div>
+        <label className="space-y-1 text-xs">Baño<select className={sel} value={d.bath} onChange={(e) => onChange({ ...d, bath: e.target.value })}>{BATH_OPTIONS.map((b) => <option key={b}>{b}</option>)}</select></label>
+        <label className="space-y-1 text-xs">Ventana<select className={sel} value={d.window} onChange={(e) => onChange({ ...d, window: e.target.value as WindowSide })}>{WINDOW_SIDES.map((w) => <option key={w.v} value={w.v}>{w.label}</option>)}</select></label>
+        <div className="space-y-1 text-xs sm:col-span-2">Equipamiento
+          <div className="flex flex-wrap gap-1">{ROOM_EXTRAS.map((x) => { const on = d.extras.includes(x); return <Button key={x} type="button" size="sm" variant={on ? "default" : "outline"} onClick={() => onChange({ ...d, extras: on ? d.extras.filter((y) => y !== x) : [...d.extras, x] })}>{x}</Button>; })}</div>
+        </div>
+      </div>
+    </details>
+  );
+}
 
 function Builder() {
   const { actions, org, user } = useSuite();
@@ -36,6 +71,7 @@ function Builder() {
   const [perFloor, setPerFloor] = useState(8);
   const [custom, setCustom] = useState<Record<number, number>>({});
   const countFor = (n: number) => custom[n] ?? perFloor;
+  const [details, setDetails] = useState(DEFAULT_DETAIL);
   const [mix, setMix] = useState([50, 30, 15, 5]);
   const [zones, setZones] = useState<string[]>(["Recepción", "Lobby", "Restaurante", "Mantenimiento"]);
   const [depts, setDepts] = useState<string[]>(["Recepción", "Housekeeping", "Mantenimiento", "Dirección"]);
@@ -50,12 +86,12 @@ function Builder() {
         const pct = (i / count) * 100;
         let acc = 0, t = 0;
         for (let k = 0; k < mix.length; k++) { acc += (mix[k]! / total) * 100; if (pct < acc) { t = k; break; } t = k; }
-        const T = TYPES[t]!;
-        out.push({ number: `${fl.number}${String(i + 1).padStart(2, "0")}`, floor: fl.number, type: T.type, rate: T.rate, hk: "clean", oos: false, x: Math.floor(i / 2), side: i % 2 ? "right" : "left" });
+        const T = TYPES[t]!; const D = details[T.type]!;
+        out.push({ number: `${fl.number}${String(i + 1).padStart(2, "0")}`, floor: fl.number, type: T.type, rate: D.rate, capacity: D.capacity, beds: D.beds, bath: D.bath, window: D.window, sqm: D.sqm, extras: D.extras, hk: "clean", oos: false, x: Math.floor(i / 2), side: i % 2 ? "right" : "left" });
       }
     });
     return out;
-  }, [floorList, perFloor, mix, custom]);
+  }, [floorList, perFloor, mix, custom, details]);
 
   const toggle = (list: string[], set: (v: string[]) => void, v: string) => set(list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
   const canNext = step !== 0 || (h.name.trim() && h.city.trim());
@@ -140,6 +176,11 @@ function Builder() {
                     <span className="w-10 text-right text-sm text-muted-foreground">{mix[i]}</span>
                   </div>
                 ))}
+              </div>
+              <div className="space-y-2">
+                <Label>Detalle de cada tipo</Label>
+                <p className="text-xs text-muted-foreground">Se aplica a todas las habitaciones de ese tipo. Después puedes ajustar cada habitación por separado desde su ficha.</p>
+                {TYPES.map((t) => <TypeDetailCard key={t.type} type={t.type} d={details[t.type]!} onChange={(d) => setDetails({ ...details, [t.type]: d })} />)}
               </div>
               <p className="text-sm text-muted-foreground">Suite generará <b className="text-foreground">{rooms.length} habitaciones</b>: {rooms[0]?.number}–{rooms[rooms.length - 1]?.number}.</p>
             </div>

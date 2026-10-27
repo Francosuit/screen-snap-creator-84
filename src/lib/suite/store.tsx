@@ -16,7 +16,7 @@ import {
   seedReservations, seedRooms, seedRules, seedTasks, seedHotels, type Hotel, type Floor, type Organization, type Channel,
   type Guest, type HotelKey, type Incident, type LogEntry, type Notification, type Opportunity, type Priority,
   type Reservation, type Account, type RoleKey, type Room, type RoomState, type SentMessage, type Task, type MessageRule,
-  type RoomEdit, validateRoomEdit, applyRoomEdit, checkStayChange,
+  type RoomEdit, validateRoomEdit, applyRoomEdit, checkStayChange, stayAmount,
 } from "./data";
 import { SuiteCtx } from "./context";
 import { supabase } from "@/integrations/supabase/client";
@@ -516,7 +516,7 @@ function useSuiteState() {
       if (clash) { say.error(`Habitación ${input.room} ocupada en esas fechas`, { description: `Choca con ${clash.id}` }); return false; }
       const gid = id("g");
       const g: Guest = { id: gid, name: input.name.trim(), doc: "—", phone: "—", email: "—", lang: "—", companions: [], notes: "", country: "—", messaging: false };
-      const res: Reservation = { id: id("R"), guestId: gid, room: room.number, inDay: input.inDay, outDay: input.outDay, eta: "—", pax: input.pax, channel: "Recepción", amount: room.rate * (input.outDay - input.inDay), status: "confirmed", stay: "none", notes: input.notes, createdDay: 0 };
+      const res: Reservation = { id: id("R"), guestId: gid, room: room.number, inDay: input.inDay, outDay: input.outDay, eta: "—", pax: input.pax, channel: "Recepción", amount: stayAmount(room.rate, input.outDay - input.inDay), status: "confirmed", stay: "none", notes: input.notes, createdDay: 0 };
       setS((p) => notify(push({ ...p, guests: [g, ...p.guests], reservations: [res, ...p.reservations] }, [
         { actor, text: `Reserva manual ${res.id} · ${g.name} · habitación ${room.number} · ${fmtDay(input.inDay).toLowerCase()} → ${fmtDay(input.outDay).toLowerCase()}.`, kind: "human" },
       ]), ["reception", "owner", "director"], `Reserva manual · ${g.name} · ${room.number}.`, "ok"));

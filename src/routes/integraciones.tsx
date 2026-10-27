@@ -17,31 +17,37 @@ export const Route = createFileRoute("/integraciones")({
 });
 
 const ST = {
-  conectado: ["CONECTADO", "border-st-ready/30 bg-st-ready/10 text-st-ready"],
-  pendiente: ["PENDIENTE", "border-st-dirty/50 bg-st-dirty/15"],
+  demo: ["MODO DEMO", "border-st-dirty/50 bg-st-dirty/15"],
+  credenciales: ["FALTAN CREDENCIALES", "border-st-maint/40 bg-st-maint/10 text-st-maint"],
   disponible: ["DISPONIBLE", "bg-muted text-muted-foreground"],
 } as const;
 
 function Integraciones() {
+  const cats = [...new Set(integrations.map((i) => i.cat))];
   return (
     <div>
-      <PageHeader title="Integraciones" sub="Simulado en esta demo · sin conexiones reales" />
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {integrations.map((i) => (
-          <Card key={i.name} className="flex flex-col">
-            <div className="flex items-start justify-between gap-2">
-              <div className="grid h-11 w-11 place-items-center rounded-xl bg-muted text-sm font-bold">{i.name.split(" ").map((w) => w[0]).join("").slice(0, 2)}</div>
-              <Pill className={ST[i.status][1]}>{ST[i.status][0]}</Pill>
-            </div>
-            <div className="mt-3 font-semibold">{i.name}</div>
-            <div className="text-sm text-muted-foreground">{i.desc}</div>
-            <div className="mt-4 flex items-center justify-between border-t pt-3 text-xs text-muted-foreground">
-              <span>Última sincronización: {i.sync}</span>
-              {i.status !== "conectado" && <Button size="sm" variant="outline" onClick={() => toast("Simulación", { description: "En la versión real aquí se conectaría el servicio." })}>{i.status === "pendiente" ? "Completar" : "Conectar"}</Button>}
-            </div>
-          </Card>
-        ))}
-      </div>
+      <PageHeader title="Integraciones" sub="Ninguna integración está conectada todavía · estado real de cada una" />
+      {cats.map((c) => (
+        <section key={c} className="mb-6">
+          <h2 className="mb-2 text-sm font-semibold text-muted-foreground">{c}</h2>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {integrations.filter((i) => i.cat === c).map((i) => (
+              <Card key={i.name} className="flex flex-col">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="grid h-11 w-11 place-items-center rounded-xl bg-muted text-sm font-bold">{i.name.split(" ").map((w) => w[0]).join("").slice(0, 2)}</div>
+                  <Pill className={ST[i.status][1]}>{ST[i.status][0]}</Pill>
+                </div>
+                <div className="mt-3 font-semibold">{i.name}</div>
+                <div className="text-sm text-muted-foreground">{i.desc}</div>
+                <div className="mt-4 flex items-center justify-between gap-2 border-t pt-3 text-xs text-muted-foreground">
+                  <span>{i.note}</span>
+                  <Button size="sm" variant="outline" onClick={() => toast("Aún no disponible", { description: "Esta conexión necesita el acceso oficial del proveedor. Te avisaremos cuando pueda activarse." })}>Solicitar</Button>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </section>
+      ))}
     </div>
   );
 }

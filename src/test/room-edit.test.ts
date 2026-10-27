@@ -33,3 +33,13 @@ describe("bed configuration", () => {
     expect(vre({ type: "Triple", rate: 100, capacity: 3, beds: "1 doble" })).toMatch(/no alcanzan/);
   });
 });
+
+import { checkStayChange } from "@/lib/suite/data";
+const R = (id: string, room: string, inDay: number, outDay: number): Reservation => ({ id, guestId: "g", room, inDay, outDay, eta: "", pax: 2, channel: "Recepción" as Reservation["channel"], amount: 100 * (outDay - inDay), status: "confirmed", stay: "none", notes: "", createdDay: 0 });
+describe("stay change", () => {
+  const list = [R("A", "101", 0, 2), R("B", "101", 4, 6)];
+  it("extending 2 → 4 nights at 100 €/night costs 400 €", () => { expect(checkStayChange(list, "A", 4, 100)).toEqual({ amount: 400 }); });
+  it("blocks extending into the next booking", () => { expect(checkStayChange(list, "A", 5, 100)).toHaveProperty("error"); });
+  it("shortening to 1 night costs 100 €", () => { expect(checkStayChange(list, "A", 1, 100)).toEqual({ amount: 100 }); });
+  it("cannot shorten to 0 nights", () => { expect(checkStayChange(list, "A", 0, 100)).toHaveProperty("error"); });
+});

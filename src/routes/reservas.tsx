@@ -101,6 +101,10 @@ function Timeline({ ids, onOpen }: { ids: Set<string>; onOpen: (id: string) => v
   const [start, setStart] = useState(-1);
   const [roomQ, setRoomQ] = useState("Todas");
   const [creating, setCreating] = useState(false);
+  const [prefill, setPrefill] = useState<{ room: string; inDay: number; nights: number } | undefined>();
+  const [sel, setSel] = useState<{ room: string; a: number; b: number } | null>(null);
+  const [rs, setRs] = useState<{ id: string; x0: number; out0: number; out: number } | null>(null);
+  const { actions } = useSuite();
   const DAYS = SPANS[span], W = span === "mes" ? 40 : span === "dia" ? 320 : 96, START = start;
   const days = Array.from({ length: DAYS }, (_, i) => START + i);
   const rooms = s.rooms.filter((r) => roomQ === "Todas" || r.number === roomQ);
@@ -113,14 +117,21 @@ function Timeline({ ids, onOpen }: { ids: Set<string>; onOpen: (id: string) => v
         <Button variant="outline" size="icon" onClick={() => setStart(start + DAYS)} aria-label="Siguiente"><ChevronRight className="h-4 w-4" /></Button>
         <span className="text-sm text-muted-foreground">{dayDate(START).toLocaleDateString("es-ES", { day: "numeric", month: "short" })} – {dayDate(START + DAYS - 1).toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" })}</span>
         <Select value={roomQ} onValueChange={setRoomQ}><SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Todas">Todas las hab.</SelectItem>{s.rooms.map((r) => <SelectItem key={r.number} value={r.number}>Hab. {r.number}</SelectItem>)}</SelectContent></Select>
-        <Button size="sm" className="ml-auto" onClick={() => setCreating(true)}><Plus className="mr-1 h-4 w-4" />Nueva reserva</Button>
+        <Button size="sm" className="ml-auto" onClick={() => { setPrefill(undefined); setCreating(true); }}><Plus className="mr-1 h-4 w-4" />Nueva reserva</Button>
       </div>
       <div className="flex flex-wrap gap-3 border-b px-3 py-2 text-xs text-muted-foreground">
         {Object.entries(CH_COLOR).map(([k, c]) => <span key={k} className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ background: c }} />{CH_LABEL[k] ?? k}</span>)}
+        <span>Arrastra sobre días libres para reservar · estira el borde derecho de una reserva para cambiar la salida</span>
         <span className="ml-auto">Borde verde: llega hoy · azul: en curso · tachado: cancelada</span>
       </div>
       <div className="overflow-x-auto">
-        <div style={{ width: 72 + DAYS * W }}>
+        <div style={{ width: 72 + DAYS * W }} className="select-none"
+          onPointerMove={(e) => { if (rs) setRs({ ...rs, out: Math.max(rs.out0 + Math.round((e.clientX - rs.x0) / W), 0) }); }}
+          onPointerUp={() => {
+            if (rs) { if (rs.out !== rs.out0) actions.changeStay(rs.id, rs.out); setRs(null); }
+            if (sel) { const a = Math.min(sel.a, sel.b), b = Math.max(sel.a, sel.b); setPrefill({ room: sel.room, inDay: Math.max(a, 0), nights: b - a + 1 }); setSel(null); setCreating(true); }
+          }}
+          onPointerLeave={() => { setSel(null); setRs(null); }}>
           <div className="flex border-b bg-muted/50 text-xs text-muted-foreground">
             <div className="w-[72px] shrink-0 px-3 py-2">Hab.</div>
             {days.map((d) => (
@@ -132,15 +143,26 @@ function Timeline({ ids, onOpen }: { ids: Set<string>; onOpen: (id: string) => v
           {rooms.map((room) => (
             <div key={room.number} className="relative flex h-11 border-b last:border-0">
               <div className="w-[72px] shrink-0 px-3 py-3 text-sm font-medium">{room.number}</div>
-              {days.map((d) => <div key={d} style={{ width: W }} className={cn("shrink-0 border-l", d === 0 && "bg-brand/5")} />)}
+              {days.map((d) => {
+                const on = sel && sel.room === room.number && d >= Math.min(sel.a, sel.b) && d <= Math.max(sel.a, sel.b);
+                return <div key={d} style={{ width: W }} className={cn("shrink-0 cursor-crosshair border-l", d === 0 && "bg-brand/5", on && "bg-brand/25")}
+                  onPointerDown={() => { if (d >= 0 && !room.oos) setSel({ room: room.number, a: d, b: d }); }}
+                  onPointerEnter={() => { if (sel && sel.room === room.number) setSel({ ...sel, b: d }); }} />;
+              })}
+              {sel && sel.room === room.number && <div className="pointer-events-none absolute -top-5 z-10 rounded bg-foreground px-1.5 text-[10px] text-background" style={{ left: 72 + (Math.min(sel.a, sel.b) - START) * W }}>{Math.abs(sel.b - sel.a) + 1} noche(s)</div>}
               {s.reservations.filter((r) => r.room === room.number && ids.has(r.id) && r.outDay > START && r.inDay < START + DAYS).map((r) => {
                 // Bars run from mid check-in day to mid check-out day, so same-day turnovers never overlap
-                const from = Math.max(r.inDay - START + 0.5, 0), to = Math.min(r.outDay - START + 0.5, DAYS);
+                const out = rs?.id === r.id ? rs.out : r.outDay;
+                const from = Math.max(r.inDay - START + 0.5, 0), to = Math.min(out - START + 0.5, DAYS);
+                const editable = r.status === "confirmed" && r.stay !== "finished";
                 return (
                   <button key={r.id} onClick={() => onOpen(r.id)} title={`${guest(r.guestId).name} · ${r.channel} · ${resDisplay(r)}`}
                     style={{ left: 72 + from * W, width: Math.max((to - from) * W - 3, 6), background: CH_COLOR[r.channel] ?? "var(--ch-manual)" }}
                     className={cn("absolute top-1.5 h-8 truncate rounded-md px-2 text-left text-xs font-medium text-primary-foreground shadow-sm transition hover:brightness-110", BAR[resDisplay(r)])}>
-                    {guest(r.guestId).name}
+                    {guest(r.guestId).name}{rs?.id === r.id && ` · ${out - r.inDay} noches`}
+                    {editable && <span role="slider" aria-label="Cambiar salida" aria-valuenow={out} className="absolute right-0 top-0 h-full w-2 cursor-ew-resize rounded-r-md bg-background/40"
+                      onClick={(e) => e.stopPropagation()}
+                      onPointerDown={(e) => { e.stopPropagation(); setRs({ id: r.id, x0: e.clientX, out0: r.outDay, out: r.outDay }); }} />}
                   </button>
                 );
               })}
@@ -148,14 +170,14 @@ function Timeline({ ids, onOpen }: { ids: Set<string>; onOpen: (id: string) => v
           ))}
         </div>
       </div>
-      <NewReservation open={creating} onOpenChange={setCreating} />
+      <NewReservation key={JSON.stringify(prefill)} open={creating} onOpenChange={setCreating} prefill={prefill} />
     </Card>
   );
 }
 
-function NewReservation({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+function NewReservation({ open, onOpenChange, prefill }: { open: boolean; onOpenChange: (o: boolean) => void; prefill?: { room: string; inDay: number; nights: number } | undefined }) {
   const { s, actions } = useSuite();
-  const [f, setF] = useState({ name: "", room: s.rooms[0]?.number ?? "", inDay: 0, nights: 1, pax: 2, notes: "" });
+  const [f, setF] = useState({ name: "", room: prefill?.room ?? s.rooms[0]?.number ?? "", inDay: prefill?.inDay ?? 0, nights: prefill?.nights ?? 1, pax: 2, notes: "" });
   const save = () => { if (actions.createReservation({ name: f.name, room: f.room, inDay: f.inDay, outDay: f.inDay + f.nights, pax: f.pax, notes: f.notes })) onOpenChange(false); };
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -169,6 +191,7 @@ function NewReservation({ open, onOpenChange }: { open: boolean; onOpenChange: (
             <label className="text-xs text-muted-foreground">Noches<Input type="number" min={1} value={f.nights} onChange={(e) => setF({ ...f, nights: Math.max(1, Number(e.target.value)) })} /></label>
             <label className="text-xs text-muted-foreground">Huéspedes<Input type="number" min={1} value={f.pax} onChange={(e) => setF({ ...f, pax: Math.max(1, Number(e.target.value)) })} /></label>
           </div>
+          <p className="text-sm text-muted-foreground">Importe: {(s.rooms.find((r) => r.number === f.room)?.rate ?? 0)} € × {f.nights} noche(s) = <b className="text-foreground">{(s.rooms.find((r) => r.number === f.room)?.rate ?? 0) * f.nights} €</b></p>
           <Input placeholder="Observaciones (opcional)" value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} />
         </div>
         <DialogFooter><Button onClick={save}>Crear reserva</Button></DialogFooter>

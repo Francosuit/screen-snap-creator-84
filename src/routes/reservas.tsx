@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { dayDate, eur, fmtDay, resDisplay, useSuite } from "@/lib/suite/store";
+import { dragToStay, stayAmount } from "@/lib/suite/data";
 import { Card, PageHeader, ResPill } from "@/components/suite/ui";
 import { ReservationSheet } from "@/components/suite/panels";
 

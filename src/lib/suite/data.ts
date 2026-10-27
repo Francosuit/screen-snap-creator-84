@@ -330,7 +330,7 @@ export function checkStayChange(list: Reservation[], id: string, outDay: number,
   if (outDay <= r.inDay) return { error: "La estancia debe tener al menos 1 noche" };
   const clash = list.find((x) => x.id !== id && x.room === r.room && x.status === "confirmed" && x.stay !== "finished" && x.inDay < outDay && r.inDay < x.outDay);
   if (clash) return { error: `Choca con la reserva ${clash.id}` };
-  return { amount: nightly * (outDay - r.inDay) };
+  return { amount: stayAmount(nightly, outDay - r.inDay) };
 }
 
 /** Calendar drag → stay. Each dragged cell is one night: check-in = first cell (included),

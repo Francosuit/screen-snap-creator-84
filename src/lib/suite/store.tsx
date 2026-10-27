@@ -19,6 +19,12 @@ import {
 import { SuiteCtx } from "./context";
 import { supabase } from "@/integrations/supabase/client";
 interface CloudState { account?: Account; hotels?: Hotel[]; data?: Record<string, Data> }
+/** Hotels a user may see: shared demo hotels plus their own — never another account's */
+export function visibleHotels(hotels: Hotel[], user: string | undefined): Hotel[] {
+  return hotels.filter((h) => !h.owner || (!!user && h.owner === user));
+}
+/** Only the most recent save may set the save status */
+export function isLatest(seq: number, current: number): boolean { return seq === current; }
 
 interface Data {
   clock: number;
@@ -109,6 +115,10 @@ function useSuiteState() {
     supabase.auth.getSession().then(({ data }) => setUid(data.session?.user.id ?? null));
     const { data: sub } = supabase.auth.onAuthStateChange((ev, sess) => {
       if (ev === "SIGNED_IN" || ev === "SIGNED_OUT" || ev === "INITIAL_SESSION") setUid(sess?.user.id ?? null);
+      // Session ended anywhere (expiry, other tab): stop showing the previous user
+      if (ev === "SIGNED_OUT") setRoot((r) => ({ ...r, user: undefined }));
+      // A different real account signed in: never keep the previous user's identity
+      if (ev === "SIGNED_IN" && sess?.user.email) setRoot((r) => (r.user && r.user !== sess.user.email ? { ...r, user: undefined } : r));
     });
     return () => sub.subscription.unsubscribe();
   }, []);
@@ -151,25 +161,31 @@ function useSuiteState() {
     });
   }, [uid]);
 
-  /** Save the signed-in owner's hotels + operational data (debounced) */
+  /** Save the signed-in owner's hotels + operational data (debounced, written strictly in order) */
+  const saveSeq = useRef(0);
+  const saveChain = useRef<Promise<unknown>>(Promise.resolve());
   useEffect(() => {
     if (!uid || !remoteLoaded.current || !root.user) return;
     const account = (root.accounts ?? []).find((a) => a.email === root.user);
     if (!account) return;
     setCloud("pending");
-    const t = setTimeout(async () => {
+    const t = setTimeout(() => {
       const hotels = root.hotels.filter((h) => h.owner === root.user);
       const data: Record<string, Data> = {};
       hotels.forEach((h) => { if (root.data[h.id]) data[h.id] = root.data[h.id]!; });
       const state = JSON.parse(JSON.stringify({ account: { ...account, password: "" }, hotels, data }));
-      const { error } = await supabase.from("company_worlds").upsert({ owner_id: uid, name: "Mi Isla", state }, { onConflict: "owner_id" });
-      setCloud(error ? "error" : "saved");
+      const seq = ++saveSeq.current;
+      saveChain.current = saveChain.current.then(async () => {
+        const { error } = await supabase.from("company_worlds").upsert({ owner_id: uid, name: "Mi Isla", state }, { onConflict: "owner_id" });
+        if (error) { console.error("[Suite] cloud save failed", error.message); toast.error("Error al guardar en la nube", { description: error.message }); }
+        if (isLatest(seq, saveSeq.current)) setCloud(error ? "error" : "saved");
+      });
     }, 1500);
     return () => clearTimeout(t);
   }, [root, uid]);
 
-  const visible = root.hotels.filter((h) => !h.owner || h.owner === root.user);
-  const hotel = visible.find((h) => h.id === root.hotel) ?? root.hotels.find((h) => h.id === root.hotel) ?? root.hotels[0]!;
+  const visible = visibleHotels(root.hotels, root.user);
+  const hotel = visible.find((h) => h.id === root.hotel) ?? visible[0] ?? root.hotels.find((h) => !h.owner) ?? root.hotels[0]!;
   const s: State = useMemo(() => ({ ...(root.data[hotel.id] ?? root.data[root.hotels[0]!.id])!, role: root.role, hotel: hotel.id }), [root, hotel.id]);
   /** All actions write through the active hotel's slice — single source of truth */
   const setS = (fn: (p: State) => State) => setRoot((r) => {

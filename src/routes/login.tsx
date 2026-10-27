@@ -55,8 +55,8 @@ function LoginPage() {
     <div className="grid min-h-screen bg-background lg:grid-cols-2">
       <div className="relative hidden flex-col justify-between overflow-hidden bg-primary p-12 text-primary-foreground lg:flex">
         <LogoLoop className="pointer-events-none absolute left-1/2 top-[38%] w-[60%] -translate-x-1/2 -translate-y-1/2 opacity-90" />
-        <div className="relative z-10 flex items-center gap-2 text-lg font-semibold"><Building2 className="h-6 w-6" />Suite Hotel OS</div>
-        <div className="relative z-10">
+        <div className="absolute left-12 top-12 z-10 flex items-center gap-2 text-lg font-semibold"><Building2 className="h-6 w-6" />Suite Hotel OS</div>
+        <div className="relative z-10 mt-auto">
           <h1 className="text-5xl font-semibold leading-tight">Bienvenido a Suite</h1>
           <p className="mt-4 max-w-md text-lg opacity-80">Vamos a construir digitalmente tu hotel. Tú nos cuentas cómo es; Suite crea habitaciones, plantas, zonas, equipo y su gemelo digital en vivo.</p>
         </div>

@@ -24,14 +24,16 @@ export interface Room {
   capacity?: number; beds?: string; bath?: string; terrace?: boolean; view?: string; sqm?: number;
   /** Internal staff notes */
   notes?: string;
+  /** Equipment and extras of the room */
+  extras?: string[];
   /** Position inside its floor plan: column along the corridor + side of the corridor */
   x?: number; side?: "left" | "right";
 }
 
 /** Fields a manager may edit on a room; number/floor/state are intentionally excluded */
-export type RoomEdit = Pick<Room, "type" | "rate"> & { [K in "capacity" | "beds" | "bath" | "terrace" | "view" | "sqm" | "notes"]?: Room[K] | undefined };
+export type RoomEdit = Pick<Room, "type" | "rate"> & { [K in "capacity" | "beds" | "bath" | "terrace" | "view" | "sqm" | "notes" | "extras"]?: Room[K] | undefined };
 export const ROOM_EDIT_LABELS: Record<keyof RoomEdit, string> = {
-  type: "tipo", rate: "tarifa", capacity: "capacidad", beds: "camas", bath: "baño", terrace: "terraza", view: "vista", sqm: "m²", notes: "observaciones",
+  type: "tipo", rate: "tarifa", capacity: "capacidad", beds: "camas", bath: "baño", terrace: "terraza", view: "vista", sqm: "m²", notes: "observaciones", extras: "equipamiento",
 };
 
 /** Returns an error message, or null when the edit is valid */
@@ -282,3 +284,35 @@ export const actionRules = [
   { event: "LIMPIEZA FINALIZADA", conditions: ["Sin incidencias bloqueantes"], actions: ["Habitación → LISTA", "Notificar recepción", "Cerrar alerta de check-in"] },
   { event: "INCIDENCIA REPORTADA", conditions: ["Categoría técnica"], actions: ["Crear tarea mantenimiento", "Bloquear habitación (si procede)", "Notificar mantenimiento y dirección", "Vigilar resolución > 3 h"] },
 ];
+
+/** Bed configuration of a room. Stored as readable text in `Room.beds` (e.g. "1 doble + 2 individuales") */
+export const BED_KINDS = [
+  { key: "doble", one: "doble", many: "dobles", sleeps: 2 },
+  { key: "king", one: "king", many: "king", sleeps: 2 },
+  { key: "individual", one: "individual", many: "individuales", sleeps: 1 },
+  { key: "sofa", one: "sofá cama", many: "sofás cama", sleeps: 1 },
+  { key: "litera", one: "litera", many: "literas", sleeps: 2 },
+  { key: "cuna", one: "cuna", many: "cunas", sleeps: 0 },
+] as const;
+export type BedKey = (typeof BED_KINDS)[number]["key"];
+export type BedCounts = Partial<Record<BedKey, number>>;
+
+export function bedsText(c: BedCounts): string {
+  return BED_KINDS.filter((k) => (c[k.key] ?? 0) > 0).map((k) => `${c[k.key]} ${c[k.key] === 1 ? k.one : k.many}`).join(" + ");
+}
+export function parseBeds(text: string | undefined): BedCounts {
+  const out: BedCounts = {};
+  for (const part of (text ?? "").toLowerCase().split("+")) {
+    const m = part.trim().match(/^(\d+)\s+(.+)$/);
+    if (!m) continue;
+    const k = BED_KINDS.find((b) => m[2] === b.one || m[2] === b.many);
+    if (k) out[k.key] = (out[k.key] ?? 0) + Number(m[1]);
+  }
+  return out;
+}
+/** People the beds can sleep (cribs don't count) */
+export function bedSleeps(c: BedCounts): number {
+  return BED_KINDS.reduce((n, k) => n + (c[k.key] ?? 0) * k.sleeps, 0);
+}
+export const OCCUPANCY = [{ label: "Individual", n: 1 }, { label: "Doble", n: 2 }, { label: "Triple", n: 3 }, { label: "Cuádruple", n: 4 }] as const;
+export const ROOM_EXTRAS = ["Minibar", "Cafetera", "Caja fuerte", "Aire acondicionado", "Bañera de hidromasaje", "Escritorio", "Sofá", "Smart TV", "Adaptada (accesible)", "Comunicada", "Cuna disponible", "Mascotas"];

@@ -42,6 +42,7 @@ export function validateRoomEdit(e: RoomEdit): string | null {
   if (!Number.isFinite(e.rate) || e.rate <= 0) return "La tarifa debe ser mayor que 0";
   if (e.capacity != null && (!Number.isInteger(e.capacity) || e.capacity < 1 || e.capacity > 10)) return "La capacidad debe estar entre 1 y 10";
   if (e.sqm != null && (!Number.isFinite(e.sqm) || e.sqm <= 0)) return "Los metros deben ser positivos";
+  if (e.capacity != null && e.beds && bedSleeps(parseBeds(e.beds)) < e.capacity) return `Las camas no alcanzan para ${e.capacity} huéspedes`;
   return null;
 }
 
@@ -52,7 +53,7 @@ export function applyRoomEdit(room: Room, e: RoomEdit): { room: Room; changed: s
   (Object.keys(ROOM_EDIT_LABELS) as (keyof RoomEdit)[]).forEach((k) => {
     if (!(k in e)) return;
     const v = e[k];
-    if ((room[k] ?? undefined) !== (v ?? undefined)) { (next as unknown as Record<string, unknown>)[k] = v; changed.push(ROOM_EDIT_LABELS[k]); }
+    if (JSON.stringify(room[k] ?? null) !== JSON.stringify(v ?? null)) { (next as unknown as Record<string, unknown>)[k] = v; changed.push(ROOM_EDIT_LABELS[k]); }
   });
   return { room: next, changed };
 }

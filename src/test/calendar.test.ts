@@ -26,7 +26,7 @@ describe("moving check-out", () => {
   it("same-day turnover is allowed (A leaves day 3, B arrives day 3)", () => expect(checkStayChange(list, "A", 3, 120)).toEqual({ amount: 360 }));
   it("blocks overlap with the next booking", () => expect(checkStayChange(list, "A", 4, 120)).toHaveProperty("error"));
   it("ignores a cancelled booking when checking overlap", () => {
-    expect(checkStayChange([R("A", 0, 3), R("C", 3, 5, { status: "cancelled" as Reservation["status"] })], "A", 5, 120)).toEqual({ amount: 600 }));
+    expect(checkStayChange([R("A", 0, 3), R("C", 3, 5, { status: "cancelled" as Reservation["status"] })], "A", 5, 120)).toEqual({ amount: 600 });
   });
   it("finished stays cannot be changed", () => expect(checkStayChange([R("A", 0, 3, { stay: "finished" as Reservation["stay"] })], "A", 4, 120)).toHaveProperty("error"));
 });

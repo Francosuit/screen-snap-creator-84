@@ -15,6 +15,7 @@ import {
   seedReservations, seedRooms, seedRules, seedTasks, seedHotels, type Hotel, type Floor, type Organization, type Channel,
   type Guest, type HotelKey, type Incident, type LogEntry, type Notification, type Opportunity, type Priority,
   type Reservation, type Account, type RoleKey, type Room, type RoomState, type SentMessage, type Task, type MessageRule,
+  type RoomEdit, validateRoomEdit, applyRoomEdit,
 } from "./data";
 import { SuiteCtx } from "./context";
 import { supabase } from "@/integrations/supabase/client";
@@ -535,7 +536,22 @@ function useSuiteState() {
       try { pick(opts)(); } finally { quiet = false; }
     };
 
-    return { ...api, roomOp, simulateStep, createReservation };
+    /** Edit a room's characteristics only; reservations, tasks and incidents stay untouched */
+    const updateRoom = (num: string, edit: RoomEdit): boolean => {
+      const err = validateRoomEdit(edit);
+      if (err) { say.error(err); return false; }
+      const room = s.rooms.find((r) => r.number === num);
+      if (!room) return false;
+      const { room: next, changed } = applyRoomEdit(room, edit);
+      if (!changed.length) { say("Sin cambios"); return true; }
+      setS((p) => push({ ...p, rooms: p.rooms.map((r) => (r.number === num ? next : r)) }, [
+        { actor, text: `Habitación ${num} editada: ${changed.join(", ")}.`, kind: "human" },
+      ]));
+      say.success(`Habitación ${num} actualizada`);
+      return true;
+    };
+
+    return { ...api, roomOp, simulateStep, createReservation, updateRoom };
   }, [s, helpers]);
 
   // Activity simulator: fires a real action every few seconds while enabled

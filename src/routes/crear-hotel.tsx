@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSuite } from "@/lib/suite/store";
-import { DEPT_OPTIONS, ZONE_OPTIONS, type Floor, type Room } from "@/lib/suite/data";
+import { BATH_OPTIONS, BED_KINDS, DEPT_OPTIONS, OCCUPANCY, ROOM_EXTRAS, WINDOW_SIDES, ZONE_OPTIONS, bedSleeps, bedsText, parseBeds, type Floor, type Room, type TypeDetail, type WindowSide } from "@/lib/suite/data";
 
 export const Route = createFileRoute("/crear-hotel")({
   head: () => ({

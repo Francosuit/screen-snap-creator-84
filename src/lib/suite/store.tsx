@@ -119,7 +119,7 @@ function useSuiteState() {
     remoteLoaded.current = false;
     if (!uid) { setCloud("local"); return; }
     setCloud("loading");
-    supabase.from("company_worlds").select("state").eq("owner_id", uid).maybeSingle().then(({ data, error }) => {
+    supabase.from("company_worlds").select("state").eq("owner_id", uid).maybeSingle().then(async ({ data, error }) => {
       if (error) { setCloud("error"); return; }
       const st = data?.state as CloudState | undefined; const sh = st?.hotels ?? [];
       if (st?.account && Array.isArray(st.hotels)) {
@@ -130,6 +130,21 @@ function useSuiteState() {
           const mine = sh[0]?.id;
           return { ...r, accounts, user: email, org: st.account!.org, role: "owner", hotels: [...keep, ...sh], data: { ...r.data, ...st.data }, hotel: mine ?? r.hotel };
         });
+      } else {
+        // No saved world yet: bind the real signed-in user so their first changes get saved
+        const { data: u } = await supabase.auth.getUser();
+        const email = u.user?.email;
+        if (email) {
+          const { data: p } = await supabase.from("profiles").select("display_name, company_name").eq("id", uid).maybeSingle();
+          setRoot((r) => {
+            const existing = (r.accounts ?? []).find((a) => a.email === email);
+            if (existing) return { ...r, user: email, org: existing.org, role: "owner" };
+            const [name = "", ...rest] = (p?.display_name ?? "").split(" ");
+            const org = { ...(r.org ?? {}), name: p?.company_name || r.org?.name || "" } as Organization;
+            const acc: Account = { email, password: "", name, surname: rest.join(" "), position: "", role: "owner", org };
+            return { ...r, accounts: [...(r.accounts ?? []), acc], user: email, org, role: "owner" };
+          });
+        }
       }
       remoteLoaded.current = true;
       setCloud("saved");

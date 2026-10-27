@@ -129,7 +129,7 @@ function Timeline({ ids, onOpen }: { ids: Set<string>; onOpen: (id: string) => v
           onPointerMove={(e) => { if (rs) setRs({ ...rs, out: Math.max(rs.out0 + Math.round((e.clientX - rs.x0) / W), 0) }); }}
           onPointerUp={() => {
             if (rs) { if (rs.out !== rs.out0) actions.changeStay(rs.id, rs.out); setRs(null); }
-            if (sel) { const a = Math.min(sel.a, sel.b), b = Math.max(sel.a, sel.b); setPrefill({ room: sel.room, inDay: Math.max(a, 0), nights: b - a + 1 }); setSel(null); setCreating(true); }
+            if (sel) { const st = dragToStay(sel.a, sel.b); setSel(null); if (st) { setPrefill({ room: sel.room, inDay: st.inDay, nights: st.nights }); setCreating(true); } }
           }}
           onPointerLeave={() => { setSel(null); setRs(null); }}>
           <div className="flex border-b bg-muted/50 text-xs text-muted-foreground">
@@ -144,12 +144,13 @@ function Timeline({ ids, onOpen }: { ids: Set<string>; onOpen: (id: string) => v
             <div key={room.number} className="relative flex h-11 border-b last:border-0">
               <div className="w-[72px] shrink-0 px-3 py-3 text-sm font-medium">{room.number}</div>
               {days.map((d) => {
-                const on = sel && sel.room === room.number && d >= Math.min(sel.a, sel.b) && d <= Math.max(sel.a, sel.b);
+                const st = sel && sel.room === room.number ? dragToStay(sel.a, sel.b) : null;
+                const on = !!st && d >= st.inDay && d < st.outDay;
                 return <div key={d} style={{ width: W }} className={cn("shrink-0 cursor-crosshair border-l", d === 0 && "bg-brand/5", on && "bg-brand/25")}
                   onPointerDown={() => { if (d >= 0 && !room.oos) setSel({ room: room.number, a: d, b: d }); }}
                   onPointerEnter={() => { if (sel && sel.room === room.number) setSel({ ...sel, b: d }); }} />;
               })}
-              {sel && sel.room === room.number && <div className="pointer-events-none absolute -top-5 z-10 rounded bg-foreground px-1.5 text-[10px] text-background" style={{ left: 72 + (Math.min(sel.a, sel.b) - START) * W }}>{Math.abs(sel.b - sel.a) + 1} noche(s)</div>}
+              {(() => { const st = sel && sel.room === room.number ? dragToStay(sel.a, sel.b) : null; return st && <div data-testid="drag-label" className="pointer-events-none absolute -top-5 z-10 whitespace-nowrap rounded bg-foreground px-1.5 text-[10px] text-background" style={{ left: 72 + (st.inDay - START) * W }}>{st.nights} noche(s) · {fmtDay(st.inDay)} → {fmtDay(st.outDay)} · {stayAmount(room.rate, st.nights)} €</div>; })()}
               {s.reservations.filter((r) => r.room === room.number && ids.has(r.id) && r.outDay > START && r.inDay < START + DAYS).map((r) => {
                 // Bars run from mid check-in day to mid check-out day, so same-day turnovers never overlap
                 const out = rs?.id === r.id ? rs.out : r.outDay;
@@ -191,7 +192,7 @@ function NewReservation({ open, onOpenChange, prefill }: { open: boolean; onOpen
             <label className="text-xs text-muted-foreground">Noches<Input type="number" min={1} value={f.nights} onChange={(e) => setF({ ...f, nights: Math.max(1, Number(e.target.value)) })} /></label>
             <label className="text-xs text-muted-foreground">Huéspedes<Input type="number" min={1} value={f.pax} onChange={(e) => setF({ ...f, pax: Math.max(1, Number(e.target.value)) })} /></label>
           </div>
-          <p className="text-sm text-muted-foreground">Importe: {(s.rooms.find((r) => r.number === f.room)?.rate ?? 0)} € × {f.nights} noche(s) = <b className="text-foreground">{(s.rooms.find((r) => r.number === f.room)?.rate ?? 0) * f.nights} €</b></p>
+          <p className="text-sm text-muted-foreground">Importe: {(s.rooms.find((r) => r.number === f.room)?.rate ?? 0)} € × {f.nights} noche(s) = <b className="text-foreground">{stayAmount(s.rooms.find((r) => r.number === f.room)?.rate ?? 0, f.nights)} €</b> · salida {fmtDay(f.inDay + f.nights)}</p>
           <Input placeholder="Observaciones (opcional)" value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} />
         </div>
         <DialogFooter><Button onClick={save}>Crear reserva</Button></DialogFooter>

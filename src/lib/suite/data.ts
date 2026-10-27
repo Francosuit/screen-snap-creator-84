@@ -332,3 +332,13 @@ export function checkStayChange(list: Reservation[], id: string, outDay: number,
   if (clash) return { error: `Choca con la reserva ${clash.id}` };
   return { amount: nightly * (outDay - r.inDay) };
 }
+
+/** Calendar drag → stay. Each dragged cell is one night: check-in = first cell (included),
+ *  check-out = day after the last cell (excluded). Works in both drag directions; past days are cut off. */
+export function dragToStay(a: number, b: number, firstBookable = 0): { inDay: number; outDay: number; nights: number } | null {
+  const inDay = Math.max(Math.min(a, b), firstBookable);
+  const outDay = Math.max(a, b) + 1;
+  if (outDay <= inDay) return null;
+  return { inDay, outDay, nights: outDay - inDay };
+}
+export const stayAmount = (nightly: number, nights: number) => nightly * nights;

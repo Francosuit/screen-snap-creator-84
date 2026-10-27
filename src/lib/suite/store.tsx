@@ -16,7 +16,7 @@ import {
   seedReservations, seedRooms, seedRules, seedTasks, seedHotels, type Hotel, type Floor, type Organization, type Channel,
   type Guest, type HotelKey, type Incident, type LogEntry, type Notification, type Opportunity, type Priority,
   type Reservation, type Account, type RoleKey, type Room, type RoomState, type SentMessage, type Task, type MessageRule,
-  type RoomEdit, validateRoomEdit, applyRoomEdit,
+  type RoomEdit, validateRoomEdit, applyRoomEdit, checkStayChange,
 } from "./data";
 import { SuiteCtx } from "./context";
 import { supabase } from "@/integrations/supabase/client";

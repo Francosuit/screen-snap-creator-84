@@ -34,6 +34,8 @@ function Builder() {
   const [h, setH] = useState({ name: "", category: "4★", address: "", city: org?.city ?? "", description: "", checkIn: "14:00", checkOut: "12:00" });
   const [floors, setFloors] = useState(3);
   const [perFloor, setPerFloor] = useState(8);
+  const [custom, setCustom] = useState<Record<number, number>>({});
+  const countFor = (n: number) => custom[n] ?? perFloor;
   const [mix, setMix] = useState([50, 30, 15, 5]);
   const [zones, setZones] = useState<string[]>(["Recepción", "Lobby", "Restaurante", "Mantenimiento"]);
   const [depts, setDepts] = useState<string[]>(["Recepción", "Housekeeping", "Mantenimiento", "Dirección"]);
@@ -43,8 +45,9 @@ function Builder() {
     const total = mix.reduce((a, b) => a + b, 0) || 1;
     const out: Room[] = [];
     floorList.forEach((fl) => {
-      for (let i = 0; i < perFloor; i++) {
-        const pct = (i / perFloor) * 100;
+      const count = custom[fl.number] ?? perFloor;
+      for (let i = 0; i < count; i++) {
+        const pct = (i / count) * 100;
         let acc = 0, t = 0;
         for (let k = 0; k < mix.length; k++) { acc += (mix[k]! / total) * 100; if (pct < acc) { t = k; break; } t = k; }
         const T = TYPES[t]!;
@@ -52,7 +55,7 @@ function Builder() {
       }
     });
     return out;
-  }, [floorList, perFloor, mix]);
+  }, [floorList, perFloor, mix, custom]);
 
   const toggle = (list: string[], set: (v: string[]) => void, v: string) => set(list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
   const canNext = step !== 0 || (h.name.trim() && h.city.trim());
@@ -110,6 +113,23 @@ function Builder() {
               <div className="flex items-center gap-4">
                 <Label>Habitaciones por planta</Label>
                 <Input type="number" min={2} max={20} className="w-28" value={perFloor} onChange={(e) => setPerFloor(Math.max(2, Math.min(20, Number(e.target.value) || 2)))} />
+                <span className="text-xs text-muted-foreground">Valor para todas las plantas; ajústalo en cada una abajo.</span>
+              </div>
+              <div className="space-y-2">
+                <Label>Habitaciones en cada planta</Label>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {floorList.map((fl) => (
+                    <div key={fl.number} className="flex items-center justify-between rounded-md border px-3 py-1.5 text-sm">
+                      <span>{fl.name}{custom[fl.number] === 0 && <span className="text-muted-foreground"> · sin habitaciones</span>}</span>
+                      <span className="flex items-center gap-1">
+                        <Button type="button" size="sm" variant="ghost" aria-label={`Quitar habitación en ${fl.name}`} onClick={() => setCustom({ ...custom, [fl.number]: Math.max(0, countFor(fl.number) - 1) })}>−</Button>
+                        <Input type="number" min={0} max={40} aria-label={`Habitaciones en ${fl.name}`} className="h-8 w-16 text-center" value={countFor(fl.number)} onChange={(e) => setCustom({ ...custom, [fl.number]: Math.max(0, Math.min(40, Number(e.target.value) || 0)) })} />
+                        <Button type="button" size="sm" variant="ghost" aria-label={`Añadir habitación en ${fl.name}`} onClick={() => setCustom({ ...custom, [fl.number]: Math.min(40, countFor(fl.number) + 1) })}>+</Button>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                {Object.keys(custom).length > 0 && <Button type="button" size="sm" variant="link" className="px-0" onClick={() => setCustom({})}>Usar el mismo número en todas</Button>}
               </div>
               <div className="space-y-3">
                 <Label>Reparto de tipos (%)</Label>

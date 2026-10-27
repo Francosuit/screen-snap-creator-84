@@ -13,6 +13,7 @@ export interface CloudFloor { hotel_id: string; number: number; name: string }
 export interface CloudRoom { hotel_id: string; number: string; floor: number; type: string; rate: number; capacity: number | null; beds: string | null; bath: string | null; terrace: boolean | null; view: string | null; sqm: number | null; notes: string | null; archived: boolean }
 export interface CloudConfig { hotels: CloudHotel[]; floors: CloudFloor[]; rooms: CloudRoom[] }
 
+const clean = <T extends object>(o: T): T => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as T;
 const nn = <T,>(v: T | null): T | undefined => (v === null ? undefined : v);
 
 /** Applies the stored records (source of truth for configuration) over a hotel and its rooms.
@@ -22,15 +23,15 @@ export function overlayHotel(h: Hotel, rooms: Room[], cfg: CloudConfig): { hotel
   if (!ch) return { hotel: h, rooms };
   const floors = cfg.floors.filter((f) => f.hotel_id === ch.id).sort((a, b) => a.number - b.number);
   const recs = new Map(cfg.rooms.filter((r) => r.hotel_id === ch.id && !r.archived).map((r) => [r.number, r]));
-  const hotel: Hotel = {
+  const hotel = clean({
     ...h, name: ch.name || h.name, address: ch.address, city: ch.city, category: ch.category,
     zones: ch.zones, departments: ch.departments, checkIn: nn(ch.check_in) ?? h.checkIn, checkOut: nn(ch.check_out) ?? h.checkOut,
     floors: floors.length ? floors.map((f) => ({ number: f.number, name: f.name })) : h.floors,
-  };
+  }) as Hotel;
   const out = rooms.map((r) => {
     const c = recs.get(r.number);
     if (!c) return r;
-    return { ...r, floor: c.floor, type: c.type, rate: Number(c.rate), capacity: nn(c.capacity), beds: nn(c.beds), bath: nn(c.bath), terrace: nn(c.terrace), view: nn(c.view), sqm: c.sqm == null ? undefined : Number(c.sqm), notes: nn(c.notes) };
+    return clean({ ...r, floor: c.floor, type: c.type, rate: Number(c.rate), capacity: nn(c.capacity), beds: nn(c.beds), bath: nn(c.bath), terrace: nn(c.terrace), view: nn(c.view), sqm: c.sqm == null ? undefined : Number(c.sqm), notes: nn(c.notes) }) as Room;
   });
   return { hotel, rooms: out };
 }

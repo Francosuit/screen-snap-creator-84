@@ -28,7 +28,7 @@ export function RoomInterior({ meta, state, number }: { meta: RoomMeta; state: R
   // Window on the chosen wall
   const WIN: Record<string, Rect> = { fondo: { x: 3.4, y: -0.02, w: 1.8, d: 0.1 }, izquierda: { x: -0.02, y: 2.2, w: 0.1, d: 1.6 }, derecha: { x: W - 0.08, y: 1.6, w: 0.1, d: 1.6 }, frente: { x: 3.4, y: D - 0.08, w: 1.8, d: 0.1 } };
   const win = meta.window && meta.window !== "ninguna" ? WIN[meta.window] : undefined;
-  if (win) items.push({ r: win, h: 1.1, top: "var(--st-clean, #7dd3fc)", side: "color-mix(in oklab, #7dd3fc 60%, var(--twin-wall))", label: "VENTANA" });
+  if (win) items.push({ r: win, h: 1.1, top: "color-mix(in oklab, var(--st-occupied) 45%, var(--twin-text))", side: "color-mix(in oklab, var(--st-occupied) 60%, var(--twin-wall))", label: "VENTANA" });
   // One block per configured bed, laid out from the back wall
   const SIZE: Record<string, [number, number]> = { doble: [1.9, 2.0], king: [2.1, 2.1], individual: [0.95, 1.95], sofa: [1.6, 0.8], litera: [0.95, 1.95], cuna: [0.7, 0.6] };
   const counts = parseBeds(meta.beds);

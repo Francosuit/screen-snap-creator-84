@@ -24,7 +24,9 @@ function Configuracion() {
     <div>
       <PageHeader title="Configuración" sub="Evento → Contexto → Reglas → Acciones → Verificación" />
       <Tabs defaultValue="engine">
-        <TabsList className="mb-4"><TabsTrigger value="engine">Action Engine</TabsTrigger><TabsTrigger value="log">Trazabilidad</TabsTrigger><TabsTrigger value="group">Multi-hotel</TabsTrigger><TabsTrigger value="new">Crear hotel</TabsTrigger></TabsList>
+        <TabsList className="mb-4"><TabsTrigger value="engine">Action Engine</TabsTrigger><TabsTrigger value="log">Trazabilidad</TabsTrigger><TabsTrigger value="team">Personal y puestos</TabsTrigger><TabsTrigger value="history">Historial</TabsTrigger><TabsTrigger value="group">Multi-hotel</TabsTrigger><TabsTrigger value="new">Crear hotel</TabsTrigger></TabsList>
+        <TabsContent value="team"><TeamPanel hotelKey={s.hotel} /></TabsContent>
+        <TabsContent value="history"><HistoryPanel hotelKey={s.hotel} /></TabsContent>
         <TabsContent value="engine">
           <div className="grid gap-4 lg:grid-cols-2">
             {actionRules.map((r) => (

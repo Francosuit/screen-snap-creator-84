@@ -202,6 +202,10 @@ function useSuiteState() {
       const seq = ++saveSeq.current;
       saveChain.current = saveChain.current.then(async () => {
         const { error } = await supabase.from("company_worlds").upsert({ owner_id: uid, name: "Mi Isla", state }, { onConflict: "owner_id" });
+        if (!error) {
+          const fresh = await loadConfig();
+          if (fresh && isLatest(seq, saveSeq.current)) setConfig(fresh);
+        }
         if (error) { console.error("[Suite] cloud save failed", error.message); toast.error("Error al guardar en la nube", { description: error.message }); }
         if (isLatest(seq, saveSeq.current)) setCloud(error ? "error" : "saved");
       });
@@ -214,7 +218,7 @@ function useSuiteState() {
   const record = config?.hotels.find((h) => h.key === hotel.id && !h.archived);
   const memberRole = record ? record.org_owner === uid ? "owner" : memberships.find((m) => m.hotel_id === record.id)?.role : undefined;
   const canEditRoomConfig = record ? canEditRoom(memberRole) : !hotel.owner && canEditRoom(root.role);
-  const s: State = useMemo(() => ({ ...(root.data[hotel.id] ?? root.data[root.hotels[0]!.id])!, role: root.role, hotel: hotel.id }), [root, hotel.id]);
+  const s: State = useMemo(() => ({ ...(root.data[hotel.id] ?? root.data[root.hotels[0]!.id])!, role: memberRole ?? root.role, hotel: hotel.id }), [root, hotel.id, memberRole]);
   /** All actions write through the active hotel's slice — single source of truth */
   const setS = (fn: (p: State) => State) => setRoot((r) => {
     const { role, hotel: h, ...d } = fn({ ...r.data[r.hotel]!, role: r.role, hotel: r.hotel });

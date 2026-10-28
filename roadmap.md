@@ -1,6 +1,7 @@
 # Roadmap
 
-- [ ] Acceso directo al editor existente, autorización real Owner/Director y persistencia individual verificada
+- [x] Acceso directo al editor existente, guardado autorizado Owner/Director y pruebas automáticas de bloqueo a Recepción
+- [ ] Verificar edición, recarga, historial y aislamiento en Cloud con Owner/Director y Recepción reales (bloqueado: no hay sesión autenticada disponible para el usuario)
 
 - [ ] Mi Isla: premium black-and-gold shell and interactive city with coast, streets, greenery and selectable hotels
 - [ ] Secure Cloud accounts and company-isolated island/configuration persistence (replace browser-only demo authentication)

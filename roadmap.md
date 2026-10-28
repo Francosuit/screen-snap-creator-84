@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Acceso directo al editor existente, autorización real Owner/Director y persistencia individual verificada
+
 - [ ] Mi Isla: premium black-and-gold shell and interactive city with coast, streets, greenery and selectable hotels
 - [ ] Secure Cloud accounts and company-isolated island/configuration persistence (replace browser-only demo authentication)
 - [ ] Building catalog, non-overlapping plots, add/configure/move/save/reload flow

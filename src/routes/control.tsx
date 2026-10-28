@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { dayDate, eur, useSuite } from "@/lib/suite/store";
+import { RevenueBoard } from "@/components/suite/RevenueBoard";
 import { Card, Kpi, PageHeader, Pill, SectionTitle } from "@/components/suite/ui";
 
 export const Route = createFileRoute("/control")({
@@ -53,6 +54,9 @@ function Control() {
         <Kpi label="RevPAR (mes)" value="115 €" delta="+13,1%" />
         <Kpi label="Pickup 7 días" value="+36 rn" delta="+31%" />
       </div>
+      <p className="mt-2 text-xs text-muted-foreground">Indicadores, calendario y gráficos de abajo: datos de demostración.</p>
+
+      <RevenueBoard />
 
       <Card className="mt-6">
         <SectionTitle right={<span className="text-xs text-muted-foreground">Próximos 21 días · forecast ocupación</span>}>Calendario Revenue</SectionTitle>

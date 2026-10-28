@@ -33,7 +33,7 @@ export function ConstructionScene({ className = "" }: { className?: string }) {
   const [, mtop] = proj(W + 2.2, -1.4, FLOORS * FH + 3.4, U);
 
   return (
-    <svg viewBox="-380 -300 720 560" className={`login-scene ${className}`} role="img" aria-label="Ilustración: hotel boutique en construcción">
+    <svg viewBox="-390 -320 830 580" className={`login-scene ${className}`} role="img" aria-label="Ilustración: hotel boutique en construcción">
       <defs>
         <radialGradient id="ls-glow" cx="50%" cy="60%" r="60%"><stop offset="0" stopColor="var(--login-gold)" stopOpacity="0.18" /><stop offset="1" stopColor="var(--login-gold)" stopOpacity="0" /></radialGradient>
         <radialGradient id="ls-lamp"><stop offset="0" stopColor="var(--int-lamp)" stopOpacity="0.7" /><stop offset="1" stopColor="var(--int-lamp)" stopOpacity="0" /></radialGradient>
@@ -57,8 +57,8 @@ export function ConstructionScene({ className = "" }: { className?: string }) {
             {f > 0 && !frame && <Box r={{ x: 0, y: 0, w: f === DONE ? 4.4 : W, d: D }} z={z} h={FH - 0.08} top="var(--fac-stone-top)" side="var(--fac-stone-side)" front="var(--fac-stone)" />}
             {f === DONE && <Box r={{ x: 4.4, y: 0, w: W - 4.4, d: D }} z={z} h={0.08} top="var(--fac-stone-top)" side="var(--fac-stone-side)" />}
             {(f === DONE || frame) && [0.1, 2.6, 5.2, W - 0.3].flatMap((x) => [0.1, D - 0.3].map((y) => (f === DONE && x < 4) ? null : <Box key={`${x}-${y}`} r={{ x, y, w: 0.2, d: 0.2 }} z={z} h={FH} top="var(--fac-stone-top)" side="var(--fac-stone-side)" front="var(--fac-stone)" />))}
-            {/* slab / cornice */}
-            <Box r={{ x: -0.08, y: -0.08, w: W + 0.16, d: D + 0.16 }} z={z + FH - 0.08} h={0.1} top={frame ? "color-mix(in oklab, var(--fac-stone-top) 70%, var(--login-night))" : "var(--fac-stone-top)"} side="var(--fac-trim)" front="color-mix(in oklab, var(--fac-trim) 70%, var(--fac-stone))" />
+            {f < FLOORS - 1 && /* slab / cornice */ (
+            <Box r={{ x: -0.08, y: -0.08, w: W + 0.16, d: D + 0.16 }} z={z + FH - 0.08} h={0.1} top={frame ? "color-mix(in oklab, var(--fac-stone-top) 70%, var(--login-night))" : "var(--fac-stone-top)"} side="var(--fac-trim)" front="color-mix(in oklab, var(--fac-trim) 70%, var(--fac-stone))" />)}
           </g>
         );
       })}

@@ -72,3 +72,19 @@ export function autoLayout(room: Room): FurnitureItem[] {
 
 /** The layout the drawing shows: the saved one, otherwise the automatic one */
 export const roomLayout = (room: Room) => room.layout ?? autoLayout(room);
+
+/** Converts a drag on the isometric drawing (drawing units) into a floor displacement in metres */
+export function screenToFloor(dsx: number, dsy: number, U: number): { dx: number; dy: number } {
+  const a = dsx / (0.866 * U), b = dsy / (0.5 * U); // a = dx - dy, b = dx + dy
+  return { dx: (a + b) / 2, dy: (b - a) / 2 };
+}
+
+/** Moves an item to an absolute position, snapped to STEP when asked, always kept inside the room */
+export const placeItem = (it: FurnitureItem, x: number, y: number, snap = true) =>
+  clampItem({ ...it, x: snap ? Math.round(x / STEP) * STEP : x, y: snap ? Math.round(y / STEP) * STEP : y });
+
+/** Copy of an item with a fresh id, nudged so it does not sit exactly on top of the original */
+export function duplicateItem(it: FurnitureItem, existing: FurnitureItem[]): FurnitureItem {
+  const id = newItem(it.kind, existing).id;
+  return clampItem({ ...it, id, x: it.x + STEP * 2, y: it.y + STEP * 2 });
+}

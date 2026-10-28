@@ -6,7 +6,8 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export function invitePath(raw: string | null | undefined): string | null {
   if (!raw) return null;
   const m = /^\/invitacion\?token=([0-9a-f-]{36})$/i.exec(raw);
-  return m && UUID.test(m[1]) ? `/invitacion?token=${m[1].toLowerCase()}` : null;
+  const t = m?.[1];
+  return t && UUID.test(t) ? `/invitacion?token=${t.toLowerCase()}` : null;
 }
 
 export function rememberInvite(token: string) {

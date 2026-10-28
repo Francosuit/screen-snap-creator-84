@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, type PointerEvent as RPointerEvent } from "react";
 import type { Room, RoomState } from "@/lib/suite/data";
 import { FURNITURE, ROOM_D, ROOM_W, roomLayout, type FurnitureItem, type FurnitureKind } from "@/lib/suite/layout";
 import { box, center, proj, pts, rotRect, STATE_VAR, type Pt, type Rect } from "./geometry";
@@ -94,7 +94,7 @@ export function RoomInterior({ room, state, layout, selected, onSelect, onDrag }
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const drag = useRef<{ id: string; x: number; y: number; moved: boolean } | null>(null);
-  const toSvg = (e: React.PointerEvent) => { const m = svgRef.current?.getScreenCTM(); return m ? { x: (e.clientX - m.e) / m.a, y: (e.clientY - m.f) / m.d } : { x: e.clientX, y: e.clientY }; };
+  const toSvg = (e: RPointerEvent) => { const m = svgRef.current?.getScreenCTM(); return m ? { x: (e.clientX - m.e) / m.a, y: (e.clientY - m.f) / m.d } : { x: e.clientX, y: e.clientY }; };
   const U = 26;
   const W = ROOM_W, D = ROOM_D, WH = 1.45;
   const st = STATE_VAR[state];

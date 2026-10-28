@@ -37,6 +37,7 @@ export function ConstructionScene({ className = "" }: { className?: string }) {
       <defs>
         <radialGradient id="ls-glow" cx="50%" cy="60%" r="60%"><stop offset="0" stopColor="var(--login-gold)" stopOpacity="0.18" /><stop offset="1" stopColor="var(--login-gold)" stopOpacity="0" /></radialGradient>
         <radialGradient id="ls-lamp"><stop offset="0" stopColor="var(--int-lamp)" stopOpacity="0.7" /><stop offset="1" stopColor="var(--int-lamp)" stopOpacity="0" /></radialGradient>
+        <radialGradient id="ls-beacon"><stop offset="0" stopColor="var(--login-gold)" stopOpacity="0.85" /><stop offset="0.45" stopColor="var(--login-gold)" stopOpacity="0.3" /><stop offset="1" stopColor="var(--login-gold)" stopOpacity="0" /></radialGradient>
       </defs>
       <ellipse cx="0" cy="120" rx="360" ry="190" fill="url(#ls-glow)" />
       {/* ground: lawn plot, plaza, path */}
@@ -86,7 +87,8 @@ export function ConstructionScene({ className = "" }: { className?: string }) {
         {[0, 0.5, 1, 1.5, 2].map((k) => { const z = DONE * FH + k; const a = proj(4.6, D + 0.5, z, U), b = proj(8.2, D + 0.5, z, U); return <line key={k} x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]} />; })}
         {[0, 1].map((k) => { const a = proj(4.6, D + 0.5, DONE * FH + k, U), b = proj(5.8, D + 0.5, DONE * FH + k + 1, U); return <line key={`d${k}`} x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]} />; })}
       </g>
-      {/* crane */}
+      {/* crane: concrete plinth, lattice mast, slewing jib working over the roof */}
+      <Box r={{ x: 9.5, y: -2.1, w: 1.4, d: 1.4 }} z={-0.06} h={0.18} top="var(--fac-stone-top)" side="color-mix(in oklab, var(--fac-stone-side) 80%, var(--login-night))" front="color-mix(in oklab, var(--fac-stone) 75%, var(--login-night))" />
       <g style={{ stroke: "var(--login-gold)", strokeWidth: 1.4 }}>
         <line x1={mx - 3} y1={my} x2={mx - 3} y2={mtop} /><line x1={mx + 3} y1={my} x2={mx + 3} y2={mtop} />
         {Array.from({ length: 14 }, (_, k) => { const y0 = my - ((my - mtop) * k) / 14, y1 = my - ((my - mtop) * (k + 1)) / 14; return <line key={k} x1={k % 2 ? mx - 3 : mx + 3} y1={y0} x2={k % 2 ? mx + 3 : mx - 3} y2={y1} strokeWidth={0.6} />; })}
@@ -95,7 +97,10 @@ export function ConstructionScene({ className = "" }: { className?: string }) {
           <line x1={mx} y1={mtop - 18} x2={mx - 210} y2={mtop + 4} strokeWidth={0.7} />
           <line x1={mx} y1={mtop - 18} x2={mx + 60} y2={mtop} strokeWidth={0.7} />
           <rect x={mx + 40} y={mtop} width={18} height={10} style={{ fill: "var(--fac-trim)", stroke: "none" }} />
-          <circle className="login-beacon" cx={mx} cy={mtop - 21} r={2.6} style={{ fill: "var(--login-gold)", stroke: "none" }} />
+          <g className="login-beacon">
+            <circle cx={mx} cy={mtop - 21} r={11} fill="url(#ls-beacon)" />
+            <circle cx={mx} cy={mtop - 21} r={3} style={{ fill: "var(--login-gold)", stroke: "none" }} />
+          </g>
           {/* trolley runs along the jib, hoisting its load */}
           <g className="login-trolley">
             <rect className="login-cable" x={mx - 150.6} y={mtop + 3} width={1.2} height={64} style={{ fill: "var(--login-gold)", stroke: "none" }} />

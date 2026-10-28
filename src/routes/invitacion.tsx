@@ -54,11 +54,17 @@ function Invitacion() {
         <h1 className="text-xl font-semibold">Invitación al equipo</h1>
         {!info && <p className="mt-3 text-sm text-muted-foreground">Comprobando…</p>}
         {info?.status === "signin" && <>
-          <p className="mt-3 text-sm text-muted-foreground">Inicia sesión o crea tu cuenta con el correo al que llegó la invitación.</p>
+          <p className="mt-3 text-sm text-muted-foreground">Te han invitado a unirte al equipo de un hotel en Suite Hotel OS. Para ver los detalles y aceptar:</p>
+          <ol className="mt-3 list-decimal space-y-1 pl-5 text-sm">
+            <li>Inicia sesión o crea tu cuenta con <b>el mismo correo</b> al que te enviaron este enlace.</li>
+            <li>Si te registras, confirma tu correo desde el email que recibirás.</li>
+            <li>Volverás aquí automáticamente para ver el hotel, tu rol y aceptar.</li>
+          </ol>
           <Button className="mt-4" onClick={signIn}>Iniciar sesión</Button>
         </>}
         {info?.status === "ok" && <>
           <p className="mt-3 text-sm">Te unirás a <b>{info.hotel}</b> como <b>{ROLE_LABELS[info.role!]}</b>{info.position ? ` (${info.position})` : ""}.</p>
+          <p className="mt-2 text-xs text-muted-foreground">Tendrás acceso solo a las secciones de ese rol. El propietario puede ajustarlas o desactivar tu acceso cuando quiera.</p>
           <Button className="mt-4" disabled={busy} onClick={accept}>{busy ? "Aceptando…" : "Aceptar invitación"}</Button>
           {err && <p className="mt-3 text-sm text-destructive">{err}</p>}
         </>}

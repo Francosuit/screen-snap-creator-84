@@ -53,7 +53,7 @@ export function LiveHotel() {
         <FloorChips floors={floors} value={floor} onChange={setFloor} dark />
         <SimToggle dark />
       </div>
-      <IsoBuilding layout={layout} info={info} focusFloor={floor} selected={room} onSelect={setRoom} compact className="mt-2 h-[340px] flex-1 rounded-none sm:h-[400px]" />
+      <IsoBuilding facade={hotel.facade} layout={layout} info={info} focusFloor={floor} selected={room} onSelect={setRoom} compact className="mt-2 h-[340px] flex-1 rounded-none sm:h-[400px]" />
       <TwinLegend className="px-5 pb-4 pt-2" />
       <RoomSheet room={room} onClose={() => setRoom(null)} onOpenRes={(id) => { setRoom(null); setRes(id); }} />
       <ReservationSheet resId={res} onClose={() => setRes(null)} />

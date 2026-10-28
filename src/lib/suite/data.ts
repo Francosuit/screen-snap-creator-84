@@ -109,7 +109,7 @@ export const ROLES: Record<RoleKey, { label: string; person: string; title: stri
   revenue: { label: "Revenue", person: "David Sanz", title: "Revenue Manager" },
 };
 
-export interface Hotel { id: string; name: string; address: string; city: string; category: string; rooms: number; logo: string; status: "activo" | "configurando"; floors?: Floor[]; description?: string; zones?: string[]; departments?: string[]; checkIn?: string; checkOut?: string; owner?: string | undefined }
+export interface Hotel { id: string; name: string; address: string; city: string; category: string; rooms: number; logo: string; status: "activo" | "configurando"; floors?: Floor[]; description?: string; zones?: string[]; departments?: string[]; checkIn?: string; checkOut?: string; owner?: string | undefined; facade?: { primary: string; secondary: string } }
 export interface Organization { name: string; owner: string; email: string; tradeName?: string; country?: string; city?: string; phone?: string; type?: string; employees?: string }
 export interface Account { email: string; password: string; name: string; surname: string; position: string; role: string; org: Organization }
 /** Common zones a hotel can declare; each one becomes a visible object in the Digital World */

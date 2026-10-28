@@ -1,3 +1,4 @@
+import { facadeVars } from "@/lib/suite/facade";
 import { useMemo, useRef, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, Minus, Plus, Maximize2, Wrench, Building2 } from "lucide-react";
@@ -147,7 +148,7 @@ function World() {
                 {scene.items.map(({ h, s, b, wins, lot, zones, label }) => {
                   const on = sel === h.id;
                   return (
-                    <g key={h.id} className="cursor-pointer" onClick={() => { if (!drag.current?.moved) setSel(h.id); }} onDoubleClick={() => enter(h.id)}>
+                    <g key={h.id} style={facadeVars(h.facade)} className="cursor-pointer" onClick={() => { if (!drag.current?.moved) setSel(h.id); }} onDoubleClick={() => enter(h.id)}>
                       <polygon points={pts(lot.top)} style={{ fill: on ? "color-mix(in oklab, var(--brand) 18%, var(--twin-slab))" : "var(--twin-slab)", stroke: on ? "var(--brand)" : "var(--twin-line)", strokeWidth: on ? 1.5 : 0.6, transition: "fill 300ms" }} />
                       {zones.map((z) => (
                         <g key={z.z}>

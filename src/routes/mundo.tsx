@@ -191,7 +191,7 @@ function World() {
                 <polygon points={pts(scene.sea)} style={{ fill: "url(#world-sea)" }} />
                 {scene.waves.map((l, i) => <polyline key={i} points={pts(l)} style={{ fill: "none", stroke: "color-mix(in oklab, var(--fac-water) 40%, white)", strokeWidth: 0.7, strokeDasharray: "14 10", opacity: 0.45 }} />)}
                 <polygon points={pts(scene.beach.south)} style={{ fill: "color-mix(in oklab, var(--fac-stone) 70%, var(--fac-wood))" }} />
-                <polygon points={pts(scene.beach.top)} style={{ fill: "color-mix(in oklab, var(--fac-stone-top) 75%, #e8c98a)" }} />
+                <polygon points={pts(scene.beach.top)} style={{ fill: "color-mix(in oklab, var(--fac-stone-top) 70%, var(--int-lamp))" }} />
                 {scene.umbrellas.map((u, i) => <g key={i} style={{ pointerEvents: "none" }}><line x1={u[0]} y1={u[1]} x2={u[0]} y2={u[1] - 7} style={{ stroke: "var(--fac-trim)", strokeWidth: 0.8 }} /><ellipse cx={u[0]} cy={u[1] - 7} rx={5} ry={2} style={{ fill: i % 2 ? "var(--int-lamp)" : "var(--fac-stone-top)" }} /><rect x={u[0] + 3} y={u[1] - 1} width={5} height={1.6} style={{ fill: "var(--int-linen, var(--fac-stone-top))" }} /></g>)}
                 <polygon points={pts(scene.ground.top)} style={{ fill: "url(#world-ground)" }} />
                 {scene.roads.map((r, i) => <polygon key={i} points={pts(r.top)} style={{ fill: "var(--fac-asphalt)", stroke: "color-mix(in oklab, var(--fac-stone-top) 45%, var(--fac-asphalt))", strokeWidth: 1.2 }} />)}

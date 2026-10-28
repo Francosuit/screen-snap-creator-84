@@ -43,6 +43,13 @@
       "when": 1793200022268,
       "tag": "0005_staff_profiles_access",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793200704312,
+      "tag": "0006_hotel_budgets",
+      "breakpoints": true
     }
   ]
 }

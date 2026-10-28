@@ -1,3 +1,4 @@
+import { FACADE_PRIMARY, FACADE_SECONDARY, facadeVars, type Facade } from "@/lib/suite/facade";
 import { useMemo, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Check, Sparkles } from "lucide-react";
@@ -62,12 +63,40 @@ function TypeDetailCard({ type, d, onChange }: { type: string; d: TypeDetail & {
   );
 }
 
+function Swatches({ label, options, value, onChange }: { label: string; options: readonly { label: string; v: string }[]; value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="space-y-1.5 text-xs text-muted-foreground">{label}
+      <div className="flex flex-wrap gap-2">{options.map((o) => (
+        <button key={o.v} type="button" title={o.label} aria-label={`${label}: ${o.label}`} aria-pressed={value === o.v} onClick={() => onChange(o.v)}
+          className={`h-8 w-8 rounded-full border-2 ring-offset-2 ring-offset-background transition ${value === o.v ? "border-foreground ring-2 ring-brand" : "border-border"}`} style={{ background: o.v }} />
+      ))}</div>
+    </div>
+  );
+}
+
+/** Small isometric preview using the same facade variables as the real building */
+function FacadePreview({ facade, floors }: { facade: Facade; floors: number }) {
+  const fh = 18, h = floors * fh, top = 150 - h;
+  return (
+    <svg viewBox="0 0 180 190" className="h-44 w-full rounded-md bg-twin-bg" style={facadeVars(facade)} role="img" aria-label="Vista previa del edificio">
+      <polygon points={`90,${top - 30} 160,${top} 90,${top + 30} 20,${top}`} style={{ fill: "var(--fac-stone-top)", stroke: "var(--fac-trim)" }} />
+      <polygon points={`20,${top} 90,${top + 30} 90,${top + 30 + h} 20,${top + h}`} style={{ fill: "var(--fac-stone)" }} />
+      <polygon points={`90,${top + 30} 160,${top} 160,${top + h} 90,${top + 30 + h}`} style={{ fill: "var(--fac-stone-side)" }} />
+      {Array.from({ length: floors }).flatMap((_, f) => [0, 1, 2].map((k) => {
+        const x = 28 + k * 21, y = top + f * fh + 5 + (x - 20) * 30 / 70;
+        return <polygon key={`${f}-${k}`} points={`${x},${y} ${x + 12},${y + 5} ${x + 12},${y + 15} ${x},${y + 10}`} style={{ fill: "var(--fac-glass)", stroke: "var(--fac-trim)", strokeWidth: 1.5 }} />;
+      }))}
+    </svg>
+  );
+}
+
 function Builder() {
   const { actions, org, user } = useSuite();
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [h, setH] = useState({ name: "", category: "4★", address: "", city: org?.city ?? "", description: "", checkIn: "14:00", checkOut: "12:00" });
   const [floors, setFloors] = useState(3);
+  const [facade, setFacade] = useState<Facade>({ primary: FACADE_PRIMARY[0].v, secondary: FACADE_SECONDARY[0].v });
   const [perFloor, setPerFloor] = useState(8);
   const [custom, setCustom] = useState<Record<number, number>>({});
   const countFor = (n: number) => custom[n] ?? perFloor;
@@ -97,7 +126,7 @@ function Builder() {
   const canNext = step !== 0 || (h.name.trim() && h.city.trim());
 
   const build = () => {
-    actions.createHotel({ ...h, floors: floorList, rooms, zones, departments: depts });
+    actions.createHotel({ ...h, floors: floorList, rooms, zones, departments: depts, facade });
     actions.setSim(true);
     navigate({ to: "/hotel" });
   };
@@ -127,6 +156,15 @@ function Builder() {
               <div className="sm:col-span-2 space-y-1.5"><Label>Dirección</Label><Input value={h.address} onChange={(e) => setH({ ...h, address: e.target.value })} /></div>
               <div className="space-y-1.5"><Label>Hora check-in</Label><Input type="time" value={h.checkIn} onChange={(e) => setH({ ...h, checkIn: e.target.value })} /></div>
               <div className="space-y-1.5"><Label>Hora check-out</Label><Input type="time" value={h.checkOut} onChange={(e) => setH({ ...h, checkOut: e.target.value })} /></div>
+              <div className="sm:col-span-2 grid gap-4 rounded-lg border p-4 sm:grid-cols-[1fr_180px]">
+                <div className="space-y-3">
+                  <Label>Identidad del edificio</Label>
+                  <Swatches label="Fachada" options={FACADE_PRIMARY} value={facade.primary} onChange={(v) => setFacade({ ...facade, primary: v })} />
+                  <Swatches label="Marcos y detalles" options={FACADE_SECONDARY} value={facade.secondary} onChange={(v) => setFacade({ ...facade, secondary: v })} />
+                  <p className="text-xs text-muted-foreground">Solo cambia el aspecto del edificio. Los colores de estado de las habitaciones no cambian.</p>
+                </div>
+                <FacadePreview facade={facade} floors={Math.min(Math.max(floors, 1), 6)} />
+              </div>
             </div>
           )}
 

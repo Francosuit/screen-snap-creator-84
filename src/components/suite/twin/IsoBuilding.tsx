@@ -203,6 +203,20 @@ export function IsoBuilding({ layout, info, focusFloor, selected, onSelect, laye
                   <polygon points={pts(s.faces.south)} style={{ fill: "var(--twin-wall)" }} />
                   <polygon points={pts(s.win)} style={{ fill: c, opacity: lit ? 0.9 : 0.55 }} filter="url(#twin-glow)" />
                   <polygon points={pts(s.win)} style={{ fill: lit ? mix(c, 60, "white") : c, opacity: lit ? 1 : 0.75 }} />
+                  {/* window frame, mullion and sill */}
+                  <polygon points={pts(s.win)} style={{ fill: "none", stroke: "var(--twin-slab-side)", strokeWidth: 1.2 }} />
+                  <line x1={(s.win[0]![0] + s.win[1]![0]) / 2} y1={(s.win[0]![1] + s.win[1]![1]) / 2} x2={(s.win[3]![0] + s.win[2]![0]) / 2} y2={(s.win[3]![1] + s.win[2]![1]) / 2} style={{ stroke: "var(--twin-slab-side)", strokeWidth: 1 }} />
+                  {/* facade bands: cornice + floor line */}
+                  <line x1={s.faces.south[3]![0]} y1={s.faces.south[3]![1]} x2={s.faces.south[2]![0]} y2={s.faces.south[2]![1]} style={{ stroke: "var(--twin-text)", strokeWidth: 1.1, opacity: 0.35 }} />
+                  {s.room.terrace && (() => {
+                    // balcony slab + glass railing projecting from the facade
+                    const v: Pt = [-0.866 * U * 0.35, 0.5 * U * 0.35];
+                    const a = s.faces.south[0]!, b = s.faces.south[1]!;
+                    const slab: Pt[] = [a, b, [b[0] + v[0], b[1] + v[1]], [a[0] + v[0], a[1] + v[1]]];
+                    const up = U * 0.4;
+                    const rail: Pt[] = [[a[0] + v[0], a[1] + v[1]], [b[0] + v[0], b[1] + v[1]], [b[0] + v[0], b[1] + v[1] - up], [a[0] + v[0], a[1] + v[1] - up]];
+                    return <g style={{ pointerEvents: "none" }}><polygon points={pts(slab)} style={{ fill: "var(--twin-text)", opacity: 0.55 }} /><polygon points={pts(rail)} style={{ fill: "var(--st-occupied)", opacity: 0.18, stroke: "var(--twin-text)", strokeWidth: 0.6 }} /></g>;
+                  })()}
                   <polygon points={pts(s.faces.top)} style={{ fill: mix(c, sel ? 70 : 42), stroke: sel ? "var(--twin-text)" : c, strokeWidth: sel ? 2 : 1 }} />
                   {s.size > 0 && (
                     <text x={s.topC[0]} y={s.topC[1]} textAnchor="middle" dominantBaseline="middle" style={{ fill: "var(--twin-text)", fontSize: s.size, fontWeight: 600, fontFamily: "var(--font-sans)", pointerEvents: "none" }}>{s.room.number}</text>

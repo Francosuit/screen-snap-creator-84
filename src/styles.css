@@ -110,6 +110,23 @@
   --twin-line: oklch(0.4 0.02 262);
   --twin-text: oklch(0.95 0.005 262);
   --twin-muted: oklch(0.7 0.015 262);
+  /* Interior materials (room digital twin) */
+  --int-wood: oklch(0.62 0.075 62);
+  --int-wood-dark: oklch(0.48 0.07 55);
+  --int-wood-line: oklch(0.55 0.07 58);
+  --int-wall: oklch(0.93 0.012 80);
+  --int-wall-side: oklch(0.84 0.016 75);
+  --int-trim: oklch(0.32 0.02 60);
+  --int-linen: oklch(0.98 0.006 85);
+  --int-linen-shade: oklch(0.88 0.012 80);
+  --int-throw: oklch(0.55 0.05 50);
+  --int-fabric: oklch(0.72 0.03 70);
+  --int-fabric-dark: oklch(0.6 0.03 65);
+  --int-tile: oklch(0.9 0.008 230);
+  --int-tile-line: oklch(0.8 0.01 230);
+  --int-glass: oklch(0.82 0.05 220);
+  --int-curtain: oklch(0.8 0.03 70);
+  --int-lamp: oklch(0.92 0.09 85);
   --sidebar: oklch(0.975 0.002 85);
   --sidebar-foreground: oklch(0.3 0.01 270);
   --sidebar-primary: oklch(0.24 0.015 270);

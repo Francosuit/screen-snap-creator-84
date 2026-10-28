@@ -1,3 +1,4 @@
+import { useRef, type PointerEvent as RPointerEvent } from "react";
 import type { Room, RoomState } from "@/lib/suite/data";
 import { FURNITURE, ROOM_D, ROOM_W, roomLayout, type FurnitureItem, type FurnitureKind } from "@/lib/suite/layout";
 import { box, center, proj, pts, rotRect, STATE_VAR, type Pt, type Rect } from "./geometry";
@@ -86,9 +87,14 @@ function parts(kind: FurnitureKind, room: Room): Part[] {
   }
 }
 
-export function RoomInterior({ room, state, layout, selected, onSelect }: {
+export function RoomInterior({ room, state, layout, selected, onSelect, onDrag }: {
   room: Room; state: RoomState; layout?: FurnitureItem[]; selected?: string | null; onSelect?: (id: string | null) => void;
+  /** Edit mode only: total drag offset in drawing units since pointer down; phase "end" on release */
+  onDrag?: (id: string, dsx: number, dsy: number, phase: "start" | "move" | "end") => void;
 }) {
+  const svgRef = useRef<SVGSVGElement>(null);
+  const drag = useRef<{ id: string; x: number; y: number; moved: boolean } | null>(null);
+  const toSvg = (e: RPointerEvent) => { const m = svgRef.current?.getScreenCTM(); return m ? { x: (e.clientX - m.e) / m.a, y: (e.clientY - m.f) / m.d } : { x: e.clientX, y: e.clientY }; };
   const U = 26;
   const W = ROOM_W, D = ROOM_D, WH = 1.45;
   const st = STATE_VAR[state];
@@ -148,7 +154,10 @@ export function RoomInterior({ room, state, layout, selected, onSelect }: {
   const planks = Array.from({ length: Math.floor(W / 0.32) }, (_, i) => (i + 1) * 0.32);
 
   return (
-    <svg viewBox={vb} className="w-full" role="img" aria-label={`Vista digital de la habitación ${room.number}`} onClick={() => onSelect?.(null)}>
+    <svg ref={svgRef} viewBox={vb} className="w-full select-none" role="img" style={onDrag ? { touchAction: "none" } : undefined}
+      onPointerMove={(e) => { const d = drag.current; if (!d || !onDrag) return; const p = toSvg(e); if (!d.moved && Math.hypot(p.x - d.x, p.y - d.y) < 3) return; d.moved = true; onDrag(d.id, p.x - d.x, p.y - d.y, "move"); }}
+      onPointerUp={() => { const d = drag.current; drag.current = null; if (d?.moved) onDrag?.(d.id, 0, 0, "end"); }}
+      onPointerLeave={() => { const d = drag.current; drag.current = null; if (d?.moved) onDrag?.(d.id, 0, 0, "end"); }} aria-label={`Vista digital de la habitación ${room.number}`} onClick={() => onSelect?.(null)}>
       <defs>
         <radialGradient id={`warm-${room.number}`} cx="45%" cy="40%" r="65%"><stop offset="0%" stopColor="var(--int-lamp)" stopOpacity="0.35" /><stop offset="100%" stopColor="var(--int-lamp)" stopOpacity="0" /></radialGradient>
         <filter id="int-soft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2.5" /></filter>
@@ -188,7 +197,8 @@ export function RoomInterior({ room, state, layout, selected, onSelect }: {
         const sh = box({ x: foot.x + 0.08, y: foot.y + 0.12, w: foot.w, d: foot.d }, 0, 0, U).top;
         const order = [...ps].sort((a, b) => a.z - b.z || (a.r.x + a.r.y + a.r.w / 2 + a.r.d / 2) - (b.r.x + b.r.y + b.r.w / 2 + b.r.d / 2));
         return (
-          <g key={it.id} data-item={it.id} style={pick ? { cursor: "pointer" } : undefined}
+          <g key={it.id} data-item={it.id} style={pick ? { cursor: onDrag && sel ? "move" : "pointer" } : undefined}
+            onPointerDown={onDrag ? (e) => { e.stopPropagation(); onSelect?.(it.id); const p = toSvg(e); drag.current = { id: it.id, x: p.x, y: p.y, moved: false }; onDrag(it.id, 0, 0, "start"); } : undefined}
             onClick={pick ? (e) => { e.stopPropagation(); onSelect(it.id); } : undefined}>
             <title>{it.kind === "bano" ? room.bath ?? "Baño" : FURNITURE[it.kind].label}</title>
             <polygon points={pts(sh)} style={{ fill: "var(--int-trim)", opacity: 0.35 }} filter="url(#int-soft)" />

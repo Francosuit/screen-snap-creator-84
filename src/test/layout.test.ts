@@ -28,3 +28,20 @@ describe("room furniture layout", () => {
     expect(room.layout).toBeUndefined();
   });
 });
+
+import { screenToFloor, placeItem, duplicateItem } from "@/lib/suite/layout";
+describe("editor fase 1", () => {
+  it("arrastrar en pantalla se convierte en desplazamiento real del suelo", () => {
+    const U = 26; const { dx, dy } = screenToFloor(0.866 * U, 0.5 * U, U); // proj(1,0)
+    expect(dx).toBeCloseTo(1); expect(dy).toBeCloseTo(0);
+  });
+  it("arrastrar fuera nunca saca el mueble de la habitación", () => {
+    const it0 = { id: "silla-1", kind: "silla" as const, x: 1, y: 1, rot: 0 as const };
+    const p = placeItem(it0, 99, -99);
+    expect(p.y).toBe(0); expect(p.x).toBeLessThanOrEqual(6);
+  });
+  it("duplicar crea un id nuevo", () => {
+    const a = { id: "silla-1", kind: "silla" as const, x: 1, y: 1, rot: 0 as const };
+    expect(duplicateItem(a, [a]).id).toBe("silla-2");
+  });
+});

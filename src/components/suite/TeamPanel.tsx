@@ -190,7 +190,7 @@ export function TeamPanel({ hotelKey }: { hotelKey: string }) {
                   <div className="truncate text-xs text-muted-foreground">{i.email} · {ROLE_LABELS[i.role]}{i.position ? ` · ${i.position}` : ""} · {hotel.name}</div>
                 </div>
                 <div className="flex shrink-0 items-center gap-1.5">
-                  <Pill className={STATE_STYLE[k]}>{inviteState(i)}</Pill>
+                  <Pill className={STATE_STYLE[k] ?? ""}>{inviteState(i)}</Pill>
                   {isLive(i) && <Button size="sm" variant="outline" onClick={() => copy(i.token)}><Copy className="mr-1 h-3.5 w-3.5" />Copiar enlace</Button>}
                   {isLive(i) ? <Button size="sm" variant="ghost" onClick={() => revoke(i.email)}>Anular</Button> : <Button size="sm" variant="ghost" onClick={() => renew(i.email)}>Nuevo enlace</Button>}
                 </div>

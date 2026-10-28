@@ -110,6 +110,18 @@
   --twin-line: oklch(0.4 0.02 262);
   --twin-text: oklch(0.95 0.005 262);
   --twin-muted: oklch(0.7 0.015 262);
+  /* Facade materials (building digital twin) */
+  --fac-stone: oklch(0.78 0.025 75);
+  --fac-stone-side: oklch(0.62 0.028 70);
+  --fac-stone-top: oklch(0.86 0.02 78);
+  --fac-trim: oklch(0.26 0.015 60);
+  --fac-wood: oklch(0.55 0.07 58);
+  --fac-glass: oklch(0.58 0.05 225);
+  --fac-water: oklch(0.68 0.1 215);
+  --fac-grass: oklch(0.55 0.1 145);
+  --fac-leaf: oklch(0.45 0.1 150);
+  --fac-asphalt: oklch(0.32 0.01 260);
+  --fac-carpet: oklch(0.42 0.04 30);
   /* Interior materials (room digital twin) */
   --int-wood: oklch(0.62 0.075 62);
   --int-wood-dark: oklch(0.48 0.07 55);

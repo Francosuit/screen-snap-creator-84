@@ -14,6 +14,8 @@ export const Route = createFileRoute("/control")({
       { name: "description", content: "Ocupación, ADR, RevPAR, pickup, pace y recomendaciones de revenue explicadas." },
       { property: "og:title", content: "Control · Revenue Intelligence — Suite" },
       { property: "og:description", content: "Revenue recomienda. Una persona decide." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Control,

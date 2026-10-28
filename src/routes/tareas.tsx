@@ -14,6 +14,8 @@ export const Route = createFileRoute("/tareas")({
       { name: "description", content: "Tareas de housekeeping, mantenimiento y recepción con prioridad y hora límite." },
       { property: "og:title", content: "Tareas — Suite Hotel OS" },
       { property: "og:description", content: "Tareas operativas con prioridad y trazabilidad." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Tareas,

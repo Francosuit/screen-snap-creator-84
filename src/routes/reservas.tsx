@@ -19,6 +19,8 @@ export const Route = createFileRoute("/reservas")({
       { name: "description", content: "Listado y calendario de reservas por canal, estado y habitación." },
       { property: "og:title", content: "Reservas — Suite Hotel OS" },
       { property: "og:description", content: "Listado y calendario de reservas por canal, estado y habitación." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Reservas,

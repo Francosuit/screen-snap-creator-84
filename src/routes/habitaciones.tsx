@@ -13,6 +13,8 @@ export const Route = createFileRoute("/habitaciones")({
       { name: "description", content: "Mapa visual de habitaciones con estado, huésped y housekeeping en tiempo real." },
       { property: "og:title", content: "Habitaciones — Suite Hotel OS" },
       { property: "og:description", content: "Mapa visual de habitaciones en tiempo real." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Habitaciones,

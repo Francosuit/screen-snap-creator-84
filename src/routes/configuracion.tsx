@@ -14,6 +14,8 @@ export const Route = createFileRoute("/configuracion")({
       { name: "description", content: "El cerebro de Suite: eventos, condiciones y acciones automáticas, con trazabilidad completa." },
       { property: "og:title", content: "Configuración · Action Engine — Suite" },
       { property: "og:description", content: "Evento → contexto → reglas → acciones → verificación." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Configuracion,

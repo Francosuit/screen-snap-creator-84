@@ -17,6 +17,7 @@ import { Route as HabitacionesRouteImport } from './routes/habitaciones'
 import { Route as HotelRouteImport } from './routes/hotel'
 import { Route as HuespedesRouteImport } from './routes/huespedes'
 import { Route as IntegracionesRouteImport } from './routes/integraciones'
+import { Route as InvitacionRouteImport } from './routes/invitacion'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MensajesRouteImport } from './routes/mensajes'
 import { Route as MundoRouteImport } from './routes/mundo'
@@ -64,6 +65,11 @@ const IntegracionesRoute = IntegracionesRouteImport.update({
   path: '/integraciones',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InvitacionRoute = InvitacionRouteImport.update({
+  id: '/invitacion',
+  path: '/invitacion',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -104,6 +110,7 @@ export interface FileRoutesByFullPath {
   '/hotel': typeof HotelRoute
   '/huespedes': typeof HuespedesRoute
   '/integraciones': typeof IntegracionesRoute
+  '/invitacion': typeof InvitacionRoute
   '/login': typeof LoginRoute
   '/mensajes': typeof MensajesRoute
   '/mundo': typeof MundoRoute
@@ -120,6 +127,7 @@ export interface FileRoutesByTo {
   '/hotel': typeof HotelRoute
   '/huespedes': typeof HuespedesRoute
   '/integraciones': typeof IntegracionesRoute
+  '/invitacion': typeof InvitacionRoute
   '/login': typeof LoginRoute
   '/mensajes': typeof MensajesRoute
   '/mundo': typeof MundoRoute
@@ -137,6 +145,7 @@ export interface FileRoutesById {
   '/hotel': typeof HotelRoute
   '/huespedes': typeof HuespedesRoute
   '/integraciones': typeof IntegracionesRoute
+  '/invitacion': typeof InvitacionRoute
   '/login': typeof LoginRoute
   '/mensajes': typeof MensajesRoute
   '/mundo': typeof MundoRoute
@@ -155,6 +164,7 @@ export interface FileRouteTypes {
     | '/hotel'
     | '/huespedes'
     | '/integraciones'
+    | '/invitacion'
     | '/login'
     | '/mensajes'
     | '/mundo'
@@ -171,6 +181,7 @@ export interface FileRouteTypes {
     | '/hotel'
     | '/huespedes'
     | '/integraciones'
+    | '/invitacion'
     | '/login'
     | '/mensajes'
     | '/mundo'
@@ -187,6 +198,7 @@ export interface FileRouteTypes {
     | '/hotel'
     | '/huespedes'
     | '/integraciones'
+    | '/invitacion'
     | '/login'
     | '/mensajes'
     | '/mundo'
@@ -204,6 +216,7 @@ export interface RootRouteChildren {
   HotelRoute: typeof HotelRoute
   HuespedesRoute: typeof HuespedesRoute
   IntegracionesRoute: typeof IntegracionesRoute
+  InvitacionRoute: typeof InvitacionRoute
   LoginRoute: typeof LoginRoute
   MensajesRoute: typeof MensajesRoute
   MundoRoute: typeof MundoRoute
@@ -270,6 +283,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IntegracionesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/invitacion': {
+      id: '/invitacion'
+      path: '/invitacion'
+      fullPath: '/invitacion'
+      preLoaderRoute: typeof InvitacionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -324,6 +344,7 @@ const rootRouteChildren: RootRouteChildren = {
   HotelRoute: HotelRoute,
   HuespedesRoute: HuespedesRoute,
   IntegracionesRoute: IntegracionesRoute,
+  InvitacionRoute: InvitacionRoute,
   LoginRoute: LoginRoute,
   MensajesRoute: MensajesRoute,
   MundoRoute: MundoRoute,

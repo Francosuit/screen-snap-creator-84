@@ -19,13 +19,14 @@ export const ROLE_MODULES: Record<HotelRole, ModuleKey[]> = {
 export const clampModules = (role: HotelRole, modules: string[]) => modules.filter((m): m is ModuleKey => (ROLE_MODULES[role] as string[]).includes(m));
 
 export const moduleOfPath = (path: string): ModuleKey | null => {
-  if (path === "/") return "dashboard";
+  if (path === "/") return null; // role home panel is always available
   const m = path.slice(1) as ModuleKey;
   return (MODULES as readonly string[]).includes(m) ? m : null;
 };
 
 /** Narrows the role's menu with the person's own module list (null = everything their role allows) */
 export function effectiveNav(roleNav: string[], role: HotelRole, modules: string[] | null | undefined): string[] {
-  const allowed = new Set<string>(modules ? clampModules(role, modules) : ROLE_MODULES[role]);
+  if (!modules) return roleNav;
+  const allowed = new Set<string>(clampModules(role, modules));
   return roleNav.filter((p) => { const m = moduleOfPath(p); return m === null || allowed.has(m); });
 }

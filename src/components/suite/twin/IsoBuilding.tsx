@@ -92,8 +92,9 @@ export function IsoBuilding({ layout, info, focusFloor, selected, onSelect, laye
           const s = b.south;
           const lerp = (a: Pt, c: Pt, t: number): Pt => [a[0] + (c[0] - a[0]) * t, a[1] + (c[1] - a[1]) * t];
           if (L === "Mantenimiento") {
-            const d: Pt[] = [lerp(s[0]!, s[1]!, 0.3), lerp(s[0]!, s[1]!, 0.7), lerp(lerp(s[1]!, s[2]!, 0.75), lerp(s[0]!, s[3]!, 0.75), 0.3), lerp(lerp(s[1]!, s[2]!, 0.75), lerp(s[0]!, s[3]!, 0.75), 0.7)];
-            P("dr", [d[0]!, d[1]!, d[2]!, d[3]!].reverse().slice(0, 4), "var(--fac-asphalt)");
+            const at = (u: number, v: number) => lerp(lerp(s[0]!, s[1]!, u), lerp(s[3]!, s[2]!, u), v);
+            P("dr", [at(0.3, 0), at(0.7, 0), at(0.7, 0.75), at(0.3, 0.75)], "var(--fac-asphalt)");
+            [0.2, 0.4, 0.6].forEach((v, k) => P(`dl${k}`, [at(0.3, v), at(0.7, v), at(0.7, v + 0.02), at(0.3, v + 0.02)], "var(--fac-stone-side)"));
             P("db", [s[0]!, s[1]!, lerp(s[1]!, s[2]!, 0.08), lerp(s[0]!, s[3]!, 0.08)], o.tone, { op: 0.8 });
           } else {
             const g: Pt[] = [lerp(lerp(s[0]!, s[1]!, 0.1), lerp(s[3]!, s[2]!, 0.1), 0.25), lerp(lerp(s[0]!, s[1]!, 0.9), lerp(s[3]!, s[2]!, 0.9), 0.25), lerp(lerp(s[0]!, s[1]!, 0.9), lerp(s[3]!, s[2]!, 0.9), 0.75), lerp(lerp(s[0]!, s[1]!, 0.1), lerp(s[3]!, s[2]!, 0.1), 0.75)];
@@ -113,7 +114,7 @@ export function IsoBuilding({ layout, info, focusFloor, selected, onSelect, laye
       out.push({ k: "poly", key: `s${f}e`, p: slab.east, fill: "var(--fac-stone-side)" });
       out.push({ k: "poly", key: `s${f}s`, p: slab.south, fill: "var(--fac-stone)" });
       out.push({ k: "poly", key: `s${f}t`, p: slab.top, fill: "var(--twin-slab)", stroke: "var(--fac-trim)", sw: 0.8 });
-      out.push({ k: "poly", key: `s${f}cb`, p: [slab.south[3]!, slab.south[2]!, slab.east[2]!, slab.east[1]!, slab.east[2]!, slab.south[2]!], fill: "none", stroke: "var(--fac-stone-top)", sw: 1 });
+      out.push({ k: "poly", key: `s${f}cb`, p: [slab.south[3]!, slab.south[2]!, slab.east[3]!, slab.south[2]!], fill: "none", stroke: "var(--fac-stone-top)", sw: 1 });
       const cor = box(R(fl.corridor), z, 0.01, U);
       out.push({ k: "poly", key: `c${f}`, p: cor.top, fill: "var(--fac-carpet)", op: 0.9 });
       const corR = R(fl.corridor), longX = corR.w >= corR.d;

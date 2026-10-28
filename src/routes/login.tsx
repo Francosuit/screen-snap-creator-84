@@ -1,3 +1,4 @@
+import { peekInvite, takeInvite } from "@/lib/suite/pending-invite";
 import { LogoLoop } from "@/components/suite/LogoLoop";
 import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";

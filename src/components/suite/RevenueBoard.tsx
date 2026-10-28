@@ -62,13 +62,13 @@ export function RevenueBoard() {
   const startEdit = () => { setDraft((budget ?? Array(12).fill(0)).map((v) => (v ? String(v) : ""))); setEditing(true); };
   const save = async () => {
     const months = draft.map((v) => Number(v.replace(",", ".")) || 0);
-    if (months.some((v) => v < 0)) return toast.error("Los importes no pueden ser negativos");
+    if (months.some((v) => v < 0)) { toast.error("Los importes no pueden ser negativos"); return; }
     setSaving(true);
     if (cloudHotelId) {
       const { data: u } = await supabase.auth.getUser();
       const { error } = await supabase.from("hotel_budgets").upsert({ hotel_id: cloudHotelId, year, months, updated_by: u.user?.id ?? null, updated_at: new Date().toISOString() });
       setSaving(false);
-      if (error) return toast.error("No tienes permiso o no se pudo guardar el presupuesto");
+      if (error) { toast.error("No tienes permiso o no se pudo guardar el presupuesto"); return; }
       toast.success("Presupuesto guardado en la nube");
     } else {
       localStorage.setItem(lsKey, JSON.stringify(months));

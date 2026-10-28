@@ -1,8 +1,9 @@
 import { peekInvite, takeInvite } from "@/lib/suite/pending-invite";
-import { LogoLoop } from "@/components/suite/LogoLoop";
+import { ConstructionScene } from "@/components/suite/login/ConstructionScene";
+import logo from "@/assets/suite-solutions-logo.png.asset.json";
 import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Building2, LogIn, Sparkles } from "lucide-react";
+import { LogIn, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -55,18 +56,16 @@ function LoginPage() {
   const step1 = f.company.trim() && f.city.trim();
 
   return (
-    <div className="grid min-h-screen bg-background lg:grid-cols-2">
-      <div className="relative hidden flex-col justify-between overflow-hidden bg-primary p-12 text-primary-foreground lg:flex">
-        <LogoLoop className="pointer-events-none absolute left-1/2 top-[38%] w-[60%] -translate-x-1/2 -translate-y-1/2 opacity-90" />
-        <div className="absolute left-12 top-12 z-10 flex items-center gap-2 text-lg font-semibold"><Building2 className="h-6 w-6" />Suite Hotel OS</div>
-        <div className="absolute bottom-24 left-12 right-12 z-10">
-          <h1 className="text-5xl font-semibold leading-tight">Bienvenido a Suite</h1>
-          <p className="mt-4 max-w-md text-lg opacity-80">Vamos a construir digitalmente tu hotel. Tú nos cuentas cómo es; Suite crea habitaciones, plantas, zonas, equipo y su gemelo digital en vivo.</p>
+    <div className="grid min-h-screen bg-background lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
+      <div className="flex flex-col p-6 sm:p-10">
+        <div className="flex items-center gap-3">
+          <img src={logo.url} alt="Suite Solutions" className="h-11 w-11 rounded-full shadow-md" />
+          <div className="leading-tight"><div className="text-sm font-semibold tracking-[0.2em]">SUITE SOLUTIONS</div><div className="text-xs text-muted-foreground">Suite Hotel OS</div></div>
         </div>
-        <p className="absolute bottom-12 left-12 text-sm opacity-60">Un solo sistema. Todo conectado.</p>
-      </div>
-
-      <div className="flex items-center justify-center p-6">
+        <div className="relative -mx-6 mt-4 overflow-hidden rounded-2xl lg:hidden" style={{ background: "linear-gradient(180deg, var(--login-night), var(--login-deep))" }}>
+          <ConstructionScene className="mx-auto block h-44 w-full" />
+        </div>
+        <div className="flex flex-1 items-center justify-center py-8">
         <div className="w-full max-w-md space-y-6">
           {mode === "home" && (
             <>
@@ -131,6 +130,18 @@ function LoginPage() {
             </div>
           )}
         </div>
+        </div>
+        <p className="text-center text-xs text-muted-foreground lg:text-left">Un solo sistema. Todo conectado.</p>
+      </div>
+
+      <div className="relative hidden overflow-hidden lg:block" style={{ background: "radial-gradient(120% 90% at 60% 30%, var(--login-night), var(--login-deep))", color: "var(--login-ivory)" }}>
+        <div className="absolute left-12 right-12 top-12 z-10">
+          <p className="text-xs uppercase tracking-[0.3em]" style={{ color: "var(--login-gold)" }}>Bienvenido a Suite</p>
+          <h1 className="mt-3 max-w-lg text-4xl font-semibold leading-tight">Construye y gestiona tu propio mundo hotelero</h1>
+          <p className="mt-3 max-w-md text-sm opacity-75">Tú nos cuentas cómo es tu hotel; Suite crea sus plantas, habitaciones, zonas y su gemelo digital en vivo.</p>
+        </div>
+        <ConstructionScene className="absolute inset-x-0 bottom-0 h-[78%] w-full" />
+        <p className="absolute bottom-6 right-8 text-[11px] opacity-50">Ilustración</p>
       </div>
     </div>
   );

@@ -111,6 +111,8 @@ export function IsoBuilding({ layout, info, focusFloor, selected, onSelect, laye
       const f = fl.floor.number;
       // soft ground shadow under the lowest floor
       if (i === 0) { const sh = box({ ...slabRect, x: slabRect.x + 0.35, y: slabRect.y + 0.5 }, z - SLAB - 0.01, 0, U); out.push({ k: "poly", key: `sh${f}`, p: sh.top, fill: "var(--fac-trim)", op: 0.35 }); }
+      // shadow cast by the level above onto this level's slab edge (depth between stacked floors)
+      if (focusFloor == null && i > 0) { const gap = box(slabRect, z - SLAB - 0.35, 0.35, U); out.push({ k: "poly", key: `gp${f}e`, p: gap.east, fill: "var(--fac-trim)", op: 0.45 }); out.push({ k: "poly", key: `gp${f}s`, p: gap.south, fill: "var(--fac-trim)", op: 0.35 }); }
       out.push({ k: "poly", key: `s${f}e`, p: slab.east, fill: "var(--fac-stone-side)" });
       out.push({ k: "poly", key: `s${f}s`, p: slab.south, fill: "var(--fac-stone)" });
       out.push({ k: "poly", key: `s${f}t`, p: slab.top, fill: "var(--twin-slab)", stroke: "var(--fac-trim)", sw: 0.8 });
@@ -149,7 +151,9 @@ export function IsoBuilding({ layout, info, focusFloor, selected, onSelect, laye
       service(fl.elevator, ROOM_H, "ASCENSORES", `el${f}`, "var(--twin-floor)");
       out.push({ k: "anchor", key: `an${f}`, floor: f, at: center(box(R(fl.elevator), z, ROOM_H, U).top) });
       service(fl.stairs, ROOM_H * 0.7, "ESCALERAS", `st${f}`, "var(--twin-floor)");
-      service(fl.common, 0.35, fl.commonLabel.toUpperCase(), `cm${f}`, mix("var(--brand)", 18));
+      // ground floor = lobby (warm stone); upper floors get a level-specific tint so stacked levels read apart
+      const commonTone = i === 0 ? mix("var(--fac-wood)", 35, "var(--fac-stone-top)") : mix("var(--brand)", 14 + (i % 3) * 12, i % 2 ? "var(--twin-slab)" : "var(--twin-floor)");
+      service(fl.common, i === 0 && focusFloor == null ? 0.55 : 0.35, fl.commonLabel.toUpperCase(), `cm${f}`, commonTone);
 
       fl.rooms.forEach(({ room, rect }) => {
         const rr = R(rect);

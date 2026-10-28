@@ -7,7 +7,8 @@ import { IsoBuilding, TwinLegend } from "@/components/suite/twin/IsoBuilding";
 import { RoomInterior } from "@/components/suite/twin/RoomInterior";
 import { FloorChips, SimToggle } from "@/components/suite/twin/LiveHotel";
 import { useTwin, techPhase } from "@/components/suite/twin/useTwin";
-import { roomMeta, STATE_VAR } from "@/components/suite/twin/geometry";
+import { STATE_VAR } from "@/components/suite/twin/geometry";
+import { LayoutEditor } from "@/components/suite/twin/LayoutEditor";
 import { PageHeader, RoomPill, Row } from "@/components/suite/ui";
 import { ReportIssueDialog, RoomSheet } from "@/components/suite/panels";
 import type { RoomState } from "@/lib/suite/data";
@@ -80,10 +81,10 @@ function RoomPanel({ num, onClose, onFloor }: { num: string; onClose: () => void
   const [report, setReport] = useState(false);
   const [sheet, setSheet] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [layoutMode, setLayoutMode] = useState(false);
   const room = s.rooms.find((r) => r.number === num);
   if (!room) return null;
   const st = roomState(num);
-  const meta = roomMeta(room);
   const occ = occupant(num);
   const next = nextArrival(num);
   const task = s.tasks.find((t) => t.room === num && t.dept === "housekeeping" && t.status !== "completada");
@@ -96,7 +97,7 @@ function RoomPanel({ num, onClose, onFloor }: { num: string; onClose: () => void
         <div>
           <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Habitación · planta {room.floor}</div>
           <div className="text-3xl font-semibold tracking-tight">{room.number}</div>
-          <div className="text-sm text-muted-foreground">{room.type} · {meta.capacity} huéspedes · {meta.sqm} m²</div>
+          <div className="text-sm text-muted-foreground">{room.type} · {room.capacity ? `${room.capacity} huéspedes` : "capacidad sin indicar"} · {room.sqm ? `${room.sqm} m²` : "superficie sin indicar"}</div>
         </div>
         <div className="flex flex-col items-end gap-2">
           <RoomPill state={st} />
@@ -106,7 +107,13 @@ function RoomPanel({ num, onClose, onFloor }: { num: string; onClose: () => void
         </div>
       </div>
        {canEditRoomConfig && <div className="px-5 pb-3"><Button className="w-full" onClick={() => { setEditing(true); setSheet(true); }}><Pencil className="mr-1.5 h-4 w-4" />Editar habitación</Button></div>}
-       <div className="mx-5 rounded-xl bg-twin-bg p-2"><RoomInterior meta={meta} state={st} number={room.number} /></div>
+       {layoutMode && canEditRoomConfig
+         ? <div className="px-5"><LayoutEditor room={room} state={st} onDone={() => setLayoutMode(false)} /></div>
+         : <>
+             <div className="mx-5 rounded-xl bg-twin-bg p-2"><RoomInterior room={room} state={st} /></div>
+             {canEditRoomConfig && <div className="px-5 pt-2"><Button variant="outline" size="sm" className="w-full" onClick={() => setLayoutMode(true)}>Editar distribución</Button></div>}
+             {!room.layout && <div className="px-5 pt-1 text-[11px] text-muted-foreground">Distribución automática según camas y equipamiento configurados.</div>}
+           </>}
 
       <div className="grid gap-2 p-5">
         {occ && <Button onClick={() => actions.checkOut(occ.id)}><LogOut className="mr-1.5 h-4 w-4" />Hacer check-out · {guest(occ.guestId).name}</Button>}
@@ -132,7 +139,7 @@ function RoomPanel({ num, onClose, onFloor }: { num: string; onClose: () => void
         <Row k="Camas" v={room.beds || "Sin indicar"} /><Row k="Baño" v={room.bath || "Sin indicar"} />
         <Row k="Ventana" v={room.window ?? "Sin indicar"} /><Row k="Equipamiento" v={room.extras?.join(", ") || "—"} />
         <Row k="Terraza / vista" v={`${room.terrace ? "Sí" : "No"} · ${room.view || "Sin indicar"}`} />
-        <Row k="Precio base" v={eur(meta.price)} />
+        <Row k="Precio base" v={eur(room.rate)} />
       </div>
       <div className="px-5 pb-4"><button onClick={onClose} className="text-xs text-muted-foreground hover:text-foreground">Cerrar ficha</button></div>
       <ReportIssueDialog open={report} onOpenChange={setReport} defaultRoom={num} />

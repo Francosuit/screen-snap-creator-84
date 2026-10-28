@@ -16,3 +16,4 @@
 - Per-hotel job roles live in hotel_members and are enforced by RLS via has_hotel_role(); never trust client-side role checks.
 - Room furniture layout lives in src/lib/suite/layout.ts (pure rules, bounds clamping) and is saved per room via suite_edit_room; drawings never fill in category defaults as real data. Why: honest per-room configuration.
 - Staff permissions: role ceilings live in suite_role_modules() (mirrored in src/lib/suite/staff-access.ts); per-member modules are clamped by trigger and inactive members fail has_hotel_role. Why: deactivate without deleting history, permissions enforced in the database.
+- Revenue figures (YoY, budget, ADR) are computed only by src/lib/suite/revenue.ts from stored reservations; budgets live in hotel_budgets (RLS owner/director/revenue). Why: one counting rule, no fabricated history.

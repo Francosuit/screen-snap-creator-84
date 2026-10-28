@@ -8,7 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { ROLES, type RoleKey } from "@/lib/suite/data";
-import { NAV_ACCESS, fmtClock, useSuite } from "@/lib/suite/store";
+import { fmtClock, useSuite } from "@/lib/suite/store";
 import { NoAccess } from "./ui";
 
 const NAV = [

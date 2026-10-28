@@ -215,13 +215,21 @@
 }
 @keyframes login-win { 0%, 30% { opacity: 0; } 55%, 100% { opacity: 0.85; } }
 @keyframes login-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
-@keyframes login-crane { from { transform: rotate(-4deg); } to { transform: rotate(4deg); } }
-@keyframes login-hook { from { transform: translateY(0); } to { transform: translateY(10px); } }
+@keyframes login-crane { from { transform: rotate(-5deg); } to { transform: rotate(5deg); } }
+@keyframes login-trolley { from { transform: translate(0px, 0px); } to { transform: translate(-46px, 0.7px); } }
+@keyframes login-hoist { from { transform: translateY(0px); } to { transform: translateY(32px); } }
+@keyframes login-cable { from { transform: scaleY(1); } to { transform: scaleY(1.5); } }
+@keyframes login-swing { from { transform: rotate(-3.5deg); } to { transform: rotate(3.5deg); } }
+@keyframes login-beacon { 0%, 48% { opacity: 1; } 52%, 100% { opacity: 0.12; } }
 .login-win { fill: var(--int-lamp); opacity: 0; animation: login-win 6s ease-in-out infinite alternate; }
 .login-rise { animation: login-rise 0.9s ease-out both; }
-.login-crane { animation: login-crane 14s ease-in-out infinite alternate; transform-box: view-box; }
-.login-hook { animation: login-hook 5s ease-in-out infinite alternate; }
+.login-crane { animation: login-crane 11s ease-in-out infinite alternate; transform-box: view-box; }
+.login-trolley { animation: login-trolley 13s ease-in-out infinite alternate; }
+.login-cable { transform-box: fill-box; transform-origin: top center; animation: login-cable 7s ease-in-out infinite alternate; }
+.login-load { animation: login-hoist 7s ease-in-out infinite alternate; }
+.login-swing { transform-box: fill-box; transform-origin: top center; animation: login-swing 3.6s ease-in-out infinite alternate; }
+.login-beacon { animation: login-beacon 1.7s steps(1, end) infinite; }
 @media (prefers-reduced-motion: reduce) {
   .login-win { animation: none; opacity: 0.8; }
-  .login-rise, .login-crane, .login-hook { animation: none; }
+  .login-rise, .login-crane, .login-trolley, .login-cable, .login-load, .login-swing, .login-beacon { animation: none; }
 }

@@ -95,7 +95,17 @@ export function ConstructionScene({ className = "" }: { className?: string }) {
           <line x1={mx} y1={mtop - 18} x2={mx - 210} y2={mtop + 4} strokeWidth={0.7} />
           <line x1={mx} y1={mtop - 18} x2={mx + 60} y2={mtop} strokeWidth={0.7} />
           <rect x={mx + 40} y={mtop} width={18} height={10} style={{ fill: "var(--fac-trim)", stroke: "none" }} />
-          <g className="login-hook"><line x1={mx - 150} y1={mtop + 3} x2={mx - 150} y2={mtop + 70} strokeWidth={0.6} /><rect x={mx - 158} y={mtop + 70} width={16} height={8} style={{ fill: "var(--fac-wood)", stroke: "none" }} /></g>
+          <circle className="login-beacon" cx={mx} cy={mtop - 21} r={2.6} style={{ fill: "var(--login-gold)", stroke: "none" }} />
+          {/* trolley runs along the jib, hoisting its load */}
+          <g className="login-trolley">
+            <rect className="login-cable" x={mx - 150.6} y={mtop + 3} width={1.2} height={64} style={{ fill: "var(--login-gold)", stroke: "none" }} />
+            <g className="login-load">
+              <g className="login-swing">
+                <rect x={mx - 158} y={mtop + 67} width={16} height={8} style={{ fill: "var(--fac-wood)", stroke: "none" }} />
+                <line x1={mx - 158} y1={mtop + 71} x2={mx - 142} y2={mtop + 71} strokeWidth={0.5} />
+              </g>
+            </g>
+          </g>
         </g>
       </g>
       {/* lamps + trees */}

@@ -10,7 +10,7 @@ import {
 
 /** Staff shown inside the twin: derived from incident/task state, never stored as coordinates */
 export interface StaffMarker { id: string; name: string; room: string; phase: "route" | "onsite" }
-export interface RoomInfo { state: RoomState; guest?: string | undefined; type: string; capacity: number }
+export interface RoomInfo { state: RoomState; guest?: string | undefined; type: string; capacity?: number | undefined }
 
 interface Props {
   layout: HotelLayout;
@@ -257,7 +257,7 @@ export function IsoBuilding({ layout, info, focusFloor, selected, onSelect, laye
           style={{ left: Math.min(hover.x + 14, (wrap.current?.clientWidth ?? 400) - 220), top: Math.max(8, hover.y - 10) }}>
           <div className="text-[10px] uppercase tracking-[0.14em] text-twin-muted">Habitación</div>
           <div className="text-lg font-semibold">{hover.room.number}</div>
-          <div className="text-twin-muted">{hoverInfo.type} · {hoverInfo.capacity} huéspedes</div>
+          <div className="text-twin-muted">{hoverInfo.type}{hoverInfo.capacity ? ` · ${hoverInfo.capacity} huéspedes` : ""}</div>
           <div className="mt-2 flex items-center gap-1.5 font-medium">
             <span className="h-2 w-2 rounded-full" style={{ background: STATE_VAR[hoverInfo.state] }} />
             {hoverInfo.state === "occupied" ? "IN HOUSE" : ROOM_STATE[hoverInfo.state].label.toUpperCase()}

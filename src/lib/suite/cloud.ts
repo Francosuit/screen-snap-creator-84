@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import { applyRoomEdit, validateRoomEdit, type Hotel, type Room, type RoomEdit, type WindowSide } from "./data";
 import { canEditRoom } from "./room-permissions";
 import { isInside, type FurnitureItem } from "./layout";
@@ -68,7 +69,7 @@ export async function saveRoomConfig(hotelId: string, room: Room, edit: RoomEdit
   const { data: membership } = await supabase.from("hotel_members").select("role").eq("hotel_id", hotelId).eq("user_id", auth.user.id).maybeSingle();
   if (hotel?.org_owner !== auth.user.id && !canEditRoom(membership?.role)) throw new Error("No tienes permiso para editar esta habitación");
   const payload = Object.fromEntries(Object.entries(edit).map(([k, v]) => [k, v ?? null]));
-  const { data, error: failure } = await supabase.rpc("suite_edit_room", { _hotel: hotelId, _number: room.number, _edit: payload });
+  const { data, error: failure } = await supabase.rpc("suite_edit_room", { _hotel: hotelId, _number: room.number, _edit: payload as unknown as Json });
   if (failure) throw new Error(failure.message);
   const saved = data as unknown as CloudRoom;
   return applyRoomEdit(room, { type: saved.type, rate: Number(saved.rate), capacity: nn(saved.capacity), beds: nn(saved.beds), bath: nn(saved.bath), terrace: nn(saved.terrace), view: nn(saved.view), sqm: nn(saved.sqm), notes: nn(saved.notes), extras: saved.extras ?? [], window: nn(saved.window_side ?? null) as WindowSide | undefined, layout: nn(saved.layout ?? null) ?? undefined }).room;

@@ -93,8 +93,35 @@ function World() {
         z, b: box({ x: x + 1 + k * 4, y: y + 7.5, w: 3.4, d: 2.6 }, 0, 0.05, U),
         tone: z === "Piscina" ? "var(--st-occupied)" : z === "Jardín" ? "var(--st-ready)" : "var(--twin-floor)",
       }));
+      // Architectural detail (decorative only, never status): balconies, cornices, side windows, roof, entrance, shadow
+      const P = (px: number, py: number, pz: number): Pt => [(px - py) * 0.866 * U, (px + py) * 0.5 * U - pz * U];
+      const bx = x + 2, by = y + 2, yy = by + dep, xe = bx + w, H = floorsArr.length * fh;
+      const shadow = [P(bx + 0.4, by + 0.6, 0), P(xe + 1.6, by + 0.6, 0), P(xe + 1.6, yy + 1.2, 0), P(bx + 0.4, yy + 1.2, 0)];
+      const cornices = floorsArr.slice(1).map((_, fi) => { const z = (fi + 1) * fh; return [P(bx, yy, z), P(xe, yy, z), P(xe, by, z)]; });
+      const balconies: { slab: Pt[]; rail: Pt[] }[] = [];
+      floorsArr.forEach((fn, fi) => {
+        if (fi === 0) return;
+        const n = Math.max(d.rooms.filter((r) => r.floor === fn).length, 1);
+        for (let ri = 0; ri < n; ri++) {
+          const x0 = bx + (w / n) * ri + 0.08, x1 = bx + (w / n) * (ri + 1) - 0.08, z = fi * fh + 0.04;
+          balconies.push({ slab: [P(x0, yy, z), P(x1, yy, z), P(x1, yy + 0.32, z), P(x0, yy + 0.32, z)], rail: [P(x0, yy + 0.32, z), P(x0, yy + 0.32, z + 0.2), P(x1, yy + 0.32, z + 0.2), P(x1, yy + 0.32, z)] });
+        }
+      });
+      const sideWins: Pt[][] = [];
+      floorsArr.forEach((_, fi) => { for (let k = 0; k < 3; k++) { const y0 = by + 0.4 + k * 1.2, y1 = y0 + 0.7, z0 = fi * fh + 0.28, z1 = fi * fh + 0.68; sideWins.push([P(xe, y0, z0), P(xe, y1, z0), P(xe, y1, z1), P(xe, y0, z1)]); } });
+      const roofUnit = box({ x: bx + w * 0.6, y: by + 0.8, w: Math.min(2, w * 0.25), d: 1.4 }, H, 0.35, U);
+      const parapet = [P(bx + 0.15, by + 0.15, H + 0.01), P(xe - 0.15, by + 0.15, H + 0.01), P(xe - 0.15, yy - 0.15, H + 0.01), P(bx + 0.15, yy - 0.15, H + 0.01)];
+      const canopy = box({ x: bx + w / 2 - 0.9, y: yy, w: 1.8, d: 0.9 }, 0.62, 0.08, U);
+      const walk = [P(bx + w / 2 - 0.5, yy, 0.01), P(bx + w / 2 + 0.5, yy, 0.01), P(bx + w / 2 + 0.5, y + LOT - 3, 0.01), P(bx + w / 2 - 0.5, y + LOT - 3, 0.01)];
+      const zoneArt = zones.map((zn) => {
+        const r = { x: x + 1 + zones.indexOf(zn) * 4, y: y + 7.5, w: 3.4, d: 2.6 };
+        const inner = box({ x: r.x + 0.35, y: r.y + 0.35, w: r.w - 0.7, d: r.d - 0.7 }, 0, 0.06, U);
+        const lines = zn.z === "Parking" ? [0.8, 1.6, 2.4].map((v) => [P(r.x + v, r.y + 0.3, 0.06), P(r.x + v, r.y + 1.3, 0.06)] as Pt[]) : zn.z === "Piscina" ? [1, 1.7].map((v) => [P(r.x + 0.5, r.y + v - 0.4, 0.07), P(r.x + r.w - 0.5, r.y + v - 0.4, 0.07)] as Pt[]) : [];
+        const bushes = zn.z === "Jardín" ? [P(r.x + 0.9, r.y + 1, 0.1), P(r.x + 2.4, r.y + 1.6, 0.1), P(r.x + 1.7, r.y + 0.7, 0.1)] : [];
+        return { ...zn, inner, lines, bushes };
+      });
       const top = center(b.top);
-      return { h, s, b, wins, lot, zones, label: [top[0], b.top.reduce((m, p) => Math.min(m, p[1]), Infinity) - 14] as Pt, door: center(box({ x: x + 2, y: y + 2 + dep, w, d: 0.5 }, 0, 0, U).top) };
+      return { h, s, b, wins, lot, zones: zoneArt, shadow, cornices, balconies, sideWins, roofUnit, parapet, canopy, walk, label: [top[0], b.top.reduce((m, p) => Math.min(m, p[1]), Infinity) - 14] as Pt, door: center(box({ x: x + 2, y: y + 2 + dep, w, d: 0.5 }, 0, 0, U).top) };
     });
     const rows = Math.ceil(hotels.length / 3);
     const baseX = Math.min(hotels.length, 3) * LOT, baseY = 0;
@@ -110,7 +137,11 @@ function World() {
       const x = (i % 3) * LOT + 1 + t * 3.2, y = Math.floor(i / 3) * LOT + 11;
       trees.push([(x - y) * 0.866 * U, (x + y) * 0.5 * U]);
     }
-    return { items, base, baseDoor, ground, roads, trees };
+    const P0 = (px: number, py: number): Pt => [(px - py) * 0.866 * U, (px + py) * 0.5 * U];
+    const lanes: Pt[][] = [...Array.from({ length: rows }, (_, r) => [P0(-3, r * LOT + LOT - 2.2), P0(baseX + 6, r * LOT + LOT - 2.2)]), [P0(baseX - 1.2, -3), P0(baseX - 1.2, rows * LOT)]];
+    const lamps: Pt[] = [];
+    for (let r = 0; r < rows; r++) for (let k = 0; k * 4 < baseX + 6; k++) lamps.push(P0(-1 + k * 4, r * LOT + LOT - 3.2));
+    return { items, base, baseDoor, ground, roads, trees, lanes, lamps };
   }, [hotels, world]);
 
   const vb = useMemo(() => {
@@ -143,23 +174,41 @@ function World() {
               <svg viewBox={vb} className="h-full w-full" preserveAspectRatio="xMidYMid meet">
                 <polygon points={pts(scene.ground.east)} style={{ fill: "var(--twin-slab-side)" }} />
                 <polygon points={pts(scene.ground.south)} style={{ fill: "var(--twin-slab-side)" }} />
-                <polygon points={pts(scene.ground.top)} style={{ fill: "var(--twin-panel)" }} />
-                {scene.roads.map((r, i) => <polygon key={i} points={pts(r.top)} style={{ fill: "var(--twin-slab)", stroke: "var(--twin-line)", strokeWidth: 0.6 }} />)}
-                {scene.items.map(({ h, s, b, wins, lot, zones, label }) => {
+                <defs>
+                  <linearGradient id="world-ground" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="color-mix(in oklab, var(--fac-grass) 42%, var(--twin-bg))" /><stop offset="1" stopColor="color-mix(in oklab, var(--fac-leaf) 30%, var(--twin-bg))" /></linearGradient>
+                  <radialGradient id="world-lamp"><stop offset="0" stopColor="var(--int-lamp)" stopOpacity="0.55" /><stop offset="1" stopColor="var(--int-lamp)" stopOpacity="0" /></radialGradient>
+                </defs>
+                <polygon points={pts(scene.ground.top)} style={{ fill: "url(#world-ground)" }} />
+                {scene.roads.map((r, i) => <polygon key={i} points={pts(r.top)} style={{ fill: "var(--fac-asphalt)", stroke: "color-mix(in oklab, var(--fac-stone-top) 45%, var(--fac-asphalt))", strokeWidth: 1.2 }} />)}
+                {scene.lanes.map((l, i) => <polyline key={i} points={pts(l)} style={{ fill: "none", stroke: "var(--int-lamp)", strokeWidth: 0.8, strokeDasharray: "5 6", opacity: 0.55 }} />)}
+                {scene.lamps.map((l, i) => <g key={i} style={{ pointerEvents: "none" }}><circle cx={l[0]} cy={l[1]} r={9} style={{ fill: "url(#world-lamp)" }} /><line x1={l[0]} y1={l[1]} x2={l[0]} y2={l[1] - 9} style={{ stroke: "var(--fac-trim)", strokeWidth: 1 }} /><circle cx={l[0]} cy={l[1] - 9} r={1.6} style={{ fill: "var(--int-lamp)" }} /></g>)}
+                {scene.items.map(({ h, s, b, wins, lot, zones, label, shadow, cornices, balconies, sideWins, roofUnit, parapet, canopy, walk }) => {
                   const on = sel === h.id;
                   return (
                     <g key={h.id} style={facadeVars(h.facade)} className="cursor-pointer" onClick={() => { if (!drag.current?.moved) setSel(h.id); }} onDoubleClick={() => enter(h.id)}>
-                      <polygon points={pts(lot.top)} style={{ fill: on ? "color-mix(in oklab, var(--brand) 18%, var(--twin-slab))" : "var(--twin-slab)", stroke: on ? "var(--brand)" : "var(--twin-line)", strokeWidth: on ? 1.5 : 0.6, transition: "fill 300ms" }} />
+                      <polygon points={pts(lot.top)} style={{ fill: on ? "color-mix(in oklab, var(--brand) 22%, var(--fac-grass))" : "color-mix(in oklab, var(--fac-grass) 70%, var(--twin-bg))", stroke: on ? "var(--brand)" : "color-mix(in oklab, var(--fac-stone-top) 60%, transparent)", strokeWidth: on ? 1.8 : 1.4, transition: "fill 300ms" }} />
+                      <polygon points={pts(walk)} style={{ fill: "var(--fac-stone-top)", opacity: 0.75 }} />
                       {zones.map((z) => (
                         <g key={z.z}>
-                          <polygon points={pts(z.b.top)} style={{ fill: `color-mix(in oklab, ${z.tone} 55%, var(--twin-slab))`, stroke: z.tone, strokeWidth: 0.7 }} />
-                          <text x={center(z.b.top)[0]} y={center(z.b.top)[1]} textAnchor="middle" dominantBaseline="middle" style={{ fill: "var(--twin-text)", fontSize: 7, fontWeight: 600, letterSpacing: "0.06em" }}>{z.z.toUpperCase()}</text>
+                          <polygon points={pts(z.b.east)} style={{ fill: "var(--fac-stone-side)" }} />
+                          <polygon points={pts(z.b.top)} style={{ fill: z.z === "Jardín" ? "var(--fac-grass)" : "var(--fac-stone-top)" }} />
+                          <polygon points={pts(z.inner.top)} style={{ fill: z.z === "Piscina" ? "var(--fac-water)" : z.z === "Parking" ? "var(--fac-asphalt)" : "color-mix(in oklab, var(--fac-grass) 80%, white)" }} />
+                          {z.lines.map((l, k) => <polyline key={k} points={pts(l)} style={{ fill: "none", stroke: z.z === "Piscina" ? "color-mix(in oklab, var(--fac-water) 50%, white)" : "var(--fac-stone-top)", strokeWidth: 0.8 }} />)}
+                          {z.bushes.map((p, k) => <circle key={k} cx={p[0]} cy={p[1] - 3} r={3.4} style={{ fill: "var(--fac-leaf)", stroke: "color-mix(in oklab, var(--fac-leaf) 60%, black)", strokeWidth: 0.5 }} />)}
+                          <text x={center(z.b.top)[0]} y={center(z.b.top)[1] + 14} textAnchor="middle" style={{ fill: "var(--twin-text)", fontSize: 6, fontWeight: 600, letterSpacing: "0.08em", opacity: 0.8 }}>{z.z.toUpperCase()}</text>
                         </g>
                       ))}
+                      <polygon points={pts(shadow)} style={{ fill: "var(--twin-bg)", opacity: 0.4 }} />
                       <polygon points={pts(b.east)} style={{ fill: "var(--twin-wall-dark)" }} />
                       <polygon points={pts(b.south)} style={{ fill: "var(--twin-wall)" }} />
-                      <polygon points={pts(b.top)} style={{ fill: "var(--twin-floor)", stroke: on ? "var(--brand)" : "var(--twin-line)", strokeWidth: on ? 1.5 : 0.6 }} />
-                      {wins.map((w) => <polygon key={w.key} points={pts(w.p)} style={{ fill: w.c, opacity: 0.9, transition: "fill 400ms" }} />)}
+                      <polygon points={pts(b.top)} style={{ fill: "color-mix(in oklab, var(--twin-wall) 55%, var(--twin-floor))", stroke: on ? "var(--brand)" : "var(--fac-trim)", strokeWidth: on ? 1.8 : 0.8 }} />
+                      <polygon points={pts(parapet)} style={{ fill: "color-mix(in oklab, var(--twin-floor) 80%, black)", opacity: 0.6 }} />
+                      <polygon points={pts(roofUnit.east)} style={{ fill: "var(--fac-stone-side)" }} /><polygon points={pts(roofUnit.south)} style={{ fill: "var(--fac-stone)" }} /><polygon points={pts(roofUnit.top)} style={{ fill: "var(--fac-stone-top)" }} />
+                      {sideWins.map((p, k) => <polygon key={k} points={pts(p)} style={{ fill: "color-mix(in oklab, var(--int-lamp) 35%, var(--fac-glass))", stroke: "var(--fac-trim)", strokeWidth: 0.6, opacity: 0.85 }} />)}
+                      {wins.map((w) => <polygon key={w.key} points={pts(w.p)} style={{ fill: w.c, opacity: 0.92, stroke: "var(--fac-trim)", strokeWidth: 0.7, transition: "fill 400ms" }} />)}
+                      {cornices.map((c, k) => <polyline key={k} points={pts(c)} style={{ fill: "none", stroke: "var(--fac-trim)", strokeWidth: 1.1, opacity: 0.7 }} />)}
+                      {balconies.map((bl, k) => <g key={k}><polygon points={pts(bl.slab)} style={{ fill: "var(--fac-stone-top)" }} /><polygon points={pts(bl.rail)} style={{ fill: "color-mix(in oklab, var(--fac-glass) 45%, transparent)", stroke: "var(--fac-trim)", strokeWidth: 0.5 }} /></g>)}
+                      <polygon points={pts(canopy.south)} style={{ fill: "var(--fac-trim)" }} /><polygon points={pts(canopy.top)} style={{ fill: "var(--int-lamp)", opacity: 0.85 }} />
                       <g transform={`translate(${label[0]},${label[1]})`}>
                         <rect x={-62} y={-14} width={124} height={26} rx={8} style={{ fill: "var(--twin-panel)", stroke: on ? "var(--brand)" : "var(--twin-line)" }} />
                         <text textAnchor="middle" y={-3} style={{ fill: "var(--twin-text)", fontSize: 9, fontWeight: 700 }}>{h.name}</text>
@@ -169,7 +218,13 @@ function World() {
                     </g>
                   );
                 })}
-                {scene.trees.map((t, i) => <g key={i}><ellipse cx={t[0]} cy={t[1]} rx={5} ry={3} style={{ fill: "var(--twin-slab-side)" }} /><circle cx={t[0]} cy={t[1] - 6} r={5} style={{ fill: "color-mix(in oklab, var(--st-ready) 55%, var(--twin-slab))" }} /></g>)}
+                {scene.trees.map((t, i) => (
+                  <g key={i} style={{ pointerEvents: "none" }}>
+                    <ellipse cx={t[0] + 3} cy={t[1] + 1} rx={6} ry={2.5} style={{ fill: "var(--twin-bg)", opacity: 0.35 }} />
+                    <line x1={t[0]} y1={t[1]} x2={t[0] + 1.5} y2={t[1] - 13} style={{ stroke: "var(--fac-wood)", strokeWidth: 1.6 }} />
+                    {[-1, 1, -0.4, 0.5].map((dir, k) => <ellipse key={k} cx={t[0] + 1.5 + dir * 4} cy={t[1] - 13 + Math.abs(dir) * 1.5} rx={5} ry={1.8} transform={`rotate(${dir * 25} ${t[0] + 1.5 + dir * 4} ${t[1] - 13})`} style={{ fill: k % 2 ? "var(--fac-leaf)" : "color-mix(in oklab, var(--fac-leaf) 70%, var(--fac-grass))" }} />)}
+                  </g>
+                ))}
                 {/* Maintenance base */}
                 <g>
                   <polygon points={pts(scene.base.east)} style={{ fill: "color-mix(in oklab, var(--st-maint) 30%, var(--twin-wall-dark))" }} />

@@ -145,8 +145,8 @@ function World() {
     for (let r = 0; r < rows; r++) for (let k = 0; k * 4 < baseX + 6; k++) lamps.push(P0(-1 + k * 4, r * LOT + LOT - 3.2));
     const gx0 = -3, gx1 = baseX + 6, gy1 = rows * LOT;
     const beach = box({ x: gx0, y: gy1, w: gx1 - gx0, d: 2.6 }, -0.35, 0.15, U);
-    const sea = [P0(gx0 - 6, gy1 + 2.6), P0(gx1 + 6, gy1 + 2.6), P0(gx1 + 6, gy1 + 12), P0(gx0 - 6, gy1 + 12)];
-    const waves = [3.4, 5, 7, 9.5].map((d, k) => [P0(gx0 + k * 2, gy1 + d), P0(gx1 - k * 3, gy1 + d)]);
+    const sea = [P0(gx0, gy1 + 2.6), P0(gx1, gy1 + 2.6), P0(gx1, gy1 + 7), P0(gx0, gy1 + 7)];
+    const waves = [3.4, 4.6, 6].map((d, k) => [P0(gx0 + k * 2, gy1 + d), P0(gx1 - k * 3, gy1 + d)]);
     const umbrellas = Array.from({ length: Math.max(3, Math.floor((gx1 - gx0) / 5)) }, (_, k) => P0(gx0 + 2 + k * 5, gy1 + 1.3));
     const cross = Array.from({ length: rows }, (_, r) => [0.2, 0.6, 1, 1.4].map((v) => [P0(baseX - 2.6, r * LOT + LOT - 3 + v), P0(baseX - 2.1, r * LOT + LOT - 3 + v)] as Pt[])).flat();
     return { items, base, baseDoor, ground, roads, trees, lanes, lamps, beach, sea, waves, umbrellas, cross };

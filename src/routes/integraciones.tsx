@@ -11,6 +11,8 @@ export const Route = createFileRoute("/integraciones")({
       { name: "description", content: "Canales y servicios conectados: Booking.com, Expedia, web, WhatsApp y más." },
       { property: "og:title", content: "Integraciones — Suite Hotel OS" },
       { property: "og:description", content: "Canales y servicios conectados a Suite." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Integraciones,

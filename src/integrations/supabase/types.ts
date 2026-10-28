@@ -164,6 +164,7 @@ export type Database = {
           bath: string | null
           beds: string | null
           capacity: number | null
+          extras: string[]
           floor: number
           hotel_id: string
           id: string
@@ -175,12 +176,14 @@ export type Database = {
           type: string
           updated_at: string
           view: string | null
+          window_side: string | null
         }
         Insert: {
           archived?: boolean
           bath?: string | null
           beds?: string | null
           capacity?: number | null
+          extras?: string[]
           floor: number
           hotel_id: string
           id?: string
@@ -192,12 +195,14 @@ export type Database = {
           type?: string
           updated_at?: string
           view?: string | null
+          window_side?: string | null
         }
         Update: {
           archived?: boolean
           bath?: string | null
           beds?: string | null
           capacity?: number | null
+          extras?: string[]
           floor?: number
           hotel_id?: string
           id?: string
@@ -209,6 +214,7 @@ export type Database = {
           type?: string
           updated_at?: string
           view?: string | null
+          window_side?: string | null
         }
         Relationships: [
           {
@@ -322,6 +328,10 @@ export type Database = {
         Returns: boolean
       }
       suite_claim_invites: { Args: never; Returns: number }
+      suite_edit_room: {
+        Args: { _edit: Json; _hotel: string; _number: string }
+        Returns: Json
+      }
     }
     Enums: {
       hotel_role:

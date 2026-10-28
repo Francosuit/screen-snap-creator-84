@@ -13,6 +13,8 @@ export const Route = createFileRoute("/huespedes")({
       { name: "description", content: "Huéspedes in house, llegadas, salidas e histórico con ficha completa." },
       { property: "og:title", content: "Huéspedes — Suite Hotel OS" },
       { property: "og:description", content: "Fichas de huéspedes conectadas a reservas y habitaciones." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Huespedes,

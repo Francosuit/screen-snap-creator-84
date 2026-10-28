@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Camera, LogIn, LogOut, Wrench } from "lucide-react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { futureReservations, BED_KINDS, OCCUPANCY, ROOM_EXTRAS, BATH_OPTIONS, WINDOW_SIDES, type WindowSide, bedSleeps, bedsText, parseBeds, validateRoomEdit, type Room, type RoomEdit } from "@/lib/suite/data";
 import { PrioPill, ResPill, RoomPill, Row, TaskPill } from "./ui";
+import { roomHistory } from "@/lib/suite/cloud";
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -102,10 +103,11 @@ export function ReservationSheet({ resId, onClose }: { resId: string | null; onC
 }
 
 /** Editable characteristics of one room; never touches reservations, tasks or incidents */
-function RoomEditor({ num }: { num: string }) {
-  const { s, actions } = useSuite();
+function RoomEditor({ num, initiallyEditing = false }: { num: string; initiallyEditing?: boolean }) {
+  const { s, actions, canEditRoomConfig } = useSuite();
   const rm: Room | undefined = s.rooms.find((x: Room) => x.number === num);
-  const [edit, setEdit] = useState(false);
+  const [edit, setEdit] = useState(initiallyEditing && canEditRoomConfig);
+  const [saving, setSaving] = useState(false);
   const [f, setF] = useState<RoomEdit>(() => ({ type: rm?.type ?? "", rate: rm?.rate ?? 0, capacity: rm?.capacity, beds: rm?.beds ?? "", bath: rm?.bath ?? "", view: rm?.view ?? "", sqm: rm?.sqm, terrace: !!rm?.terrace, notes: rm?.notes ?? "", extras: rm?.extras ?? [], window: rm?.window }));
   if (!rm) return null;
   const future = futureReservations(s.reservations, num);
@@ -113,17 +115,17 @@ function RoomEditor({ num }: { num: string }) {
   const err = validateRoomEdit(f);
   const num0 = (v: string) => (v === "" ? undefined : Number(v));
   const field = (label: string, el: ReactNode) => <div className="space-y-1"><Label className="text-xs">{label}</Label>{el}</div>;
-  if (!edit) return (
+  if (!edit || !canEditRoomConfig) return (
     <Section title="Características">
       <Row k="Capacidad" v={rm.capacity ?? "—"} /><Row k="Camas" v={rm.beds || "—"} /><Row k="Baño" v={rm.bath || "—"} />
       <Row k="Vista" v={rm.view || "—"} /><Row k="Superficie" v={rm.sqm ? `${rm.sqm} m²` : "—"} /><Row k="Terraza" v={rm.terrace ? "Sí" : "No"} /><Row k="Ventana" v={WINDOW_SIDES.find((w) => w.v === rm.window)?.label ?? "—"} /><Row k="Equipamiento" v={rm.extras?.length ? rm.extras.join(", ") : "—"} />
       {rm.notes && <p className="py-2 text-sm text-muted-foreground">{rm.notes}</p>}
-      <Button size="sm" variant="outline" className="mt-2" onClick={() => setEdit(true)}>Editar habitación</Button>
+      {canEditRoomConfig && <Button size="sm" variant="outline" className="mt-2" onClick={() => { setF({ type: rm.type, rate: rm.rate, capacity: rm.capacity, beds: rm.beds ?? "", bath: rm.bath ?? "", view: rm.view ?? "", sqm: rm.sqm, terrace: !!rm.terrace, notes: rm.notes ?? "", extras: rm.extras ?? [], window: rm.window }); setEdit(true); }}>Editar habitación</Button>}
     </Section>
   );
   return (
     <Section title="Editar habitación">
-      <div className="grid grid-cols-2 gap-3 py-2">
+      <fieldset disabled={saving} className="grid grid-cols-2 gap-3 py-2">
         {field("Tipo", <Input value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })} />)}
         {field("Tarifa base (€)", <Input type="number" min={1} value={f.rate || ""} onChange={(e) => setF({ ...f, rate: Number(e.target.value) })} />)}
         {field("Capacidad", <Input type="number" min={1} max={10} value={f.capacity ?? ""} onChange={(e) => setF({ ...f, capacity: num0(e.target.value) })} />)}
@@ -146,19 +148,27 @@ function RoomEditor({ num }: { num: string }) {
         {field("Vista", <Input value={f.view ?? ""} onChange={(e) => setF({ ...f, view: e.target.value })} />)}
         <div className="flex items-end gap-2 pb-2"><Switch checked={!!f.terrace} onCheckedChange={(v) => setF({ ...f, terrace: v })} /><Label className="text-xs">Terraza</Label></div>
         <div className="col-span-2">{field("Observaciones internas", <Textarea rows={2} value={f.notes ?? ""} onChange={(e) => setF({ ...f, notes: e.target.value })} />)}</div>
-      </div>
+      </fieldset>
       {priceChange && future.length > 0 && <p className="rounded-md border border-st-maint/40 p-2 text-xs text-st-maint">Esta habitación tiene {future.length} reserva(s) futura(s). Sus importes no cambiarán.</p>}
       {err && <p className="py-1 text-xs text-destructive">{err}</p>}
       <div className="mt-2 flex gap-2">
-        <Button size="sm" disabled={!!err} onClick={() => { if (actions.updateRoom(num, f)) setEdit(false); }}>Guardar</Button>
-        <Button size="sm" variant="ghost" onClick={() => setEdit(false)}>Cancelar</Button>
+        <Button size="sm" disabled={!!err || saving} onClick={async () => { setSaving(true); try { if (await actions.updateRoom(num, f)) setEdit(false); } finally { setSaving(false); } }}>{saving ? "Guardando…" : "Guardar"}</Button>
+        <Button size="sm" variant="ghost" disabled={saving} onClick={() => setEdit(false)}>Cancelar</Button>
       </div>
     </Section>
   );
 }
 
-export function RoomSheet({ room, onClose, onOpenRes }: { room: string | null; onClose: () => void; onOpenRes?: (id: string) => void }) {
-  const { s, occupant, nextArrival, guest, roomState } = useSuite();
+export function RoomSheet({ room, onClose, onOpenRes, edit = false }: { room: string | null; onClose: () => void; onOpenRes?: (id: string) => void; edit?: boolean }) {
+  const { s, occupant, nextArrival, guest, roomState, cloudHotelId, canEditRoomConfig } = useSuite();
+  const [history, setHistory] = useState<Awaited<ReturnType<typeof roomHistory>>>([]);
+  useEffect(() => {
+    setHistory([]);
+    if (!room || !cloudHotelId || !canEditRoomConfig) return;
+    let active = true;
+    roomHistory(cloudHotelId, room).then((rows) => { if (active) setHistory(rows); });
+    return () => { active = false; };
+  }, [room, cloudHotelId, canEditRoomConfig, s.rooms]);
   const rm = room ? s.rooms.find((x) => x.number === room) : undefined;
   const occ = room ? occupant(room) : undefined;
   const next = room ? nextArrival(room) : undefined;
@@ -176,12 +186,13 @@ export function RoomSheet({ room, onClose, onOpenRes }: { room: string | null; o
               <SheetDescription>{rm.type} · planta {rm.floor} · {eur(rm.rate)}/noche</SheetDescription>
             </SheetHeader>
             <div className="mt-4" />
-            <RoomEditor key={rm.number} num={rm.number} />
+            <RoomEditor key={`${rm.number}-${edit}`} num={rm.number} initiallyEditing={edit} />
             <Section title="Historial de cambios">
+              {history.map((entry) => <div key={`audit-${entry.id}`} className="py-1.5 text-xs"><span className="text-muted-foreground">{new Date(entry.at).toLocaleString("es-ES")}</span> — {entry.action === "insert" ? "Habitación registrada" : "Configuración actualizada"}</div>)}
               {s.log.filter((l: { text: string }) => l.text.startsWith(`Habitación ${rm.number} `)).slice(0, 8).map((l: { id: string; time: string; actor: string; text: string }) => (
                 <div key={l.id} className="py-1.5 text-xs"><span className="text-muted-foreground">{l.time} · {l.actor}</span> — {l.text}</div>
               ))}
-              {!s.log.some((l: { text: string }) => l.text.startsWith(`Habitación ${rm.number} `)) && <p className="py-2 text-sm text-muted-foreground">Sin cambios registrados.</p>}
+              {!history.length && !s.log.some((l: { text: string }) => l.text.startsWith(`Habitación ${rm.number} `)) && <p className="py-2 text-sm text-muted-foreground">Sin cambios registrados.</p>}
             </Section>
             <Section title="Estados (separados)">
               <Row k="Habitación" v={<RoomPill state={roomState(rm.number)} />} />

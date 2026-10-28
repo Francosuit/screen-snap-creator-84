@@ -10,6 +10,8 @@ export const Route = createFileRoute("/personal")({
       { name: "description", content: "Equipo del hotel y profesionales externos con disponibilidad." },
       { property: "og:title", content: "Personal — Suite Hotel OS" },
       { property: "og:description", content: "Equipo del hotel y profesionales externos." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Personal,

@@ -16,6 +16,8 @@ export const Route = createFileRoute("/")({
       { name: "description", content: "Qué está pasando hoy en tu hotel: facturación, ocupación, llegadas, salidas y lo que requiere tu atención." },
       { property: "og:title", content: "Inicio — Suite Hotel OS" },
       { property: "og:description", content: "Qué está pasando hoy en tu hotel, en una sola pantalla." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Home,

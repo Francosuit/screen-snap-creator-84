@@ -15,6 +15,8 @@ export const Route = createFileRoute("/mensajes")({
       { name: "description", content: "Automatizaciones del huésped que verifican su estado antes de enviar, y actividades del hotel." },
       { property: "og:title", content: "Mensajes y experiencia — Suite Hotel OS" },
       { property: "og:description", content: "Comunicaciones que solo llegan a quien sigue alojado." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Mensajes,

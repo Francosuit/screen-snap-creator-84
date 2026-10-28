@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ROLE_LABELS, type HotelRole } from "@/lib/suite/cloud";
 
 export const Route = createFileRoute("/invitacion")({
-  validateSearch: (s: Record<string, unknown>) => ({ token: typeof s.token === "string" ? s.token : "" }),
+  validateSearch: (s: Record<string, unknown>) => ({ token: typeof s["token"] === "string" ? (s["token"] as string) : "" }),
   head: () => ({
     meta: [
       { title: "Invitación al equipo — Suite Hotel OS" },

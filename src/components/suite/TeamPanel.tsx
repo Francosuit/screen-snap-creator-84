@@ -7,7 +7,10 @@ import { Card, SectionTitle } from "@/components/suite/ui";
 import { ROLE_LABELS, STAFF_ROLES, type HotelRole } from "@/lib/suite/cloud";
 import { MODULE_LABELS, ROLE_MODULES, clampModules } from "@/lib/suite/staff-access";
 
-interface Invite { email: string; role: HotelRole; full_name: string; position: string; modules: string[] | null }
+interface Invite { email: string; role: HotelRole; full_name: string; position: string; modules: string[] | null; token: string; expires_at: string; revoked_at: string | null; accepted_at: string | null }
+const inviteLink = (t: string) => `${window.location.origin}/invitacion?token=${t}`;
+const inviteState = (i: Invite) => i.revoked_at ? "Anulada" : i.accepted_at ? "Aceptada" : new Date(i.expires_at) <= new Date() ? "Caducada" : `Caduca ${new Date(i.expires_at).toLocaleDateString("es-ES")}`;
+const in7 = () => new Date(Date.now() + 7 * 864e5).toISOString();
 interface Member { user_id: string; role: HotelRole; full_name: string; email: string; position: string; active: boolean; modules: string[] | null }
 interface Audit { id: number; entity: string; entity_key: string; action: string; before: Record<string, unknown> | null; after: Record<string, unknown> | null; at: string }
 
@@ -47,7 +50,7 @@ export function TeamPanel({ hotelKey }: { hotelKey: string }) {
   const [mods, setMods] = useState<string[] | null>(null);
   const reload = async (hid: string) => {
     const [i, m] = await Promise.all([
-      supabase.from("hotel_invites").select("email, role, full_name, position, modules").eq("hotel_id", hid),
+      supabase.from("hotel_invites").select("email, role, full_name, position, modules, token, expires_at, revoked_at, accepted_at").eq("hotel_id", hid),
       supabase.from("hotel_members").select("user_id, role, full_name, email, position, active, modules").eq("hotel_id", hid),
     ]);
     setInvites((i.data ?? []) as Invite[]); setMembers((m.data ?? []) as Member[]);
@@ -56,21 +59,25 @@ export function TeamPanel({ hotelKey }: { hotelKey: string }) {
   if (id === undefined) return <Card><p className="text-sm text-muted-foreground">Cargando…</p></Card>;
   if (id === null) return <Card><p className="text-sm text-muted-foreground">Este hotel aún no está guardado en la nube. Inicia sesión con tu cuenta y espera a «Guardado en la nube».</p></Card>;
 
-  const joined = new Set(members.map((m) => m.email.toLowerCase()));
   const add = async () => {
     const e = f.email.trim().toLowerCase();
     if (!f.name.trim()) { toast.error("Indica el nombre"); return; }
     if (!/^\S+@\S+\.\S+$/.test(e)) { toast.error("Correo no válido"); return; }
-    const { error } = await supabase.from("hotel_invites").upsert({ hotel_id: id, email: e, role, full_name: f.name.trim(), position: f.position.trim(), modules: mods });
+    const { error } = await supabase.from("hotel_invites").upsert({ hotel_id: id, email: e, role, full_name: f.name.trim(), position: f.position.trim(), modules: mods, revoked_at: null, expires_at: in7() });
     if (error) { toast.error("No tienes permiso para dar accesos", { description: error.message }); return; }
     setF({ email: "", name: "", position: "" }); setMods(null);
-    toast.success("Invitación creada", { description: `${e} recibirá el puesto ${ROLE_LABELS[role]} al crear su cuenta o iniciar sesión con ese correo. No se envía ningún email automático: compártele el enlace de la app.` });
+    toast.success("Invitación creada", { description: `${e} recibirá el puesto ${ROLE_LABELS[role]} solo al abrir su enlace personal con una cuenta de ese correo. No se envía ningún email automático: copia el enlace y compártelo tú.` });
     void reload(id);
   };
   const remove = async (e: string) => {
-    const { error } = await supabase.from("hotel_invites").delete().eq("hotel_id", id).eq("email", e);
+    const { error } = await supabase.from("hotel_invites").update({ revoked_at: new Date().toISOString() }).eq("hotel_id", id).eq("email", e);
     if (error) toast.error(error.message); else void reload(id);
   };
+  const renew = async (e: string) => {
+    const { error } = await supabase.from("hotel_invites").update({ revoked_at: null, expires_at: in7() }).eq("hotel_id", id).eq("email", e);
+    if (error) toast.error(error.message); else { toast.success("Enlace nuevo creado; el anterior deja de valer"); void reload(id); }
+  };
+  const copy = async (t: string) => { await navigator.clipboard.writeText(inviteLink(t)); toast.success("Enlace copiado"); };
   const patch = async (uid: string, p: Partial<Pick<Member, "active" | "modules">>) => {
     const { error } = await supabase.from("hotel_members").update(p).eq("hotel_id", id).eq("user_id", uid);
     if (error) toast.error("No se pudo guardar", { description: error.message }); else void reload(id);
@@ -95,13 +102,16 @@ export function TeamPanel({ hotelKey }: { hotelKey: string }) {
 
         <div className="mt-6 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Invitaciones pendientes</div>
         <ul className="mt-2 space-y-2 text-sm">
-          {invites.filter((i) => !joined.has(i.email.toLowerCase())).map((i) => (
+          {invites.filter((i) => !i.accepted_at).map((i) => { const live = !i.revoked_at && new Date(i.expires_at) > new Date(); return (
             <li key={i.email} className="flex items-center justify-between gap-2 rounded-md border px-3 py-2">
-              <span className="min-w-0"><b>{i.full_name || i.email}</b> · {ROLE_LABELS[i.role]}<span className="block truncate text-xs text-muted-foreground">{i.email}{i.position ? ` · ${i.position}` : ""} · sin cuenta todavía</span></span>
-              <Button size="sm" variant="ghost" onClick={() => remove(i.email)}>Anular</Button>
+              <span className="min-w-0"><b>{i.full_name || i.email}</b> · {ROLE_LABELS[i.role]}<span className="block truncate text-xs text-muted-foreground">{i.email}{i.position ? ` · ${i.position}` : ""} · {inviteState(i)}</span></span>
+              <span className="flex shrink-0 gap-1">
+                {live && <Button size="sm" variant="outline" onClick={() => copy(i.token)}>Copiar enlace</Button>}
+                {live ? <Button size="sm" variant="ghost" onClick={() => remove(i.email)}>Anular</Button> : <Button size="sm" variant="ghost" onClick={() => renew(i.email)}>Nuevo enlace</Button>}
+              </span>
             </li>
-          ))}
-          {!invites.some((i) => !joined.has(i.email.toLowerCase())) && <li className="text-muted-foreground">No hay invitaciones pendientes.</li>}
+          ); })}
+          {!invites.some((i) => !i.accepted_at) && <li className="text-muted-foreground">No hay invitaciones pendientes.</li>}
         </ul>
       </Card>
       <Card>

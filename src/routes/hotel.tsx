@@ -51,7 +51,7 @@ function HotelTwin() {
             <div className="flex flex-wrap items-center gap-2"><FloorChips floors={floors} value={floor} onChange={(v) => { setFloor(v); }} dark /><SimToggle dark /></div>
           </div>
           <IsoBuilding layout={layout} info={info} staff={staff} focusFloor={floor} selected={sel} onSelect={(n) => { setSel(n); }} className="h-[460px] rounded-none sm:h-[600px]" />
-          <div className="border-t border-twin-wall px-5 py-3">
+          <div className="border-t border-twin-line px-5 py-3">
             <TwinLegend counts={counts} />
           </div>
         </div>

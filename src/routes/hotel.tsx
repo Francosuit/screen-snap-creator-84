@@ -51,17 +51,27 @@ function HotelTwin() {
             <div className="flex flex-wrap items-center gap-2"><FloorChips floors={floors} value={floor} onChange={(v) => { setFloor(v); }} dark /><SimToggle dark /></div>
           </div>
           <IsoBuilding layout={layout} info={info} staff={staff} focusFloor={floor} selected={sel} onSelect={(n) => { setSel(n); }} className="h-[460px] rounded-none sm:h-[600px]" />
-          <div className="flex flex-wrap items-center justify-between gap-2 px-5 pb-4 pt-2">
-            <TwinLegend />
-            <div className="tnum flex gap-3 text-[11px] text-twin-muted">
-              {(Object.keys(STATE_VAR) as RoomState[]).map((k) => <span key={k}><b className="text-twin-text">{counts[k] ?? 0}</b></span>)}
-            </div>
+          <div className="border-t border-twin-wall px-5 py-3">
+            <TwinLegend counts={counts} />
           </div>
         </div>
         <div className="xl:sticky xl:top-20 xl:self-start">
            {sel ? <RoomPanel key={sel} num={sel} onClose={() => setSel(null)} onFloor={setFloor} /> : (
             <div className="rounded-2xl border bg-card p-5">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Cómo explorar</div>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Resumen del hotel</div>
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                {([["ready", "Listas"], ["occupied", "Ocupadas"], ["dirty", "Por limpiar"]] as [RoomState, string][]).map(([k, l]) => (
+                  <div key={k} className="rounded-xl border p-3">
+                    <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground"><span className="h-2 w-2 rounded-full" style={{ background: STATE_VAR[k] }} />{l}</div>
+                    <div className="tnum mt-1 text-2xl font-semibold">{counts[k] ?? 0}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-5 rounded-xl bg-muted/50 p-4 text-sm">
+                <div className="font-medium">Selecciona una habitación</div>
+                <div className="mt-1 text-muted-foreground">Pulsa cualquier habitación del mapa para ver su estado, su interior y sus acciones.</div>
+              </div>
+              <div className="mt-5 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Cómo explorar</div>
               <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
                 <li>Elige una planta para verla ampliada con pasillo, ascensores y zonas comunes.</li>
                 <li>Pasa el ratón por una habitación para ver su estado; pulsa para abrir su ficha.</li>
@@ -129,19 +139,23 @@ function RoomPanel({ num, onClose, onFloor }: { num: string; onClose: () => void
 
       {s.incidents.filter((i) => i.room === num).slice(0, 2).map((i) => <IncidentCard key={i.id} id={i.id} />)}
 
-      <div className="divide-y border-t px-5 py-2">
+      <div className="border-t px-5 pt-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Estancia y operación</div>
+      <div className="divide-y px-5 pb-2">
         <Row k="Huésped" v={occ ? guest(occ.guestId).name : "—"} />
         <Row k="Reserva" v={occ ? `${occ.id} · ${resDisplay(occ)}` : "—"} />
         <Row k="Entrada / salida" v={occ ? `${fmtDay(occ.inDay)} → ${fmtDay(occ.outDay)}` : "—"} />
         <Row k="Próximo huésped" v={next ? `${guest(next.guestId).name} · ${fmtDay(next.inDay)} ${next.eta}` : "—"} />
         <Row k="Housekeeping" v={task ? `${hk} · ${task.assignee.split(" ")[0]} (${task.status.replace("_", " ")})` : hk} />
         <Row k="Mantenimiento" v={incs.length ? <span className="text-st-maint">{incs.map((i) => i.category).join(", ")}</span> : room.oos ? "Fuera de servicio" : "Sin incidencias"} />
+      </div>
+      <div className="border-t px-5 pt-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Configuración de la habitación</div>
+      <div className="divide-y px-5 pb-2">
         <Row k="Camas" v={room.beds || "Sin indicar"} /><Row k="Baño" v={room.bath || "Sin indicar"} />
         <Row k="Ventana" v={room.window ?? "Sin indicar"} /><Row k="Equipamiento" v={room.extras?.join(", ") || "—"} />
         <Row k="Terraza / vista" v={`${room.terrace ? "Sí" : "No"} · ${room.view || "Sin indicar"}`} />
         <Row k="Precio base" v={eur(room.rate)} />
       </div>
-      <div className="px-5 pb-4"><button onClick={onClose} className="text-xs text-muted-foreground hover:text-foreground">Cerrar ficha</button></div>
+      <div className="border-t px-5 py-3"><button onClick={onClose} className="text-xs text-muted-foreground hover:text-foreground">Cerrar ficha</button></div>
       <ReportIssueDialog open={report} onOpenChange={setReport} defaultRoom={num} />
     </div>
   );

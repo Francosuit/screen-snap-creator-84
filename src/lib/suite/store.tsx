@@ -285,15 +285,13 @@ function useSuiteState() {
       setHotel: (h: HotelKey) => setRoot((r) => ({ ...r, hotel: h })),
       resetDemo: () => { setRoot(initialRoot()); say.success("Demo reiniciada", { description: "Datos iniciales restaurados." }); },
       setOrg: (org: Organization) => setRoot((r) => ({ ...r, org })),
-      signUp: (a: Account) => {
+      signUp: async (a: Account) => {
         if ((root.accounts ?? []).some((x) => x.email === a.email)) { say.error("Ese email ya tiene cuenta"); return false; }
+        // Create the secure account first; never continue with a browser-only account if it is rejected
+        const { data, error } = await supabase.auth.signUp({ email: a.email, password: a.password, options: { emailRedirectTo: window.location.origin, data: { display_name: `${a.name} ${a.surname}`.trim(), company_name: a.org.name } } });
+        if (error) { say.error("No se pudo crear la cuenta", { description: error.code === "weak_password" ? "La contraseña es demasiado débil o aparece en filtraciones conocidas. Elige otra más larga y única." : error.message }); return false; }
         setRoot((r) => ({ ...r, accounts: [...(r.accounts ?? []), a], user: a.email, org: a.org, role: "owner" as RoleKey }));
-        // Also create the secure account so the hotel is saved in the database
-        supabase.auth.signUp({ email: a.email, password: a.password, options: { emailRedirectTo: window.location.origin, data: { display_name: `${a.name} ${a.surname}`.trim(), company_name: a.org.name } } })
-          .then(({ data, error }) => {
-            if (error) say.error("No se pudo crear la cuenta segura", { description: error.message });
-            else if (!data.session) say("Revisa tu correo", { description: "Confirma tu email para guardar tu hotel en la nube." });
-          });
+        if (!data.session) say("Revisa tu correo", { description: "Confirma tu email para guardar tu hotel en la nube." });
         return true;
       },
       signIn: async (email: string, password: string) => {

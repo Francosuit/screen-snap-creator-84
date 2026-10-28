@@ -42,7 +42,7 @@ function HotelTwin() {
       <PageHeader title="Hotel digital" sub={`${hotel.name} · ${floors.length} plantas · ${s.rooms.length} habitaciones`}
         right={<div className="flex gap-2"><Button asChild variant="outline" size="sm"><Link to="/mundo"><Globe2 className="mr-1 h-4 w-4" />Volver a la ciudad</Link></Button><Button asChild variant="outline" size="sm"><Link to="/crear-hotel"><Plus className="mr-1 h-4 w-4" />Crear hotel</Link></Button></div>} />
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
-        <div className="overflow-hidden rounded-2xl bg-twin-bg text-twin-text">
+        <div className="self-start overflow-hidden rounded-2xl bg-twin-bg text-twin-text">
           <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-4">
             <div>
               <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-twin-muted">Mapa del hotel</div>

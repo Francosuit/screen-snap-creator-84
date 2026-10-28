@@ -1,6 +1,8 @@
 // Suite demo data — all fictitious, internally consistent.
 // Demo "today" = Tuesday 10 Nov 2026 (day offset 0). Demo clock starts 13:15.
 
+import type { FurnitureItem } from "./layout";
+
 export type RoleKey = "owner" | "director" | "reception" | "housekeeping" | "maintenance" | "revenue";
 export type HotelKey = string;
 
@@ -28,14 +30,16 @@ export interface Room {
   extras?: string[];
   /** Window: which wall it is on, or none */
   window?: WindowSide;
+  /** Saved furniture arrangement inside the room (absent = automatic from beds/extras) */
+  layout?: FurnitureItem[];
   /** Position inside its floor plan: column along the corridor + side of the corridor */
   x?: number; side?: "left" | "right";
 }
 
 /** Fields a manager may edit on a room; number/floor/state are intentionally excluded */
-export type RoomEdit = Pick<Room, "type" | "rate"> & { [K in "capacity" | "beds" | "bath" | "terrace" | "view" | "sqm" | "notes" | "extras" | "window"]?: Room[K] | undefined };
+export type RoomEdit = Pick<Room, "type" | "rate"> & { [K in "capacity" | "beds" | "bath" | "terrace" | "view" | "sqm" | "notes" | "extras" | "window" | "layout"]?: Room[K] | undefined };
 export const ROOM_EDIT_LABELS: Record<keyof RoomEdit, string> = {
-  type: "tipo", rate: "tarifa", capacity: "capacidad", beds: "camas", bath: "baño", terrace: "terraza", view: "vista", sqm: "m²", notes: "observaciones", extras: "equipamiento", window: "ventana",
+  type: "tipo", rate: "tarifa", capacity: "capacidad", beds: "camas", bath: "baño", terrace: "terraza", view: "vista", sqm: "m²", notes: "observaciones", extras: "equipamiento", window: "ventana", layout: "distribución",
 };
 
 /** Returns an error message, or null when the edit is valid */

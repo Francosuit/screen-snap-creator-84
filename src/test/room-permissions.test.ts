@@ -10,12 +10,12 @@ vi.mock("@/integrations/supabase/client", () => ({ supabase: {
   rpc: mock.rpc,
 } }));
 const room: Room = { number: "101", floor: 1, type: "Doble", rate: 120, hk: "dirty", oos: false };
-const edit = { type: "Twin", rate: 120, capacity: 2, beds: "2 individuales", extras: ["Escritorio"], window: "left" as const };
+const edit = { type: "Twin", rate: 120, capacity: 2, beds: "2 individuales", extras: ["Escritorio"], window: "izquierda" as const };
 describe("room configuration authorization", () => {
-  beforeEach(() => { mock.owner = "u"; mock.role = "owner"; mock.rpc.mockReset(); mock.rpc.mockResolvedValue({ data: { ...edit, hotel_id: "h", number: "101", window_side: "left", floor: 1 }, error: null }); });
+  beforeEach(() => { mock.owner = "u"; mock.role = "owner"; mock.rpc.mockReset(); mock.rpc.mockResolvedValue({ data: { ...edit, hotel_id: "h", number: "101", window_side: "izquierda", floor: 1 }, error: null }); });
   it("Owner can persist individual beds and equipment without changing operational state", async () => {
     const saved = await saveRoomConfig("h", room, edit);
-    expect(saved.beds).toBe("2 individuales"); expect(saved.extras).toEqual(["Escritorio"]); expect(saved.window).toBe("left"); expect(saved.hk).toBe("dirty"); expect(saved.number).toBe("101"); expect(mock.rpc).toHaveBeenCalledOnce();
+    expect(saved.beds).toBe("2 individuales"); expect(saved.extras).toEqual(["Escritorio"]); expect(saved.window).toBe("izquierda"); expect(saved.hk).toBe("dirty"); expect(saved.number).toBe("101"); expect(mock.rpc).toHaveBeenCalledOnce();
   });
   it("Director can save configuration in their hotel", async () => { mock.owner = "other"; mock.role = "director"; await saveRoomConfig("h", room, edit); expect(mock.rpc).toHaveBeenCalledOnce(); });
   it("Reception cannot save technical configuration", async () => { mock.owner = "other"; mock.role = "reception"; await expect(saveRoomConfig("h", room, edit)).rejects.toThrow(/permiso/); expect(mock.rpc).not.toHaveBeenCalled(); });

@@ -137,31 +137,46 @@ export type Database = {
       }
       hotel_invites: {
         Row: {
+          accepted_at: string | null
+          accepted_by: string | null
           created_at: string
           email: string
+          expires_at: string
           full_name: string
           hotel_id: string
           modules: string[] | null
           position: string
+          revoked_at: string | null
           role: Database["public"]["Enums"]["hotel_role"]
+          token: string
         }
         Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
           created_at?: string
           email: string
+          expires_at?: string
           full_name?: string
           hotel_id: string
           modules?: string[] | null
           position?: string
+          revoked_at?: string | null
           role: Database["public"]["Enums"]["hotel_role"]
+          token?: string
         }
         Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
           created_at?: string
           email?: string
+          expires_at?: string
           full_name?: string
           hotel_id?: string
           modules?: string[] | null
           position?: string
+          revoked_at?: string | null
           role?: Database["public"]["Enums"]["hotel_role"]
+          token?: string
         }
         Relationships: [
           {
@@ -386,6 +401,7 @@ export type Database = {
         Args: { _hotel: string; _uid: string }
         Returns: boolean
       }
+      suite_accept_invite: { Args: { _token: string }; Returns: Json }
       suite_can_access: {
         Args: { _hotel: string; _module: string }
         Returns: boolean
@@ -395,6 +411,7 @@ export type Database = {
         Args: { _edit: Json; _hotel: string; _number: string }
         Returns: Json
       }
+      suite_invite_info: { Args: { _token: string }; Returns: Json }
       suite_role_modules: {
         Args: { _role: Database["public"]["Enums"]["hotel_role"] }
         Returns: string[]

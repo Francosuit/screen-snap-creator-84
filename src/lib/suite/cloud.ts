@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { applyRoomEdit, validateRoomEdit, type Hotel, type Room, type RoomEdit, type WindowSide } from "./data";
 import { canEditRoom } from "./room-permissions";
+import { isInside, type FurnitureItem } from "./layout";
 
 export type HotelRole = "owner" | "director" | "reception" | "housekeeping" | "maintenance" | "revenue";
 export const ROLE_LABELS: Record<HotelRole, string> = {
@@ -11,7 +12,7 @@ export const STAFF_ROLES: HotelRole[] = ["director", "reception", "housekeeping"
 
 export interface CloudHotel { id: string; key: string; name: string; address: string; city: string; category: string; check_in: string | null; check_out: string | null; zones: string[]; departments: string[]; archived: boolean; org_owner: string }
 export interface CloudFloor { hotel_id: string; number: number; name: string }
-export interface CloudRoom { hotel_id: string; number: string; floor: number; type: string; rate: number; capacity: number | null; beds: string | null; bath: string | null; terrace: boolean | null; view: string | null; sqm: number | null; notes: string | null; archived: boolean; extras?: string[]; window_side?: string | null }
+export interface CloudRoom { hotel_id: string; number: string; floor: number; type: string; rate: number; capacity: number | null; beds: string | null; bath: string | null; terrace: boolean | null; view: string | null; sqm: number | null; notes: string | null; archived: boolean; extras?: string[]; window_side?: string | null; layout?: FurnitureItem[] | null }
 export interface CloudConfig { hotels: CloudHotel[]; floors: CloudFloor[]; rooms: CloudRoom[] }
 
 const clean = <T extends object>(o: T): T => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as T;
@@ -32,7 +33,7 @@ export function overlayHotel(h: Hotel, rooms: Room[], cfg: CloudConfig): { hotel
   const out = rooms.map((r) => {
     const c = recs.get(r.number);
     if (!c) return r;
-    return clean({ ...r, floor: c.floor, type: c.type, rate: Number(c.rate), capacity: nn(c.capacity), beds: nn(c.beds), bath: nn(c.bath), terrace: nn(c.terrace), view: nn(c.view), sqm: c.sqm == null ? undefined : Number(c.sqm), notes: nn(c.notes), extras: c.extras ?? r.extras, window: c.window_side === undefined ? r.window : nn(c.window_side) }) as Room;
+    return clean({ ...r, floor: c.floor, type: c.type, rate: Number(c.rate), capacity: nn(c.capacity), beds: nn(c.beds), bath: nn(c.bath), terrace: nn(c.terrace), view: nn(c.view), sqm: c.sqm == null ? undefined : Number(c.sqm), notes: nn(c.notes), extras: c.extras ?? r.extras, window: c.window_side === undefined ? r.window : nn(c.window_side), layout: c.layout === undefined ? r.layout : nn(c.layout) }) as Room;
   });
   return { hotel, rooms: out };
 }
@@ -60,6 +61,7 @@ export async function myMemberships() {
 export async function saveRoomConfig(hotelId: string, room: Room, edit: RoomEdit): Promise<Room> {
   const error = validateRoomEdit(edit);
   if (error) throw new Error(error);
+  if (edit.layout && !edit.layout.every(isInside)) throw new Error("Hay muebles fuera de la habitación");
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) throw new Error("Inicia sesión para guardar esta habitación");
   const { data: hotel } = await supabase.from("hotels").select("org_owner").eq("id", hotelId).single();
@@ -69,7 +71,7 @@ export async function saveRoomConfig(hotelId: string, room: Room, edit: RoomEdit
   const { data, error: failure } = await supabase.rpc("suite_edit_room", { _hotel: hotelId, _number: room.number, _edit: payload });
   if (failure) throw new Error(failure.message);
   const saved = data as unknown as CloudRoom;
-  return applyRoomEdit(room, { type: saved.type, rate: Number(saved.rate), capacity: nn(saved.capacity), beds: nn(saved.beds), bath: nn(saved.bath), terrace: nn(saved.terrace), view: nn(saved.view), sqm: nn(saved.sqm), notes: nn(saved.notes), extras: saved.extras ?? [], window: nn(saved.window_side ?? null) as WindowSide | undefined }).room;
+  return applyRoomEdit(room, { type: saved.type, rate: Number(saved.rate), capacity: nn(saved.capacity), beds: nn(saved.beds), bath: nn(saved.bath), terrace: nn(saved.terrace), view: nn(saved.view), sqm: nn(saved.sqm), notes: nn(saved.notes), extras: saved.extras ?? [], window: nn(saved.window_side ?? null) as WindowSide | undefined, layout: nn(saved.layout ?? null) ?? undefined }).room;
 }
 
 export async function roomHistory(hotelId: string, number: string) {

@@ -13,7 +13,7 @@ type Part = { r: Rect; z: number; h: number; top: string; side: string; front?: 
 const C = {
   wood: "var(--int-wood)", woodD: "var(--int-wood-dark)", trim: "var(--int-trim)", linen: "var(--int-linen)", shade: "var(--int-linen-shade)",
   throw: "var(--int-throw)", fab: "var(--int-fabric)", fabD: "var(--int-fabric-dark)", tile: "var(--int-tile)", tileL: "var(--int-tile-line)",
-  glass: "var(--int-glass)", lamp: "var(--int-lamp)",
+  glass: "var(--int-glass)", lamp: "var(--int-lamp)", wall: "var(--int-wall)", wallS: "var(--int-wall-side)",
 };
 const P = (x: number, y: number, w: number, d: number, z: number, h: number, top: string, side = top, front?: string): Part => ({ r: { x, y, w, d }, z, h, top, side, ...(front ? { front } : {}) });
 const legs = (w: number, d: number, h: number, t = 0.05, col = C.trim) => [P(0.02, 0.02, t, t, 0, h, col), P(w - t - 0.02, 0.02, t, t, 0, h, col), P(0.02, d - t - 0.02, t, t, 0, h, col), P(w - t - 0.02, d - t - 0.02, t, t, 0, h, col)];
@@ -74,8 +74,8 @@ function parts(kind: FurnitureKind, room: Room): Part[] {
       const out: Part[] = [P(0, 0, w, d, 0, 0.02, C.tile, C.tileL), P(0, d - 0.04, w * 0.55, 0.04, 0.02, 1.2, C.wall, C.wallS), P(w - 0.04, 0, 0.04, d - 0.8, 0.02, 1.2, C.wall, C.wallS)];
       if (b.includes("bañera")) out.push(P(0.05, 0.05, w - 0.15, 0.72, 0.02, 0.48, C.linen, C.shade), P(0.12, 0.12, w - 0.29, 0.58, 0.5, 0.005, C.glass));
       if (b.includes("ducha")) {
-        const y = b.includes("bañera") ? 0.05 : 0.05;
-        if (b.includes("bañera")) out.push(P(w * 0.45, y + 0.7, 0.02, 0.02, 0.5, 0.0, C.glass), P(w * 0.45, y, 0.02, 0.72, 0.5, 0.7, C.glass));
+        const y = 0.05;
+        if (b.includes("bañera")) out.push(P(w * 0.45, y, 0.02, 0.72, 0.5, 0.7, C.glass));
         else out.push(P(0.05, y, 0.85, 0.85, 0.02, 0.05, C.tile, C.tileL), P(0.9, y, 0.02, 0.85, 0.07, 1.0, C.glass));
       }
       out.push(P(0.05, d - 0.56, 0.6, 0.46, 0.02, 0.78, C.wood, C.woodD), P(0.15, d - 0.48, 0.4, 0.3, 0.8, 0.04, C.linen, C.shade)); // vanity + basin
@@ -85,10 +85,6 @@ function parts(kind: FurnitureKind, room: Room): Part[] {
     }
   }
 }
-C.wall = "var(--int-wall)"; C.wallS = "var(--int-wall-side)";
-declare module "./RoomInterior" { }
-interface CC { wall: string; wallS: string }
-declare const _cc: CC;
 
 export function RoomInterior({ room, state, layout, selected, onSelect }: {
   room: Room; state: RoomState; layout?: FurnitureItem[]; selected?: string | null; onSelect?: (id: string | null) => void;
@@ -100,7 +96,7 @@ export function RoomInterior({ room, state, layout, selected, onSelect }: {
   const terrace = room.terrace ? box({ x: 0, y: D + 0.12, w: W, d: 1.3 }, -0.14, 0.1, U) : null;
   const backWall = box({ x: -0.1, y: -0.1, w: W + 0.1, d: 0.1 }, 0, WH, U);
   const leftWall = box({ x: -0.1, y: 0, w: 0.1, d: D }, 0, WH, U);
-  const L = (a: Pt, b: Pt) => <line x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]} />;
+  const L = (a: Pt, b: Pt, k?: string | number) => <line key={k} x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]} />;
 
   // Window opening drawn on the wall the room actually has it on
   const win = room.window && room.window !== "ninguna" ? room.window : null;
@@ -164,14 +160,14 @@ export function RoomInterior({ room, state, layout, selected, onSelect }: {
         <>
           <polygon points={pts(terrace.south)} style={{ fill: "var(--twin-slab-side)" }} />
           <polygon points={pts(terrace.top)} style={{ fill: "var(--int-wood-dark)", opacity: 0.85 }} />
-          <g style={{ stroke: "var(--int-trim)", strokeWidth: 0.6, opacity: 0.5 }}>{Array.from({ length: 14 }, (_, i) => L(proj((i + 1) * 0.4, D + 0.12, 0, U), proj((i + 1) * 0.4, D + 1.42, 0, U)))}</g>
-          <g style={{ stroke: "var(--int-glass)", strokeWidth: 1.4, opacity: 0.9 }}>{L(proj(0, D + 1.42, 0.55, U), proj(W, D + 1.42, 0.55, U))}{L(proj(W, D + 0.12, 0.55, U), proj(W, D + 1.42, 0.55, U))}</g>
+          <g style={{ stroke: "var(--int-trim)", strokeWidth: 0.6, opacity: 0.5 }}>{Array.from({ length: 14 }, (_, i) => L(proj((i + 1) * 0.4, D + 0.12, 0, U), proj((i + 1) * 0.4, D + 1.42, 0, U), i))}</g>
+          <g style={{ stroke: "var(--int-glass)", strokeWidth: 1.4, opacity: 0.9 }}>{L(proj(0, D + 1.42, 0.55, U), proj(W, D + 1.42, 0.55, U), "a")}{L(proj(W, D + 0.12, 0.55, U), proj(W, D + 1.42, 0.55, U), "b")}</g>
           <text x={center(terrace.top)[0]} y={center(terrace.top)[1] + 4} textAnchor="middle" style={{ fill: "var(--twin-text)", fontSize: 7, letterSpacing: "0.12em" }}>TERRAZA{room.view ? ` · VISTA ${room.view.toUpperCase()}` : ""}</text>
         </>
       )}
       {/* wood floor with planks + warm light pool */}
       <polygon points={pts(floor.top)} style={{ fill: "var(--int-wood)" }} />
-      <g style={{ stroke: "var(--int-wood-line)", strokeWidth: 0.7 }}>{planks.map((x, i) => L(proj(x, 0, 0, U), proj(x, D, 0, U)))}{planks.map((x, i) => i % 3 === 0 ? null : L(proj(x - 0.32, ((i * 1.7) % D), 0, U), proj(x, ((i * 1.7) % D), 0, U)))}</g>
+      <g style={{ stroke: "var(--int-wood-line)", strokeWidth: 0.7 }}>{planks.map((x, i) => L(proj(x, 0, 0, U), proj(x, D, 0, U), `p${i}`))}{planks.map((x, i) => i % 3 === 0 ? null : L(proj(x - 0.32, ((i * 1.7) % D), 0, U), proj(x, ((i * 1.7) % D), 0, U), `j${i}`))}</g>
       <polygon points={pts(floor.top)} style={{ fill: `url(#warm-${room.number})` }} />
       <polygon points={pts(floor.top)} style={{ fill: "none", stroke: st, strokeWidth: 1.4 }} />
       {/* walls + baseboards */}
@@ -195,7 +191,7 @@ export function RoomInterior({ room, state, layout, selected, onSelect }: {
           <g key={it.id} data-item={it.id} style={pick ? { cursor: "pointer" } : undefined}
             onClick={pick ? (e) => { e.stopPropagation(); onSelect(it.id); } : undefined}>
             <title>{it.kind === "bano" ? room.bath ?? "Baño" : FURNITURE[it.kind].label}</title>
-            <polygon points={pts(sh)} style={{ fill: "black", opacity: 0.22 }} filter="url(#int-soft)" />
+            <polygon points={pts(sh)} style={{ fill: "var(--int-trim)", opacity: 0.35 }} filter="url(#int-soft)" />
             {order.map((p, i) => {
               const b = box(p.r, p.z, p.h, U);
               const stroke = sel ? { stroke: "var(--brand)", strokeWidth: 1.2 } : { stroke: "color-mix(in oklab, black 25%, transparent)", strokeWidth: 0.35 };

@@ -3,7 +3,7 @@ import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useSuite } from "@/lib/suite/store";
 import { AppShell } from "@/components/suite/AppShell";
 
-const BARE = ["/login", "/crear-hotel"];
+const BARE = ["/login", "/crear-hotel", "/invitacion"];
 
 /** Sends visitors without a session to /login; login and builder render full-screen. */
 export function SessionGate({ children }: { children: ReactNode }) {
@@ -12,7 +12,7 @@ export function SessionGate({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const bare = BARE.includes(path);
   useEffect(() => {
-    if (ready && !user && path !== "/login") navigate({ to: "/login" });
+    if (ready && !user && !bare) navigate({ to: "/login" });
   }, [ready, user, path, navigate]);
   if (bare) return <>{children}</>;
   if (!ready || !user) return <div className="min-h-screen bg-background" />;

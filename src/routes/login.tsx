@@ -40,7 +40,7 @@ function LoginPage() {
   const [f, setF] = useState({ email: "", password: "", name: "", surname: "", position: "Director/a", phone: "", company: "", tradeName: "", country: "España", city: "", type: "Hotel independiente", employees: "" });
   const set = (k: keyof typeof f) => (v: string) => setF((p) => ({ ...p, [k]: v }));
 
-  const doLogin = async () => { if (await actions.signIn(f.email.trim(), f.password)) navigate({ to: "/mundo" }); };
+  const doLogin = async () => { if (await actions.signIn(f.email.trim(), f.password)) { const next = sessionStorage.getItem("suite-next"); sessionStorage.removeItem("suite-next"); if (next?.startsWith("/invitacion")) window.location.assign(next); else navigate({ to: "/mundo" }); } };
   const doSignup = async () => {
     const ok = await actions.signUp({
       email: f.email.trim(), password: f.password, name: f.name, surname: f.surname, position: f.position, role: "Owner / Admin",

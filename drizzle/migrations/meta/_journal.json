@@ -50,6 +50,13 @@
       "when": 1793200704312,
       "tag": "0006_hotel_budgets",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793203118730,
+      "tag": "0007_secure_invite_links",
+      "breakpoints": true
     }
   ]
 }

@@ -199,9 +199,9 @@ function World() {
                         </g>
                       ))}
                       <polygon points={pts(shadow)} style={{ fill: "var(--twin-bg)", opacity: 0.4 }} />
-                      <polygon points={pts(b.east)} style={{ fill: "var(--twin-wall-dark)" }} />
-                      <polygon points={pts(b.south)} style={{ fill: "var(--twin-wall)" }} />
-                      <polygon points={pts(b.top)} style={{ fill: "color-mix(in oklab, var(--twin-wall) 55%, var(--twin-floor))", stroke: on ? "var(--brand)" : "var(--fac-trim)", strokeWidth: on ? 1.8 : 0.8 }} />
+                      <polygon points={pts(b.east)} style={{ fill: "var(--fac-stone-side)" }} />
+                      <polygon points={pts(b.south)} style={{ fill: "var(--fac-stone)" }} />
+                      <polygon points={pts(b.top)} style={{ fill: "color-mix(in oklab, var(--fac-stone-top) 70%, var(--twin-floor))", stroke: on ? "var(--brand)" : "var(--fac-trim)", strokeWidth: on ? 1.8 : 0.8 }} />
                       <polygon points={pts(parapet)} style={{ fill: "color-mix(in oklab, var(--twin-floor) 80%, black)", opacity: 0.6 }} />
                       <polygon points={pts(roofUnit.east)} style={{ fill: "var(--fac-stone-side)" }} /><polygon points={pts(roofUnit.south)} style={{ fill: "var(--fac-stone)" }} /><polygon points={pts(roofUnit.top)} style={{ fill: "var(--fac-stone-top)" }} />
                       {sideWins.map((p, k) => <polygon key={k} points={pts(p)} style={{ fill: "color-mix(in oklab, var(--int-lamp) 35%, var(--fac-glass))", stroke: "var(--fac-trim)", strokeWidth: 0.6, opacity: 0.85 }} />)}

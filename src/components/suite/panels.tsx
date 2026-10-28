@@ -89,7 +89,9 @@ export function ReservationSheet({ resId, onClose }: { resId: string | null; onC
               <Row k="Salida" v={`${fmtDay(r.outDay)} · 11:00`} />
               <Row k="Noches" v={r.outDay - r.inDay} /><Row k="Huéspedes" v={r.pax} />
               <Row k="Habitación" v={`${r.room} · ${s.rooms.find((x) => x.number === r.room)!.type}`} />
-              <Row k="Canal" v={r.channel === "Recepción" ? "Manual" : r.channel === "Web directa" ? "Motor directo" : r.channel} /><Row k="Importe" v={eur(r.amount)} />
+              <Row k="Canal" v={r.channel === "Recepción" ? "Manual" : r.channel === "Web directa" ? "Motor directo" : r.channel} /><Row k="Importe total" v={eur(r.amount)} />
+              {r.outDay > r.inDay && <Row k="Tarifa media / noche" v={eur(r.amount / (r.outDay - r.inDay))} />}
+              {r.outDay > r.inDay && <Row k="Desglose por noche" v={<span className="text-right text-xs">{Array.from({ length: r.outDay - r.inDay }, (_, i) => `${fmtDay(r.inDay + i)}: ${eur(r.amount / (r.outDay - r.inDay))}`).join(" · ")}<br /><span className="text-muted-foreground">Tarifa única guardada para toda la estancia</span></span>} />}
             </Section>
             <Section title="Notas"><p className="py-2 text-sm">{r.notes || g.notes || "—"}</p></Section>
             <div className="px-6 pb-2"><Link to="/hotel" search={{ room: r.room }} onClick={onClose} className="inline-flex w-full items-center justify-center rounded-md border px-3 py-2 text-sm font-medium hover:bg-accent">Localizar habitación {r.room} en Mi mundo</Link></div>

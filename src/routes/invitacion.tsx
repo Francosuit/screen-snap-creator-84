@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ROLE_LABELS, type HotelRole } from "@/lib/suite/cloud";
+import { rememberInvite } from "@/lib/suite/pending-invite";
 
 export const Route = createFileRoute("/invitacion")({
   validateSearch: (s: Record<string, unknown>) => ({ token: typeof s["token"] === "string" ? (s["token"] as string) : "" }),
@@ -40,7 +41,7 @@ function Invitacion() {
       setInfo(error ? { status: "invalid" } : (data as Info));
     })();
   }, [token]);
-  const signIn = () => { sessionStorage.setItem("suite-next", `/invitacion?token=${encodeURIComponent(token)}`); window.location.assign("/login"); };
+  const signIn = () => { rememberInvite(token); window.location.assign("/login"); };
   const accept = async () => {
     setBusy(true); setErr("");
     const { error } = await supabase.rpc("suite_accept_invite", { _token: token });

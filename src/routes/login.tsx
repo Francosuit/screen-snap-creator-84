@@ -1,3 +1,4 @@
+import { peekInvite, takeInvite } from "@/lib/suite/pending-invite";
 import { LogoLoop } from "@/components/suite/LogoLoop";
 import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
@@ -40,13 +41,15 @@ function LoginPage() {
   const [f, setF] = useState({ email: "", password: "", name: "", surname: "", position: "Director/a", phone: "", company: "", tradeName: "", country: "España", city: "", type: "Hotel independiente", employees: "" });
   const set = (k: keyof typeof f) => (v: string) => setF((p) => ({ ...p, [k]: v }));
 
-  const doLogin = async () => { if (await actions.signIn(f.email.trim(), f.password)) { const next = sessionStorage.getItem("suite-next"); sessionStorage.removeItem("suite-next"); if (next?.startsWith("/invitacion")) window.location.assign(next); else navigate({ to: "/mundo" }); } };
+  const doLogin = async () => { if (await actions.signIn(f.email.trim(), f.password)) { const next = takeInvite(); if (next) window.location.assign(next); else navigate({ to: "/mundo" }); } };
   const doSignup = async () => {
+    const invite = peekInvite();
     const ok = await actions.signUp({
       email: f.email.trim(), password: f.password, name: f.name, surname: f.surname, position: f.position, role: "Owner / Admin",
       org: { name: f.company, owner: `${f.name} ${f.surname}`.trim(), email: f.email.trim(), tradeName: f.tradeName, country: f.country, city: f.city, phone: f.phone, type: f.type, employees: f.employees },
-    });
-    if (ok) navigate({ to: "/crear-hotel" });
+    }, invite ?? undefined);
+    if (!ok) return;
+    if (invite) { takeInvite(); window.location.assign(invite); } else navigate({ to: "/crear-hotel" });
   };
   const step0 = f.email.includes("@") && f.password.length >= 4 && f.name.trim();
   const step1 = f.company.trim() && f.city.trim();

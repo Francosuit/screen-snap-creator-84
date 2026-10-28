@@ -78,7 +78,9 @@ export function RevenueBoard() {
     setBudget(months); setEditing(false);
   };
 
-  const rev = monthlyRevenue(ns, year);
+  // "Real" = revenue already accrued up to today; future confirmed nights only feed the forecast.
+  const cut = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+  const rev = monthlyRevenue(ns.filter((n) => n.date < cut), year);
   const y = yoy(ns, period, year, today);
   const fc = forecastYear(ns, year, today);
   const budgetTotal = budget?.reduce((a, b) => a + b, 0) ?? 0;
@@ -147,7 +149,7 @@ export function RevenueBoard() {
             <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
               <div className="rounded-xl border p-3"><div className="text-xs text-muted-foreground">Presupuesto hasta {MONTHS[ytdMonth]}</div><div className="tnum text-lg font-semibold">{eur(budgetYtd)}</div></div>
               <div className="rounded-xl border p-3"><div className="text-xs text-muted-foreground">Facturación real</div><div className="tnum text-lg font-semibold">{eur(realYtd)}</div></div>
-              <div className="rounded-xl border p-3"><div className="text-xs text-muted-foreground">Desviación</div><div className={cn("tnum text-lg font-semibold", dYtd.diff >= 0 ? "text-st-ready" : "text-st-maint")}>{signed(dYtd.diff)} · {pct(dYtd.pct)}</div></div>
+              <div className="rounded-xl border p-3"><div className="text-xs text-muted-foreground">Desviación</div><div className={cn("tnum text-lg font-semibold", dYtd.diff >= 0 ? "text-st-ready" : "text-st-maint")}>{signed(dYtd.diff)} ({pct(dYtd.pct)})</div></div>
               <div className="rounded-xl border p-3"><div className="text-xs text-muted-foreground">Previsión de cierre</div><div className="tnum text-lg font-semibold">{eur(fc.total)}</div><div className={cn("text-xs", dFc.diff >= 0 ? "text-st-ready" : "text-st-maint")}>{pct(dFc.pct)} vs {eur(budgetTotal)}</div></div>
             </div>
             <div className="mt-4 overflow-x-auto">

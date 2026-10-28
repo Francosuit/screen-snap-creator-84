@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { AlertTriangle, LogIn, LogOut, Play, CheckCircle2, Sparkles, Ban, Plus, Globe2, Wrench, MapPin } from "lucide-react";
+import { AlertTriangle, LogIn, LogOut, Play, CheckCircle2, Sparkles, Ban, Plus, Globe2, Wrench, MapPin, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { fmtDay, resDisplay, useSuite, eur } from "@/lib/suite/store";
 import { IsoBuilding, TwinLegend } from "@/components/suite/twin/IsoBuilding";
@@ -19,6 +19,8 @@ export const Route = createFileRoute("/hotel")({
       { name: "description", content: "Gemelo digital isométrico del hotel: plantas, habitaciones y estados operativos en tiempo real." },
       { property: "og:title", content: "Hotel digital — Suite Hotel OS" },
       { property: "og:description", content: "Explora tu hotel planta por planta, en tiempo real." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   validateSearch: (q: Record<string, unknown>): { room?: string } => (typeof q["room"] === "string" ? { room: q["room"] as string } : {}),
@@ -56,7 +58,7 @@ function HotelTwin() {
           </div>
         </div>
         <div className="xl:sticky xl:top-20 xl:self-start">
-          {sel ? <RoomPanel num={sel} onClose={() => setSel(null)} onFloor={setFloor} /> : (
+           {sel ? <RoomPanel key={sel} num={sel} onClose={() => setSel(null)} onFloor={setFloor} /> : (
             <div className="rounded-2xl border bg-card p-5">
               <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Cómo explorar</div>
               <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
@@ -74,9 +76,10 @@ function HotelTwin() {
 }
 
 function RoomPanel({ num, onClose, onFloor }: { num: string; onClose: () => void; onFloor: (f: number) => void }) {
-  const { s, actions, roomState, occupant, nextArrival, guest } = useSuite();
+  const { s, actions, roomState, occupant, nextArrival, guest, canEditRoomConfig } = useSuite();
   const [report, setReport] = useState(false);
   const [sheet, setSheet] = useState(false);
+  const [editing, setEditing] = useState(false);
   const room = s.rooms.find((r) => r.number === num);
   if (!room) return null;
   const st = roomState(num);
@@ -98,11 +101,12 @@ function RoomPanel({ num, onClose, onFloor }: { num: string; onClose: () => void
         <div className="flex flex-col items-end gap-2">
           <RoomPill state={st} />
           <button onClick={() => { onFloor(room.floor); }} className="text-xs text-brand hover:underline">Ver planta {room.floor}</button>
-          <button onClick={() => setSheet(true)} className="text-xs text-brand hover:underline">Abrir ficha</button>
-          <RoomSheet room={sheet ? num : null} onClose={() => setSheet(false)} />
+           <Button variant="link" size="sm" onClick={() => { setEditing(false); setSheet(true); }}>Abrir ficha</Button>
+           <RoomSheet room={sheet ? num : null} edit={editing} onClose={() => setSheet(false)} />
         </div>
       </div>
-      <div className="mx-5 rounded-xl bg-twin-bg p-2"><RoomInterior meta={meta} state={st} number={room.number} /></div>
+       {canEditRoomConfig && <div className="px-5 pb-3"><Button className="w-full" onClick={() => { setEditing(true); setSheet(true); }}><Pencil className="mr-1.5 h-4 w-4" />Editar habitación</Button></div>}
+       <div className="mx-5 rounded-xl bg-twin-bg p-2"><RoomInterior meta={meta} state={st} number={room.number} /></div>
 
       <div className="grid gap-2 p-5">
         {occ && <Button onClick={() => actions.checkOut(occ.id)}><LogOut className="mr-1.5 h-4 w-4" />Hacer check-out · {guest(occ.guestId).name}</Button>}
@@ -126,6 +130,7 @@ function RoomPanel({ num, onClose, onFloor }: { num: string; onClose: () => void
         <Row k="Housekeeping" v={task ? `${hk} · ${task.assignee.split(" ")[0]} (${task.status.replace("_", " ")})` : hk} />
         <Row k="Mantenimiento" v={incs.length ? <span className="text-st-maint">{incs.map((i) => i.category).join(", ")}</span> : room.oos ? "Fuera de servicio" : "Sin incidencias"} />
         <Row k="Camas" v={meta.beds} /><Row k="Baño" v={meta.bath} />
+        <Row k="Ventana" v={room.window ?? "Sin indicar"} /><Row k="Equipamiento" v={room.extras?.join(", ") || "—"} />
         <Row k="Terraza / vista" v={`${meta.terrace ? "Sí" : "No"} · ${meta.view}`} />
         <Row k="Precio base" v={eur(meta.price)} />
       </div>
@@ -163,9 +168,9 @@ function IncidentCard({ id }: { id: string }) {
       </ol>
       {ph !== "done" && i.taskId && (
         <div className="mt-3">
-          {ph === "base" && <Button size="sm" className="w-full" onClick={() => actions.startTask(i.taskId!)}><MapPin className="mr-1.5 h-3.5 w-3.5" />Enviar a {i.assignee.split(" ")[0]}</Button>}
+           {ph === "base" && <Button size="sm" className="w-full" onClick={() => { if (i.taskId) actions.startTask(i.taskId); }}><MapPin className="mr-1.5 h-3.5 w-3.5" />Enviar a {i.assignee.split(" ")[0]}</Button>}
           {ph === "route" && <Button size="sm" className="w-full" onClick={() => actions.arriveIncident(i.id)}>Marcar llegada del técnico</Button>}
-          {ph === "onsite" && <Button size="sm" className="w-full" onClick={() => actions.finishTask(i.taskId!)}><CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />Cerrar incidencia</Button>}
+           {ph === "onsite" && <Button size="sm" className="w-full" onClick={() => { if (i.taskId) actions.finishTask(i.taskId); }}><CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />Cerrar incidencia</Button>}
         </div>
       )}
     </div>

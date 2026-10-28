@@ -11,5 +11,6 @@
 
 - Suite demo state lives in one store (src/lib/suite/store.tsx) holding a data slice per hotel, saved to the browser; every cross-module effect is an action there so all screens stay consistent.
 - Room display state is derived from separate booking, stay, housekeeping and maintenance fields — never stored directly — to avoid mixing concepts.
-- Hotels, floors and rooms are mirrored into relational tables by a database trigger on company_worlds (never deleting: removed items are archived); the app still reads the saved world, so switch reads over gradually. Why: migrate without data loss or downtime.
+- World saves mirror new hotels/floors/rooms and archive removals; existing room configuration is authoritative in hotel_rooms and edited through suite_edit_room, which also patches the world under lock. Why: prevent stale world saves from reverting authorized edits.
+- Reuse RoomSheet's editor for all room configuration entry points and authorize writes in the database using hotel membership; UI/demo role guards are not security. Why: one editor and persisted configuration with company isolation.
 - Per-hotel job roles live in hotel_members and are enforced by RLS via has_hotel_role(); never trust client-side role checks.

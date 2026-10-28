@@ -141,10 +141,10 @@ export function RoomInterior({ room, state, layout, selected, onSelect }: {
     return { it, ps, depth: it.x + fw / 2 + it.y + fd / 2, foot: { x: it.x, y: it.y, w: fw, d: fd } };
   }).sort((a, b) => a.depth - b.depth);
 
-  const all: Pt[] = [...floor.top, ...floor.south, ...floor.east, ...backWall.top, ...leftWall.top, ...(terrace ? terrace.south : [])];
+  const all: Pt[] = [...floor.top, ...floor.south, ...floor.east, ...backWall.top, ...leftWall.top, ...(terrace ? [...terrace.south, ...terrace.top] : [])];
   items.forEach(({ ps }) => ps.forEach((p) => all.push(...box(p.r, p.z, p.h, U).top)));
   const xs = all.map((p) => p[0]), ys = all.map((p) => p[1]);
-  const vb = `${Math.min(...xs) - 16} ${Math.min(...ys) - 16} ${Math.max(...xs) - Math.min(...xs) + 32} ${Math.max(...ys) - Math.min(...ys) + 32}`;
+  const vb = `${Math.min(...xs) - 40} ${Math.min(...ys) - 16} ${Math.max(...xs) - Math.min(...xs) + 56} ${Math.max(...ys) - Math.min(...ys) + 32}`;
   const planks = Array.from({ length: Math.floor(W / 0.32) }, (_, i) => (i + 1) * 0.32);
 
   return (

@@ -1,3 +1,4 @@
+import { facadeVars } from "@/lib/suite/facade";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Minus, Plus, RotateCw, Maximize2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -23,6 +24,7 @@ interface Props {
   className?: string;
   toolbar?: ReactNode;
   staff?: StaffMarker[];
+  facade?: { primary: string; secondary: string } | undefined;
 }
 
 type Shape =
@@ -33,7 +35,7 @@ type Shape =
 
 const mix = (c: string, pct: number, base = "var(--twin-slab)") => `color-mix(in oklab, ${c} ${pct}%, ${base})`;
 
-export function IsoBuilding({ layout, info, focusFloor, selected, onSelect, layer = STATUS_LAYER, compact, className, toolbar, staff = [] }: Props) {
+export function IsoBuilding({ layout, info, focusFloor, selected, onSelect, layer = STATUS_LAYER, compact, className, toolbar, staff = [], facade }: Props) {
   const [rot, setRot] = useState(0);
   const [zoom, setZoom] = useState(1);
   const [off, setOff] = useState({ x: 0, y: 0 });
@@ -234,7 +236,7 @@ export function IsoBuilding({ layout, info, focusFloor, selected, onSelect, laye
         onPointerLeave={() => { drag.current = null; setHover(null); }}
       >
         <div style={{ transform: `translate(${off.x}px, ${off.y}px) scale(${zoom})`, transformOrigin: "0 0" }} className="h-full w-full">
-          <svg viewBox={vb} className="h-full w-full" preserveAspectRatio="xMidYMid meet">
+          <svg viewBox={vb} className="h-full w-full" preserveAspectRatio="xMidYMid meet" style={facadeVars(facade)}>
             <defs>
               <filter id="twin-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.2" /></filter>
             </defs>

@@ -307,12 +307,13 @@ function useSuiteState() {
         return false;
       },
       signOut: () => { supabase.auth.signOut(); setRoot((r) => ({ ...r, user: undefined })); },
-      createHotel: (input: { name: string; address: string; city: string; category: string; description?: string; floors: Floor[]; rooms: Room[]; zones?: string[]; departments?: string[]; checkIn?: string; checkOut?: string }) => {
+      createHotel: (input: { name: string; address: string; city: string; category: string; description?: string; floors: Floor[]; rooms: Room[]; zones?: string[]; departments?: string[]; checkIn?: string; checkOut?: string; facade?: { primary: string; secondary: string } }) => {
         const hid = id("h");
         const h: Hotel = {
           id: hid, name: input.name, address: input.address, city: input.city, category: input.category, description: input.description ?? "",
           rooms: input.rooms.length, floors: input.floors, owner: root.user, status: "activo", zones: input.zones ?? [], departments: input.departments ?? [], checkIn: input.checkIn ?? "14:00", checkOut: input.checkOut ?? "12:00",
           logo: input.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase(),
+          ...(input.facade ? { facade: input.facade } : {}),
         };
         const d = emptyData(input.rooms);
         d.log = [{ id: id("l"), time: fmtClock(START_CLOCK), actor: "Suite", text: `Hotel digital generado: ${input.floors.length} plantas · ${input.rooms.length} habitaciones · ${(input.zones ?? []).length} zonas.`, kind: "suite" }];

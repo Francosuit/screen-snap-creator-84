@@ -301,11 +301,10 @@ function useSuiteState() {
       signIn: async (email: string, password: string) => {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (!error) return true; // saved world loads automatically
-        const a = (root.accounts ?? []).find((x) => x.email === email && x.password === password);
-        if (!a) { say.error("Email o contraseña incorrectos", { description: error.message }); return false; }
-        const mine = root.hotels.find((h) => h.owner === a.email);
-        setRoot((r) => ({ ...r, user: a.email, org: a.org, hotel: mine?.id ?? r.hotel }));
-        return true;
+        // Never fall back to a browser-only session: it would look signed in while nothing reaches the cloud
+        const reason = error.code === "email_not_confirmed" ? "Confirma tu correo con el enlace que te enviamos y vuelve a intentarlo." : error.code === "invalid_credentials" ? "Email o contraseña incorrectos." : error.message;
+        say.error("No se pudo iniciar sesión en la nube", { description: reason });
+        return false;
       },
       signOut: () => { supabase.auth.signOut(); setRoot((r) => ({ ...r, user: undefined })); },
       createHotel: (input: { name: string; address: string; city: string; category: string; description?: string; floors: Floor[]; rooms: Room[]; zones?: string[]; departments?: string[]; checkIn?: string; checkOut?: string }) => {

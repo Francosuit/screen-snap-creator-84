@@ -8,7 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { ROLES, type RoleKey } from "@/lib/suite/data";
-import { NAV_ACCESS, fmtClock, useSuite } from "@/lib/suite/store";
+import { fmtClock, useSuite } from "@/lib/suite/store";
 import { NoAccess } from "./ui";
 
 const NAV = [
@@ -39,9 +39,9 @@ function Logo() {
 }
 
 function NavList({ onNav }: { onNav?: () => void }) {
-  const { s, alerts } = useSuite();
+  const { s, alerts, navAccess } = useSuite();
   const path = useRouterState({ select: (r) => r.location.pathname });
-  const allowed = NAV_ACCESS[s.role];
+  const allowed = navAccess;
   const label = (to: string, l: string) =>
     to === "/" && s.role === "housekeeping" ? "Mis habitaciones" : to === "/" && s.role === "maintenance" ? "Mis incidencias" : l;
   return (
@@ -169,11 +169,11 @@ function Topbar() {
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const { s } = useSuite();
+  const { navAccess } = useSuite();
   const path = useRouterState({ select: (r) => r.location.pathname });
   const base = "/" + (path.split("/")[1] ?? "");
   const known = NAV.some((n) => n.to === base);
-  const allowed = !known || NAV_ACCESS[s.role].includes(base);
+  const allowed = !known || navAccess.includes(base);
   return (
     <div className="flex min-h-screen">
       <Sidebar />

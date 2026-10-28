@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Phone } from "lucide-react";
 import { externals, staff } from "@/lib/suite/data";
 import { Card, PageHeader, Pill, SectionTitle } from "@/components/suite/ui";
+import { TeamPanel } from "@/components/suite/TeamPanel";
+import { useSuite } from "@/lib/suite/store";
 
 export const Route = createFileRoute("/personal")({
   head: () => ({
@@ -18,10 +20,13 @@ export const Route = createFileRoute("/personal")({
 });
 
 function Personal() {
+  const { s } = useSuite();
   return (
     <div>
-      <PageHeader title="Personal" sub="Equipo interno y red de profesionales externos" />
-      <SectionTitle>Equipo</SectionTitle>
+      <PageHeader title="Personal" sub="Fichas, cuentas y permisos del equipo" />
+      <SectionTitle>Cuentas y permisos</SectionTitle>
+      <TeamPanel hotelKey={s.hotel} />
+      <div className="mt-8"><SectionTitle>Equipo de demostración (datos ficticios)</SectionTitle></div>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {staff.map((p) => (
           <Card key={p.name} className="flex items-center gap-4">

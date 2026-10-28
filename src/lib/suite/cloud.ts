@@ -54,8 +54,8 @@ export async function claimInvites() { await supabase.rpc("suite_claim_invites")
 export async function myMemberships() {
   const { data: u } = await supabase.auth.getUser();
   if (!u.user) return [];
-  const { data } = await supabase.from("hotel_members").select("hotel_id, role").eq("user_id", u.user.id);
-  return (data ?? []) as { hotel_id: string; role: HotelRole }[];
+  const { data } = await supabase.from("hotel_members").select("hotel_id, role, modules").eq("user_id", u.user.id).eq("active", true);
+  return (data ?? []) as { hotel_id: string; role: HotelRole; modules: string[] | null }[];
 }
 
 /** Database validates identity, hotel membership and fields again; never trusts a UI role. */

@@ -1,3 +1,4 @@
+import { effectiveNav } from "./staff-access";
 import { claimInvites, loadConfig, overlayHotel, myMemberships, saveRoomConfig, type CloudConfig, type HotelRole } from "./cloud";
 import { canEditRoom } from "./room-permissions";
 import { useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -111,7 +112,7 @@ function useSuiteState() {
   const [loaded, setLoaded] = useState(false);
   const [uid, setUid] = useState<string | null>(null);
   const [config, setConfig] = useState<CloudConfig | null>(null);
-  const [memberships, setMemberships] = useState<{ hotel_id: string; role: HotelRole }[]>([]);
+  const [memberships, setMemberships] = useState<{ hotel_id: string; role: HotelRole; modules: string[] | null }[]>([]);
   const [cloud, setCloud] = useState<"local" | "loading" | "saved" | "pending" | "error">("local");
   const remoteLoaded = useRef(false);
   useEffect(() => {
@@ -217,6 +218,8 @@ function useSuiteState() {
   const hotel = visible.find((h) => h.id === root.hotel) ?? visible[0] ?? root.hotels.find((h) => !h.owner) ?? root.hotels[0]!;
   const record = config?.hotels.find((h) => h.key === hotel.id && !h.archived);
   const memberRole = record ? record.org_owner === uid ? "owner" : memberships.find((m) => m.hotel_id === record.id)?.role : undefined;
+  const membership = record && memberRole !== "owner" ? memberships.find((m) => m.hotel_id === record.id) : undefined;
+  const navAccess = membership ? effectiveNav(NAV_ACCESS[membership.role], membership.role, membership.modules) : NAV_ACCESS[(memberRole ?? root.role) as RoleKey];
   const canEditRoomConfig = record ? canEditRoom(memberRole) : !hotel.owner && canEditRoom(root.role);
   const s: State = useMemo(() => ({ ...(root.data[hotel.id] ?? root.data[root.hotels[0]!.id])!, role: memberRole ?? root.role, hotel: hotel.id }), [root, hotel.id, memberRole]);
   /** All actions write through the active hotel's slice — single source of truth */
@@ -618,7 +621,7 @@ function useSuiteState() {
     return () => clearInterval(t);
   }, [root.sim]);
 
-  return { s, sim: !!root.sim, hotel, hotels: visible, world: root.data, org: root.org, ready: loaded && cloud !== "loading", cloud, cloudHotelId: record?.id, canEditRoomConfig, user: (root.accounts ?? []).find((a) => a.email === root.user), ...helpers, alerts, actions };
+  return { s, sim: !!root.sim, hotel, hotels: visible, world: root.data, org: root.org, ready: loaded && cloud !== "loading", cloud, cloudHotelId: record?.id, canEditRoomConfig, navAccess, user: (root.accounts ?? []).find((a) => a.email === root.user), ...helpers, alerts, actions };
 }
 
 type Ctx = ReturnType<typeof useSuiteState>;

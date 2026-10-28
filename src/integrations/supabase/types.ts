@@ -107,19 +107,28 @@ export type Database = {
         Row: {
           created_at: string
           email: string
+          full_name: string
           hotel_id: string
+          modules: string[] | null
+          position: string
           role: Database["public"]["Enums"]["hotel_role"]
         }
         Insert: {
           created_at?: string
           email: string
+          full_name?: string
           hotel_id: string
+          modules?: string[] | null
+          position?: string
           role: Database["public"]["Enums"]["hotel_role"]
         }
         Update: {
           created_at?: string
           email?: string
+          full_name?: string
           hotel_id?: string
+          modules?: string[] | null
+          position?: string
           role?: Database["public"]["Enums"]["hotel_role"]
         }
         Relationships: [
@@ -134,17 +143,32 @@ export type Database = {
       }
       hotel_members: {
         Row: {
+          active: boolean
+          email: string
+          full_name: string
           hotel_id: string
+          modules: string[] | null
+          position: string
           role: Database["public"]["Enums"]["hotel_role"]
           user_id: string
         }
         Insert: {
+          active?: boolean
+          email?: string
+          full_name?: string
           hotel_id: string
+          modules?: string[] | null
+          position?: string
           role: Database["public"]["Enums"]["hotel_role"]
           user_id: string
         }
         Update: {
+          active?: boolean
+          email?: string
+          full_name?: string
           hotel_id?: string
+          modules?: string[] | null
+          position?: string
           role?: Database["public"]["Enums"]["hotel_role"]
           user_id?: string
         }
@@ -330,10 +354,18 @@ export type Database = {
         Args: { _hotel: string; _uid: string }
         Returns: boolean
       }
+      suite_can_access: {
+        Args: { _hotel: string; _module: string }
+        Returns: boolean
+      }
       suite_claim_invites: { Args: never; Returns: number }
       suite_edit_room: {
         Args: { _edit: Json; _hotel: string; _number: string }
         Returns: Json
+      }
+      suite_role_modules: {
+        Args: { _role: Database["public"]["Enums"]["hotel_role"] }
+        Returns: string[]
       }
     }
     Enums: {

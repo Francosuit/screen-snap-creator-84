@@ -58,11 +58,49 @@ export function IsoBuilding({ layout, info, focusFloor, selected, onSelect, laye
 
     if (focusFloor == null) {
       layout.outdoor.forEach((o, i) => {
-        const b = box(R(o.rect), -0.44, o.h, U);
-        out.push({ k: "poly", key: `oz${i}e`, p: b.east, fill: mix(o.tone, 35, "var(--twin-slab-side)") });
-        out.push({ k: "poly", key: `oz${i}s`, p: b.south, fill: mix(o.tone, 45, "var(--twin-slab-side)") });
-        out.push({ k: "poly", key: `oz${i}t`, p: b.top, fill: mix(o.tone, 55), stroke: o.tone, sw: 0.8 });
-        out.push({ k: "text", key: `oz${i}l`, at: center(b.top), text: o.label.toUpperCase(), size: compact ? 7 : 9, fill: "var(--twin-text)", weight: 600, anchor: "middle" });
+        const rr = R(o.rect);
+        const b = box(rr, -0.44, o.h, U);
+        const P = (key: string, p: Pt[], fill: string, extra: Partial<{ stroke: string; sw: number; op: number }> = {}) => out.push({ k: "poly", key: `oz${i}${key}`, p, fill, ...extra });
+        const inner = (pad: number): Rect => ({ x: rr.x + pad, y: rr.y + pad, w: Math.max(0.1, rr.w - pad * 2), d: Math.max(0.1, rr.d - pad * 2) });
+        const zt = -0.44 + o.h;
+        const L = o.label;
+        if (L === "Piscina") {
+          P("e", b.east, "var(--fac-stone-side)"); P("s", b.south, "var(--fac-stone-side)"); P("t", b.top, "var(--fac-stone-top)");
+          const w = box(inner(0.28), zt - 0.03, 0.001, U);
+          P("w", w.top, "var(--fac-water)", { stroke: "var(--fac-stone-side)", sw: 1 });
+          const ir = inner(0.28);
+          for (let k = 1; k < 4; k++) { const ln = box({ x: ir.x + (ir.w * k) / 4 - 0.01, y: ir.y + 0.1, w: 0.02, d: ir.d - 0.2 }, zt - 0.02, 0.001, U); P(`ln${k}`, ln.top, "var(--twin-text)", { op: 0.35 }); }
+          for (let k = 0; k < 3; k++) { const lo = box({ x: rr.x + 0.4 + k * 0.9, y: rr.y + rr.d - 0.24, w: 0.6, d: 0.2 }, zt, 0.06, U); P(`lo${k}s`, lo.south, "var(--fac-wood)"); P(`lo${k}t`, lo.top, "var(--int-linen)"); }
+        } else if (L === "Jardín") {
+          P("e", b.east, "var(--fac-stone-side)"); P("s", b.south, "var(--fac-stone-side)"); P("t", b.top, "var(--fac-grass)");
+          const path = box({ x: rr.x + rr.w / 2 - 0.2, y: rr.y, w: 0.4, d: rr.d }, zt, 0.005, U); P("pa", path.top, "var(--fac-stone-top)", { op: 0.8 });
+          [[0.5, 0.5], [rr.w - 0.9, 0.6], [0.7, rr.d - 0.9], [rr.w - 0.8, rr.d - 0.8]].forEach(([tx, ty], k) => {
+            const tr = box({ x: rr.x + tx! + 0.15, y: rr.y + ty! + 0.15, w: 0.1, d: 0.1 }, zt, 0.35, U);
+            const cn = box({ x: rr.x + tx!, y: rr.y + ty!, w: 0.4, d: 0.4 }, zt + 0.35, 0.45, U);
+            P(`tr${k}`, tr.south, "var(--fac-wood)"); P(`ce${k}`, cn.east, "color-mix(in oklab, var(--fac-leaf) 75%, black)"); P(`cs${k}`, cn.south, "var(--fac-leaf)"); P(`ct${k}`, cn.top, "var(--fac-grass)");
+          });
+        } else if (L === "Parking") {
+          P("e", b.east, "var(--twin-slab-side)"); P("s", b.south, "var(--twin-slab-side)"); P("t", b.top, "var(--fac-asphalt)");
+          const n = Math.max(2, Math.floor(rr.w / 0.7));
+          for (let k = 1; k < n; k++) { const ln = box({ x: rr.x + (rr.w * k) / n - 0.015, y: rr.y + 0.1, w: 0.03, d: rr.d * 0.4 }, zt, 0.001, U); P(`pl${k}`, ln.top, "var(--twin-text)", { op: 0.55 }); }
+        } else {
+          // Built volumes (spa, gym, maintenance, meeting rooms, laundry): stone/wood walls, dark roof edge, entrance
+          const spa = L === "Spa";
+          P("e", b.east, spa ? "color-mix(in oklab, var(--fac-wood) 80%, black)" : "var(--fac-stone-side)");
+          P("s", b.south, spa ? "var(--fac-wood)" : "var(--fac-stone)");
+          P("t", b.top, mix(o.tone, 30, "var(--fac-stone-top)"), { stroke: "var(--fac-trim)", sw: 1 });
+          const s = b.south;
+          const lerp = (a: Pt, c: Pt, t: number): Pt => [a[0] + (c[0] - a[0]) * t, a[1] + (c[1] - a[1]) * t];
+          if (L === "Mantenimiento") {
+            const d: Pt[] = [lerp(s[0]!, s[1]!, 0.3), lerp(s[0]!, s[1]!, 0.7), lerp(lerp(s[1]!, s[2]!, 0.75), lerp(s[0]!, s[3]!, 0.75), 0.3), lerp(lerp(s[1]!, s[2]!, 0.75), lerp(s[0]!, s[3]!, 0.75), 0.7)];
+            P("dr", [d[0]!, d[1]!, d[2]!, d[3]!].reverse().slice(0, 4), "var(--fac-asphalt)");
+            P("db", [s[0]!, s[1]!, lerp(s[1]!, s[2]!, 0.08), lerp(s[0]!, s[3]!, 0.08)], o.tone, { op: 0.8 });
+          } else {
+            const g: Pt[] = [lerp(lerp(s[0]!, s[1]!, 0.1), lerp(s[3]!, s[2]!, 0.1), 0.25), lerp(lerp(s[0]!, s[1]!, 0.9), lerp(s[3]!, s[2]!, 0.9), 0.25), lerp(lerp(s[0]!, s[1]!, 0.9), lerp(s[3]!, s[2]!, 0.9), 0.75), lerp(lerp(s[0]!, s[1]!, 0.1), lerp(s[3]!, s[2]!, 0.1), 0.75)];
+            P("gl", g, "var(--fac-glass)", { stroke: "var(--fac-trim)", sw: 1 });
+          }
+        }
+        out.push({ k: "text", key: `oz${i}l`, at: center(b.top), text: o.label.toUpperCase(), size: compact ? 7 : 9, fill: L === "Piscina" || L === "Jardín" ? "var(--twin-bg)" : "var(--twin-text)", weight: 600, anchor: "middle" });
       });
     }
     const slabRect = R({ x: 0, y: 0, w: layout.W, d: layout.D });
@@ -70,11 +108,17 @@ export function IsoBuilding({ layout, info, focusFloor, selected, onSelect, laye
       const z = focusFloor != null ? 0 : i * FLOOR_GAP;
       const slab = box(slabRect, z - SLAB, SLAB, U);
       const f = fl.floor.number;
-      out.push({ k: "poly", key: `s${f}e`, p: slab.east, fill: "var(--twin-slab-side)" });
-      out.push({ k: "poly", key: `s${f}s`, p: slab.south, fill: "var(--twin-slab-side)" });
-      out.push({ k: "poly", key: `s${f}t`, p: slab.top, fill: "var(--twin-slab)", stroke: "var(--twin-line)", sw: 0.6 });
+      // soft ground shadow under the lowest floor
+      if (i === 0) { const sh = box({ ...slabRect, x: slabRect.x + 0.35, y: slabRect.y + 0.5 }, z - SLAB - 0.01, 0, U); out.push({ k: "poly", key: `sh${f}`, p: sh.top, fill: "var(--fac-trim)", op: 0.35 }); }
+      out.push({ k: "poly", key: `s${f}e`, p: slab.east, fill: "var(--fac-stone-side)" });
+      out.push({ k: "poly", key: `s${f}s`, p: slab.south, fill: "var(--fac-stone)" });
+      out.push({ k: "poly", key: `s${f}t`, p: slab.top, fill: "var(--twin-slab)", stroke: "var(--fac-trim)", sw: 0.8 });
+      out.push({ k: "poly", key: `s${f}cb`, p: [slab.south[3]!, slab.south[2]!, slab.east[2]!, slab.east[1]!, slab.east[2]!, slab.south[2]!], fill: "none", stroke: "var(--fac-stone-top)", sw: 1 });
       const cor = box(R(fl.corridor), z, 0.01, U);
-      out.push({ k: "poly", key: `c${f}`, p: cor.top, fill: "var(--twin-floor)", op: 0.8 });
+      out.push({ k: "poly", key: `c${f}`, p: cor.top, fill: "var(--fac-carpet)", op: 0.9 });
+      const corR = R(fl.corridor), longX = corR.w >= corR.d;
+      const run = box(longX ? { x: corR.x + 0.2, y: corR.y + corR.d / 2 - 0.12, w: corR.w - 0.4, d: 0.24 } : { x: corR.x + corR.w / 2 - 0.12, y: corR.y + 0.2, w: 0.24, d: corR.d - 0.4 }, z + 0.011, 0, U);
+      out.push({ k: "poly", key: `cr${f}`, p: run.top, fill: "var(--int-throw)", op: 0.7 });
       if (focusFloor != null) out.push({ k: "text", key: `ct${f}`, at: center(cor.top), text: "PASILLO", size: U * 0.3, fill: "var(--twin-muted)", anchor: "middle" });
       // floor label at west-most slab corner
       const west = slab.top.reduce((a, p) => (p[0] < a[0] ? p : a));
@@ -88,9 +132,15 @@ export function IsoBuilding({ layout, info, focusFloor, selected, onSelect, laye
           depth: rr.x + rr.y + rr.w / 2 + rr.d / 2,
           draw: () => {
             const b = box(rr, z, h, U);
-            out.push({ k: "poly", key: `${key}e`, p: b.east, fill: "var(--twin-wall-dark)" });
-            out.push({ k: "poly", key: `${key}s`, p: b.south, fill: "var(--twin-wall)" });
-            out.push({ k: "poly", key: `${key}t`, p: b.top, fill: tone, stroke: "var(--twin-line)", sw: 0.6 });
+            out.push({ k: "poly", key: `${key}e`, p: b.east, fill: "var(--fac-stone-side)" });
+            out.push({ k: "poly", key: `${key}s`, p: b.south, fill: "var(--fac-stone)" });
+            out.push({ k: "poly", key: `${key}t`, p: b.top, fill: tone, stroke: "var(--fac-trim)", sw: 0.8 });
+            if (h > 0.5) {
+              // vertical glazing strip (lift / stair core)
+              const q = b.south, lp = (a: Pt, c: Pt, t: number): Pt => [a[0] + (c[0] - a[0]) * t, a[1] + (c[1] - a[1]) * t];
+              const gl: Pt[] = [lp(q[0]!, q[1]!, 0.4), lp(q[0]!, q[1]!, 0.6), lp(lp(q[0]!, q[1]!, 0.6), lp(q[3]!, q[2]!, 0.6), 0.85), lp(lp(q[0]!, q[1]!, 0.4), lp(q[3]!, q[2]!, 0.4), 0.85)];
+              out.push({ k: "poly", key: `${key}g`, p: gl, fill: "var(--fac-glass)", stroke: "var(--fac-trim)", sw: 0.8 });
+            }
             if (focusFloor != null) out.push({ k: "text", key: `${key}l`, at: center(b.top), text: label, size: U * 0.28, fill: "var(--twin-muted)", anchor: "middle" });
           },
         });
@@ -199,13 +249,15 @@ export function IsoBuilding({ layout, info, focusFloor, selected, onSelect, laye
                   onPointerLeave={() => setHover(null)}
                   onClick={() => { if (!drag.current?.moved) onSelect?.(s.room.number); }}
                 >
-                  <polygon points={pts(s.faces.east)} style={{ fill: "var(--twin-wall-dark)" }} />
-                  <polygon points={pts(s.faces.south)} style={{ fill: "var(--twin-wall)" }} />
+                  <polygon points={pts(s.faces.east)} style={{ fill: "var(--fac-stone-side)" }} />
+                  <polygon points={pts(s.faces.south)} style={{ fill: "var(--fac-stone)" }} />
+                  {/* wood cladding pilaster at the room's edge */}
+                  <polygon points={pts([s.faces.south[1]!, [s.faces.south[1]![0] - U * 0.18, s.faces.south[1]![1] - U * 0.1], [s.faces.south[2]![0] - U * 0.18, s.faces.south[2]![1] - U * 0.1], s.faces.south[2]!])} style={{ fill: "var(--fac-wood)" }} />
                   <polygon points={pts(s.win)} style={{ fill: c, opacity: lit ? 0.9 : 0.55 }} filter="url(#twin-glow)" />
                   <polygon points={pts(s.win)} style={{ fill: lit ? mix(c, 60, "white") : c, opacity: lit ? 1 : 0.75 }} />
                   {/* window frame, mullion and sill */}
-                  <polygon points={pts(s.win)} style={{ fill: "none", stroke: "var(--twin-slab-side)", strokeWidth: 1.2 }} />
-                  <line x1={(s.win[0]![0] + s.win[1]![0]) / 2} y1={(s.win[0]![1] + s.win[1]![1]) / 2} x2={(s.win[3]![0] + s.win[2]![0]) / 2} y2={(s.win[3]![1] + s.win[2]![1]) / 2} style={{ stroke: "var(--twin-slab-side)", strokeWidth: 1 }} />
+                  <polygon points={pts(s.win)} style={{ fill: "none", stroke: "var(--fac-trim)", strokeWidth: 1.4 }} />
+                  <line x1={(s.win[0]![0] + s.win[1]![0]) / 2} y1={(s.win[0]![1] + s.win[1]![1]) / 2} x2={(s.win[3]![0] + s.win[2]![0]) / 2} y2={(s.win[3]![1] + s.win[2]![1]) / 2} style={{ stroke: "var(--fac-trim)", strokeWidth: 1 }} />
                   {/* facade bands: cornice + floor line */}
                   <line x1={s.faces.south[3]![0]} y1={s.faces.south[3]![1]} x2={s.faces.south[2]![0]} y2={s.faces.south[2]![1]} style={{ stroke: "var(--twin-text)", strokeWidth: 1.1, opacity: 0.35 }} />
                   {s.room.terrace && (() => {

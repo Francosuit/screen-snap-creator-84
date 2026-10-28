@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from "react";
 import type { Incident, Room } from "@/lib/suite/data";
 import { useSuite } from "@/lib/suite/store";
-import { floorsOf, layoutHotel, roomMeta } from "./geometry";
+import { floorsOf, layoutHotel } from "./geometry";
 import type { RoomInfo, StaffMarker } from "./IsoBuilding";
 
 /** Where a technician is, derived purely from incident state */
@@ -18,7 +18,7 @@ export function useTwin() {
   const floors = useMemo(() => floorsOf(hotel, s.rooms), [hotel, s.rooms]);
   const info = useCallback((r: Room): RoomInfo => {
     const occ = occupant(r.number);
-    return { state: roomState(r.number), guest: occ ? guest(occ.guestId)?.name : undefined, type: r.type, capacity: roomMeta(r).capacity };
+    return { state: roomState(r.number), guest: occ ? guest(occ.guestId)?.name : undefined, type: r.type, capacity: r.capacity };
   }, [roomState, occupant, guest]);
   const staff = useMemo<StaffMarker[]>(() => s.incidents.flatMap((i) => {
     const ph = techPhase(i);

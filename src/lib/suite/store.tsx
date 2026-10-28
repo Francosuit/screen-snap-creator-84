@@ -1,4 +1,5 @@
-import { claimInvites, loadConfig, overlayHotel } from "./cloud";
+import { claimInvites, loadConfig, overlayHotel, myMemberships, saveRoomConfig, type CloudConfig, type HotelRole } from "./cloud";
+import { canEditRoom } from "./room-permissions";
 import { useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 
@@ -109,6 +110,8 @@ function useSuiteState() {
   const [root, setRoot] = useState<Root>(initialRoot);
   const [loaded, setLoaded] = useState(false);
   const [uid, setUid] = useState<string | null>(null);
+  const [config, setConfig] = useState<CloudConfig | null>(null);
+  const [memberships, setMemberships] = useState<{ hotel_id: string; role: HotelRole }[]>([]);
   const [cloud, setCloud] = useState<"local" | "loading" | "saved" | "pending" | "error">("local");
   const remoteLoaded = useRef(false);
   useEffect(() => {
@@ -129,6 +132,7 @@ function useSuiteState() {
   /** Load the company's saved world from the backend once signed in */
   useEffect(() => {
     remoteLoaded.current = false;
+    setConfig(null); setMemberships([]);
     if (!uid) { setCloud("local"); return; }
     setCloud("loading");
     supabase.from("company_worlds").select("state").eq("owner_id", uid).maybeSingle().then(async ({ data, error }) => {
@@ -160,13 +164,20 @@ function useSuiteState() {
       }
       // Stored hotel/floor/room records are the source of truth for configuration
       await claimInvites();
-      const cfg = await loadConfig();
+      const [cfg, roles] = await Promise.all([loadConfig(), myMemberships()]);
+      setConfig(cfg); setMemberships(roles);
       if (cfg) setRoot((r) => {
         const hotels = [...r.hotels]; const data = { ...r.data };
         hotels.forEach((h, i) => {
           if (!h.owner || !data[h.id]) return;
           const o = overlayHotel(h, data[h.id]!.rooms, cfg);
           hotels[i] = o.hotel; data[h.id] = { ...data[h.id]!, rooms: o.rooms };
+        });
+        cfg.hotels.filter((h) => !h.archived && !hotels.some((x) => x.id === h.key)).forEach((h) => {
+          const base: Hotel = { id: h.key, name: h.name, address: h.address, city: h.city, category: h.category, owner: `cloud:${h.org_owner}`, rooms: 0, logo: h.name.slice(0, 2), status: "activo" };
+          const rooms: Room[] = cfg.rooms.filter((x) => x.hotel_id === h.id && !x.archived).map((x) => ({ number: x.number, floor: x.floor, type: x.type, rate: Number(x.rate), hk: "clean", oos: false }));
+          const over = overlayHotel(base, rooms, cfg);
+          hotels.push({ ...over.hotel, rooms: rooms.length }); data[h.key] = emptyData(over.rooms);
         });
         return { ...r, hotels, data };
       });
@@ -198,8 +209,11 @@ function useSuiteState() {
     return () => clearTimeout(t);
   }, [root, uid]);
 
-  const visible = visibleHotels(root.hotels, root.user);
+  const visible = root.hotels.filter((h) => visibleHotels([h], root.user).length || config?.hotels.some((c) => c.key === h.id && !c.archived));
   const hotel = visible.find((h) => h.id === root.hotel) ?? visible[0] ?? root.hotels.find((h) => !h.owner) ?? root.hotels[0]!;
+  const record = config?.hotels.find((h) => h.key === hotel.id && !h.archived);
+  const memberRole = record ? record.org_owner === uid ? "owner" : memberships.find((m) => m.hotel_id === record.id)?.role : undefined;
+  const canEditRoomConfig = record ? canEditRoom(memberRole) : !hotel.owner && canEditRoom(root.role);
   const s: State = useMemo(() => ({ ...(root.data[hotel.id] ?? root.data[root.hotels[0]!.id])!, role: root.role, hotel: hotel.id }), [root, hotel.id]);
   /** All actions write through the active hotel's slice — single source of truth */
   const setS = (fn: (p: State) => State) => setRoot((r) => {
@@ -564,22 +578,34 @@ function useSuiteState() {
     };
 
     /** Edit a room's characteristics only; reservations, tasks and incidents stay untouched */
-    const updateRoom = (num: string, edit: RoomEdit): boolean => {
+    const updateRoom = async (num: string, edit: RoomEdit): Promise<boolean> => {
+      if (!canEditRoomConfig) { say.error("No tienes permiso para editar esta habitación"); return false; }
       const err = validateRoomEdit(edit);
       if (err) { say.error(err); return false; }
       const room = s.rooms.find((r) => r.number === num);
       if (!room) return false;
-      const { room: next, changed } = applyRoomEdit(room, edit);
+      let { room: next, changed } = applyRoomEdit(room, edit);
       if (!changed.length) { say("Sin cambios"); return true; }
-      setS((p) => push({ ...p, rooms: p.rooms.map((r) => (r.number === num ? next : r)) }, [
-        { actor, text: `Habitación ${num} editada: ${changed.join(", ")}.`, kind: "human" },
-      ]));
+      if (record) {
+        try { next = await saveRoomConfig(record.id, room, edit); }
+        catch (error) { say.error("No se pudo guardar la habitación", { description: error instanceof Error ? error.message : "Inténtalo de nuevo" }); return false; }
+      }
+      // Capture the original hotel: a delayed cloud response must not edit another hotel's room.
+      setRoot((r) => {
+        const d = r.data[hotel.id];
+        if (!d) return r;
+        const updated = push({ ...d, role: r.role, hotel: hotel.id, rooms: d.rooms.map((x) => x.number === num ? applyRoomEdit(x, next).room : x) }, [
+          { actor, text: `Habitación ${num} editada: ${changed.join(", ")}.`, kind: "human" },
+        ]);
+        const { role: _role, hotel: _hotel, ...slice } = updated;
+        return { ...r, data: { ...r.data, [hotel.id]: slice } };
+      });
       say.success(`Habitación ${num} actualizada`);
       return true;
     };
 
     return { ...api, roomOp, simulateStep, createReservation, updateRoom, changeStay };
-  }, [s, helpers]);
+  }, [s, helpers, canEditRoomConfig, record, hotel.id]);
 
   // Activity simulator: fires a real action every few seconds while enabled
   const actionsRef = useRef(actions);
@@ -590,7 +616,7 @@ function useSuiteState() {
     return () => clearInterval(t);
   }, [root.sim]);
 
-  return { s, sim: !!root.sim, hotel, hotels: visible, world: root.data, org: root.org, ready: loaded && cloud !== "loading", cloud, user: (root.accounts ?? []).find((a) => a.email === root.user), ...helpers, alerts, actions };
+  return { s, sim: !!root.sim, hotel, hotels: visible, world: root.data, org: root.org, ready: loaded && cloud !== "loading", cloud, cloudHotelId: record?.id, canEditRoomConfig, user: (root.accounts ?? []).find((a) => a.email === root.user), ...helpers, alerts, actions };
 }
 
 type Ctx = ReturnType<typeof useSuiteState>;

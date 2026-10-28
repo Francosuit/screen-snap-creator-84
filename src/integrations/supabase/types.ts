@@ -168,6 +168,7 @@ export type Database = {
           floor: number
           hotel_id: string
           id: string
+          layout: Json | null
           notes: string | null
           number: string
           rate: number
@@ -187,6 +188,7 @@ export type Database = {
           floor: number
           hotel_id: string
           id?: string
+          layout?: Json | null
           notes?: string | null
           number: string
           rate?: number
@@ -206,6 +208,7 @@ export type Database = {
           floor?: number
           hotel_id?: string
           id?: string
+          layout?: Json | null
           notes?: string | null
           number?: string
           rate?: number

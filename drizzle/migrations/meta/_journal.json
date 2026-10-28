@@ -29,6 +29,13 @@
       "when": 1793182225083,
       "tag": "0003_authorized_room_configuration",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793198298370,
+      "tag": "0004_room_furniture_layout",
+      "breakpoints": true
     }
   ]
 }

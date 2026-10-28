@@ -41,8 +41,8 @@ function LoginPage() {
   const set = (k: keyof typeof f) => (v: string) => setF((p) => ({ ...p, [k]: v }));
 
   const doLogin = async () => { if (await actions.signIn(f.email.trim(), f.password)) navigate({ to: "/mundo" }); };
-  const doSignup = () => {
-    const ok = actions.signUp({
+  const doSignup = async () => {
+    const ok = await actions.signUp({
       email: f.email.trim(), password: f.password, name: f.name, surname: f.surname, position: f.position, role: "Owner / Admin",
       org: { name: f.company, owner: `${f.name} ${f.surname}`.trim(), email: f.email.trim(), tradeName: f.tradeName, country: f.country, city: f.city, phone: f.phone, type: f.type, employees: f.employees },
     });

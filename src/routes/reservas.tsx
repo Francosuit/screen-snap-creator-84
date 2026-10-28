@@ -70,7 +70,7 @@ function Reservas() {
                     <td className="tnum px-4 py-3">{r.outDay - r.inDay}</td>
                     <td className="tnum px-4 py-3">{r.pax}</td>
                     <td className="px-4 py-3"><span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ background: CH_COLOR[r.channel] }} />{CH_LABEL[r.channel] ?? r.channel}</span></td>
-                    <td className="tnum px-4 py-3">{eur(r.amount)}</td>
+                    <td className="tnum px-4 py-3"><div>{eur(r.amount)}</div>{r.outDay > r.inDay && <div className="text-[11px] text-muted-foreground">{eur(r.amount / (r.outDay - r.inDay))}/noche</div>}</td>
                     <td className="px-4 py-3"><ResPill status={resDisplay(r)} /></td>
                   </tr>
                 ))}

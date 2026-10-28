@@ -74,6 +74,38 @@ export type Database = {
         }
         Relationships: []
       }
+      hotel_budgets: {
+        Row: {
+          hotel_id: string
+          months: number[]
+          updated_at: string
+          updated_by: string | null
+          year: number
+        }
+        Insert: {
+          hotel_id: string
+          months: number[]
+          updated_at?: string
+          updated_by?: string | null
+          year: number
+        }
+        Update: {
+          hotel_id?: string
+          months?: number[]
+          updated_at?: string
+          updated_by?: string | null
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hotel_budgets_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hotel_floors: {
         Row: {
           hotel_id: string

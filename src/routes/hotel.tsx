@@ -129,9 +129,9 @@ function RoomPanel({ num, onClose, onFloor }: { num: string; onClose: () => void
         <Row k="Próximo huésped" v={next ? `${guest(next.guestId).name} · ${fmtDay(next.inDay)} ${next.eta}` : "—"} />
         <Row k="Housekeeping" v={task ? `${hk} · ${task.assignee.split(" ")[0]} (${task.status.replace("_", " ")})` : hk} />
         <Row k="Mantenimiento" v={incs.length ? <span className="text-st-maint">{incs.map((i) => i.category).join(", ")}</span> : room.oos ? "Fuera de servicio" : "Sin incidencias"} />
-        <Row k="Camas" v={meta.beds} /><Row k="Baño" v={meta.bath} />
+        <Row k="Camas" v={room.beds || "Sin indicar"} /><Row k="Baño" v={room.bath || "Sin indicar"} />
         <Row k="Ventana" v={room.window ?? "Sin indicar"} /><Row k="Equipamiento" v={room.extras?.join(", ") || "—"} />
-        <Row k="Terraza / vista" v={`${meta.terrace ? "Sí" : "No"} · ${meta.view}`} />
+        <Row k="Terraza / vista" v={`${room.terrace ? "Sí" : "No"} · ${room.view || "Sin indicar"}`} />
         <Row k="Precio base" v={eur(meta.price)} />
       </div>
       <div className="px-5 pb-4"><button onClick={onClose} className="text-xs text-muted-foreground hover:text-foreground">Cerrar ficha</button></div>

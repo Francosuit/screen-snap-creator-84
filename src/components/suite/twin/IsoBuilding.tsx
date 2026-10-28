@@ -281,11 +281,11 @@ export function IsoBuilding({ layout, info, focusFloor, selected, onSelect, laye
   );
 }
 
-export function TwinLegend({ className }: { className?: string }) {
+export function TwinLegend({ className, counts }: { className?: string; counts?: Partial<Record<RoomState, number>> }) {
   return (
-    <div className={cn("flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] text-twin-muted", className)}>
+    <div className={cn("flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] text-twin-muted", counts && "gap-2", className)}>
       {(Object.keys(STATE_VAR) as RoomState[]).map((k) => (
-        <span key={k} className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: STATE_VAR[k] }} />{k === "occupied" ? "In house" : ROOM_STATE[k].label}</span>
+        <span key={k} className={cn("flex items-center gap-1.5", counts && "rounded-full border border-twin-line px-2.5 py-1", counts && !counts[k] && "opacity-50")}><span className="h-2 w-2 rounded-full" style={{ background: STATE_VAR[k] }} />{k === "occupied" ? "In house" : ROOM_STATE[k].label}{counts && <b className="tnum text-twin-text">{counts[k] ?? 0}</b>}</span>
       ))}
     </div>
   );

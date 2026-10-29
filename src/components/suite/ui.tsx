@@ -52,7 +52,7 @@ const TS: Record<TaskStatus, [string, string]> = {
 };
 export const TaskPill = ({ s }: { s: TaskStatus }) => <Pill className={TS[s][1]}>{TS[s][0]}</Pill>;
 
-export function Card({ children, className, style }: { children: ReactNode; className?: string; style?: CSSProperties }) {
+export function Card({ children, className, style }: { children: ReactNode; className?: string; style?: CSSProperties | undefined }) {
   return <div style={style} className={cn("rounded-2xl border bg-card p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]", className)}>{children}</div>;
 }
 

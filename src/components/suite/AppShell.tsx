@@ -175,7 +175,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const known = NAV.some((n) => n.to === base);
   const allowed = !known || navAccess.includes(base);
   return (
-    <div className="flex min-h-screen">
+    <div className="suite-dark flex min-h-screen">
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar />

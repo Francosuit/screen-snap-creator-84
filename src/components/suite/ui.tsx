@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import type { Priority, RoomState, TaskStatus } from "@/lib/suite/data";
 import type { ResDisplay } from "@/lib/suite/store";
@@ -52,8 +52,8 @@ const TS: Record<TaskStatus, [string, string]> = {
 };
 export const TaskPill = ({ s }: { s: TaskStatus }) => <Pill className={TS[s][1]}>{TS[s][0]}</Pill>;
 
-export function Card({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn("rounded-2xl border bg-card p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]", className)}>{children}</div>;
+export function Card({ children, className, style }: { children: ReactNode; className?: string; style?: CSSProperties | undefined }) {
+  return <div style={style} className={cn("rounded-2xl border bg-card p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]", className)}>{children}</div>;
 }
 
 export function SectionTitle({ children, right }: { children: ReactNode; right?: ReactNode }) {
@@ -77,9 +77,9 @@ export function PageHeader({ title, sub, right }: { title: string; sub?: string;
   );
 }
 
-export function Kpi({ label, value, delta, hint }: { label: string; value: string; delta?: string; hint?: string }) {
+export function Kpi({ label, value, delta, hint, className, accent }: { label: string; value: string; delta?: string; hint?: string; className?: string; accent?: string }) {
   return (
-    <Card className="p-4">
+    <Card className={cn("p-4", className)} style={accent ? ({ "--kpi-accent": accent } as CSSProperties) : undefined}>
       <div className="text-xs text-muted-foreground">{label}</div>
       <div className="tnum mt-2 text-2xl font-semibold tracking-tight">{value}</div>
       <div className="mt-1 flex items-center gap-2 text-xs">

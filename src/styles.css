@@ -275,3 +275,35 @@
 }
 .glass-dash .glass-kpi:hover { transform: translateY(-2px); }
 .glass-dash .ring-card { --tw-ring-color: oklch(0.2 0.025 262); }
+
+/* Dashboard page: whole shell goes night-blue while the dashboard is on screen */
+:root:has(.glass-dash) {
+  --background: oklch(0.16 0.022 262);
+  --foreground: oklch(0.96 0.006 85);
+  --card: oklch(0.22 0.025 262);
+  --card-foreground: oklch(0.96 0.006 85);
+  --popover: oklch(0.2 0.025 262);
+  --popover-foreground: oklch(0.96 0.006 85);
+  --primary: oklch(0.78 0.12 80);
+  --primary-foreground: oklch(0.16 0.02 262);
+  --muted: oklch(1 0 0 / 0.06);
+  --muted-foreground: oklch(0.76 0.015 262);
+  --accent: oklch(1 0 0 / 0.08);
+  --accent-foreground: oklch(0.96 0.006 85);
+  --border: oklch(1 0 0 / 0.1);
+  --input: oklch(1 0 0 / 0.14);
+  --sidebar: oklch(0.14 0.02 262 / 0.7);
+  --sidebar-foreground: oklch(0.86 0.01 262);
+  --sidebar-accent: oklch(1 0 0 / 0.07);
+  --sidebar-accent-foreground: oklch(0.96 0.006 85);
+  --sidebar-border: oklch(1 0 0 / 0.08);
+}
+body:has(.glass-dash) {
+  background:
+    radial-gradient(50% 40% at 15% 0%, oklch(0.78 0.12 80 / 0.12), transparent 70%),
+    radial-gradient(45% 40% at 100% 20%, oklch(0.57 0.15 255 / 0.18), transparent 70%),
+    radial-gradient(50% 45% at 60% 100%, oklch(0.52 0.11 165 / 0.12), transparent 70%),
+    linear-gradient(160deg, oklch(0.18 0.03 262), oklch(0.13 0.01 270));
+  background-attachment: fixed;
+}
+body:has(.glass-dash) aside { backdrop-filter: blur(18px); }

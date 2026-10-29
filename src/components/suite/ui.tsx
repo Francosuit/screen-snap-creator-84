@@ -79,7 +79,7 @@ export function PageHeader({ title, sub, right }: { title: string; sub?: string;
 
 export function Kpi({ label, value, delta, hint, className, accent }: { label: string; value: string; delta?: string; hint?: string; className?: string; accent?: string }) {
   return (
-    <Card className={cn("p-4", className)} style={accent ? ({ "--kpi-accent": accent } as React.CSSProperties) : undefined}>
+    <Card className={cn("p-4", className)} style={accent ? ({ "--kpi-accent": accent } as CSSProperties) : undefined}>
       <div className="text-xs text-muted-foreground">{label}</div>
       <div className="tnum mt-2 text-2xl font-semibold tracking-tight">{value}</div>
       <div className="mt-1 flex items-center gap-2 text-xs">

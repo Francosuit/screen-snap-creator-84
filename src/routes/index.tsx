@@ -63,20 +63,20 @@ function Dashboard() {
   s.rooms.forEach((r) => { const st = roomState(r.number); if (st === "ready") counts.ready++; if (st === "dirty" || st === "cleaning") counts.dirty++; });
 
   return (
-    <div>
+    <div className="glass-dash">
       <PageHeader title={`Buenas tardes, ${ROLES[s.role].person.split(" ")[0]}`} sub={`Esto es lo que está pasando hoy en ${hotel.name}.`} />
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
-        <Kpi label="Facturación hoy" value={eur(revToday)} hint={`${sold.length} hab. vendidas`} />
-        <Kpi label="Facturación mes" value={eur(monthRev)} hint="1–10 nov" />
-        <Kpi label="Ocupación" value={`${occ}%`} hint={`${sold.length}/${AVAIL} hab.`} />
-        <Kpi label="ADR" value={eur(adr)} hint="tarifa media" />
-        <Kpi label="RevPAR" value={eur(AVAIL ? revToday / AVAIL : 0)} hint="por hab. disponible" />
+        <Kpi className="glass glass-kpi" accent="var(--st-ready)" label="Facturación hoy" value={eur(revToday)} hint={`${sold.length} hab. vendidas`} />
+        <Kpi className="glass glass-kpi" accent="var(--suite-gold)" label="Facturación mes" value={eur(monthRev)} hint="1–10 nov" />
+        <Kpi className="glass glass-kpi" accent="var(--st-occupied)" label="Ocupación" value={`${occ}%`} hint={`${sold.length}/${AVAIL} hab.`} />
+        <Kpi className="glass glass-kpi" accent="var(--chart-2)" label="ADR" value={eur(adr)} hint="tarifa media" />
+        <Kpi className="glass glass-kpi" accent="var(--st-cleaning)" label="RevPAR" value={eur(AVAIL ? revToday / AVAIL : 0)} hint="por hab. disponible" />
       </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         <div className="space-y-6">
-          <Card>
+          <Card className="glass">
             <SectionTitle right={<span className="tnum text-xs text-muted-foreground">{alerts.length} elementos</span>}>Requiere tu atención</SectionTitle>
             <div className="divide-y">
               {alerts.filter((x) => !isRevenue || x.level === "OPORTUNIDAD").map((x) => (
@@ -94,7 +94,7 @@ function Dashboard() {
           </Card>
 
           <div className="grid gap-6 md:grid-cols-2">
-            <Card>
+            <Card className="glass">
               <SectionTitle>Hoy</SectionTitle>
               <Stats items={[
                 ["Huéspedes IN HOUSE", inhouse.reduce((a, r) => a + r.pax, 0)],
@@ -105,7 +105,7 @@ function Dashboard() {
                 ["Pendientes de limpieza", counts.dirty],
               ]} />
             </Card>
-            <Card>
+            <Card className="glass">
               <SectionTitle>Mañana</SectionTitle>
               <Stats items={[
                 ["Check-ins", s.reservations.filter((r) => r.inDay === 1 && r.status === "confirmed").length],
@@ -117,7 +117,7 @@ function Dashboard() {
           </div>
         </div>
 
-        <Card>
+        <Card className="glass">
           <SectionTitle right={<span className="flex items-center gap-1.5 text-xs text-muted-foreground"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-st-ready" />En vivo</span>}>Actividad en tiempo real</SectionTitle>
           <ol className="relative space-y-4 before:absolute before:left-[47px] before:top-1 before:h-[calc(100%-8px)] before:w-px before:bg-border">
             {s.log.slice(0, 11).map((l) => (

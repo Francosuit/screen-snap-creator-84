@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { ROLES, type RoleKey } from "@/lib/suite/data";
 import { fmtClock, useSuite } from "@/lib/suite/store";
 import { NoAccess } from "./ui";
+import { Button } from "@/components/ui/button";
 
 const NAV = [
   { to: "/mundo", label: "Mi mundo", icon: Globe2 },
@@ -66,23 +67,24 @@ function NavList({ onNav }: { onNav?: () => void }) {
 }
 
 function Sidebar() {
-  const { hotel } = useSuite();
+  const { hotel, isDemo, org } = useSuite();
   return (
     <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col gap-6 border-r bg-sidebar px-3 py-5 lg:flex">
       <Logo />
       <NavList />
       <div className="mt-auto rounded-xl border bg-card p-3 text-xs">
-        <div className="text-muted-foreground">Grupo Suite</div>
+        <div className="text-muted-foreground">{org?.name || "Suite"}</div>
         <div className="mt-0.5 font-medium">{hotel.name}</div>
-        <div className="mt-2 flex items-center gap-1.5 text-muted-foreground"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-st-ready" /> Modo demo · datos ficticios</div>
+        <div className="mt-2 flex items-center gap-1.5 text-muted-foreground"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-st-ready" /> {isDemo ? "Modo demo · datos ficticios" : "Cuenta real"}</div>
       </div>
     </aside>
   );
 }
 
 function Topbar() {
-  const { s, actions, hotel, hotels, cloud } = useSuite();
+  const { s, actions, hotel, hotels, cloud, isDemo, user, org } = useSuite();
   const [open, setOpen] = useState(false);
+  const person = isDemo ? ROLES[s.role].person : [user?.name, user?.surname].filter(Boolean).join(" ") || user?.email || "Mi cuenta";
   const notifs = s.notifications.filter((n) => n.roles.includes(s.role));
   const unread = notifs.filter((n) => !n.read).length;
   return (
@@ -104,7 +106,7 @@ function Topbar() {
             <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-64">
-            <DropdownMenuLabel className="text-xs text-muted-foreground">Grupo Suite</DropdownMenuLabel>
+            <DropdownMenuLabel className="text-xs text-muted-foreground">{org?.name || "Mis hoteles"}</DropdownMenuLabel>
             {hotels.map((h) => (
               <DropdownMenuItem key={h.id} onClick={() => actions.setHotel(h.id)} className="flex items-center justify-between">
                 <div><div className="font-medium">{h.name}</div><div className="text-xs text-muted-foreground">{h.city} · {h.rooms} hab. · {h.category}</div></div>
@@ -141,15 +143,16 @@ function Topbar() {
         <DropdownMenu>
           <DropdownMenuTrigger className="flex items-center gap-2 rounded-lg py-1 pl-1 pr-2 hover:bg-accent">
             <div className="grid h-8 w-8 place-items-center rounded-full bg-secondary text-xs font-semibold ring-1 ring-border">
-              {ROLES[s.role].person.split(" ").map((x) => x[0]).join("")}
+              {person.split(" ").map((x) => x[0]).join("").slice(0, 2)}
             </div>
             <div className="hidden text-left leading-tight sm:block">
-              <div className="text-sm font-medium">{ROLES[s.role].person}</div>
+              <div className="text-sm font-medium">{person}</div>
               <div className="text-[11px] text-muted-foreground">{ROLES[s.role].title}</div>
             </div>
             <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-60">
+            {isDemo && <>
             <DropdownMenuLabel className="text-xs text-muted-foreground">Cambiar usuario (demo)</DropdownMenuLabel>
             <DropdownMenuSeparator />
             {(Object.keys(ROLES) as RoleKey[]).map((k) => (
@@ -160,6 +163,7 @@ function Topbar() {
             ))}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => actions.resetDemo()} className="text-muted-foreground">Reiniciar demo</DropdownMenuItem>
+            </>}
             <DropdownMenuItem onClick={() => actions.signOut()}>Cerrar sesión</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -169,7 +173,7 @@ function Topbar() {
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const { navAccess } = useSuite();
+  const { navAccess, hotels, isDemo } = useSuite();
   const path = useRouterState({ select: (r) => r.location.pathname });
   const base = "/" + (path.split("/")[1] ?? "");
   const known = NAV.some((n) => n.to === base);
@@ -180,7 +184,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar />
         <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-          {allowed ? children : <NoAccess />}
+          {!isDemo && !hotels.length ? <div className="py-16 text-center"><h1 className="text-2xl font-semibold">Todavía no tienes hoteles</h1><Button asChild className="mt-6"><Link to="/crear-hotel">Crear mi primer hotel</Link></Button></div> : allowed ? children : <NoAccess />}
         </main>
       </div>
     </div>

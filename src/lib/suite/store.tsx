@@ -1,5 +1,7 @@
+import { visibleHotels, sameIdentity } from "./isolation";
+export { visibleHotels } from "./isolation";
 import { effectiveNav } from "./staff-access";
-import { claimInvites, loadConfig, overlayHotel, myMemberships, saveRoomConfig, type CloudConfig, type HotelRole } from "./cloud";
+import { loadConfig, overlayHotel, myMemberships, saveRoomConfig, type CloudConfig, type HotelRole } from "./cloud";
 import { canEditRoom } from "./room-permissions";
 import { useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
@@ -23,10 +25,6 @@ import {
 import { SuiteCtx } from "./context";
 import { supabase } from "@/integrations/supabase/client";
 interface CloudState { account?: Account; hotels?: Hotel[]; data?: Record<string, Data> }
-/** Hotels a user may see: shared demo hotels plus their own — never another account's */
-export function visibleHotels(hotels: Hotel[], user: string | undefined): Hotel[] {
-  return hotels.filter((h) => !h.owner || (!!user && h.owner === user));
-}
 /** Only the most recent save may set the save status */
 export function isLatest(seq: number, current: number): boolean { return seq === current; }
 
@@ -114,118 +112,135 @@ function useSuiteState() {
   const [config, setConfig] = useState<CloudConfig | null>(null);
   const [memberships, setMemberships] = useState<{ hotel_id: string; role: HotelRole; modules: string[] | null }[]>([]);
   const [cloud, setCloud] = useState<"local" | "loading" | "saved" | "pending" | "error">("local");
-  const remoteLoaded = useRef(false);
-  useEffect(() => {
-    try { const raw = localStorage.getItem(STORAGE); if (raw) setRoot(JSON.parse(raw) as Root); } catch { /* ignore corrupt storage */ }
-    setLoaded(true);
-    supabase.auth.getSession().then(({ data }) => setUid(data.session?.user.id ?? null));
-    const { data: sub } = supabase.auth.onAuthStateChange((ev, sess) => {
-      if (ev === "SIGNED_IN" || ev === "SIGNED_OUT" || ev === "INITIAL_SESSION") setUid(sess?.user.id ?? null);
-      // Session ended anywhere (expiry, other tab): stop showing the previous user
-      if (ev === "SIGNED_OUT") setRoot((r) => ({ ...r, user: undefined }));
-      // A different real account signed in: never keep the previous user's identity
-      if (ev === "SIGNED_IN" && sess?.user.email) setRoot((r) => (r.user && r.user !== sess.user.email ? { ...r, user: undefined } : r));
-    });
-    return () => sub.subscription.unsubscribe();
-  }, []);
-  useEffect(() => { if (loaded) localStorage.setItem(STORAGE, JSON.stringify(root)); }, [root, loaded]);
-
-  /** Load the company's saved world from the backend once signed in */
-  useEffect(() => {
-    remoteLoaded.current = false;
-    setConfig(null); setMemberships([]);
-    if (!uid) { setCloud("local"); return; }
-    setCloud("loading");
-    supabase.from("company_worlds").select("state").eq("owner_id", uid).maybeSingle().then(async ({ data, error }) => {
-      if (error) { setCloud("error"); return; }
-      const st = data?.state as CloudState | undefined; const sh = st?.hotels ?? [];
-      if (st?.account && Array.isArray(st.hotels)) {
-        setRoot((r) => {
-          const email = st.account!.email;
-          const keep = r.hotels.filter((h) => h.owner !== email);
-          const accounts = [...(r.accounts ?? []).filter((a) => a.email !== email), st.account!];
-          const mine = sh[0]?.id;
-          return { ...r, accounts, user: email, org: st.account!.org, role: "owner", hotels: [...keep, ...sh], data: { ...r.data, ...st.data }, hotel: mine ?? r.hotel };
-        });
-      } else {
-        // No saved world yet: bind the real signed-in user so their first changes get saved
-        const { data: u } = await supabase.auth.getUser();
-        const email = u.user?.email;
-        if (email) {
-          const { data: p } = await supabase.from("profiles").select("display_name, company_name").eq("id", uid).maybeSingle();
-          setRoot((r) => {
-            const existing = (r.accounts ?? []).find((a) => a.email === email);
-            if (existing) return { ...r, user: email, org: existing.org, role: "owner" };
-            const [name = "", ...rest] = (p?.display_name ?? "").split(" ");
-            const org = { ...(r.org ?? {}), name: p?.company_name || r.org?.name || "" } as Organization;
-            const acc: Account = { email, password: "", name, surname: rest.join(" "), position: "", role: "owner", org };
-            return { ...r, accounts: [...(r.accounts ?? []), acc], user: email, org, role: "owner" };
-          });
-        }
-      }
-      // Stored hotel/floor/room records are the source of truth for configuration
-      await claimInvites();
-      const [cfg, roles] = await Promise.all([loadConfig(), myMemberships()]);
-      setConfig(cfg); setMemberships(roles);
-      if (cfg) setRoot((r) => {
-        const hotels = [...r.hotels]; const data = { ...r.data };
-        hotels.forEach((h, i) => {
-          if (!h.owner || !data[h.id]) return;
-          const o = overlayHotel(h, data[h.id]!.rooms, cfg);
-          hotels[i] = o.hotel; data[h.id] = { ...data[h.id]!, rooms: o.rooms };
-        });
-        cfg.hotels.filter((h) => !h.archived && !hotels.some((x) => x.id === h.key)).forEach((h) => {
-          const base: Hotel = { id: h.key, name: h.name, address: h.address, city: h.city, category: h.category, owner: `cloud:${h.org_owner}`, rooms: 0, logo: h.name.slice(0, 2), status: "activo" };
-          const rooms: Room[] = cfg.rooms.filter((x) => x.hotel_id === h.id && !x.archived).map((x) => ({ number: x.number, floor: x.floor, type: x.type, rate: Number(x.rate), hk: "clean", oos: false }));
-          const over = overlayHotel(base, rooms, cfg);
-          hotels.push({ ...over.hotel, rooms: rooms.length }); data[h.key] = emptyData(over.rooms);
-        });
-        return { ...r, hotels, data };
-      });
-      remoteLoaded.current = true;
-      setCloud("saved");
-    });
-  }, [uid]);
-
-  /** Save the signed-in owner's hotels + operational data (debounced, written strictly in order) */
+  const remoteLoaded = useRef<string | null>(null);
+  const currentUid = useRef<string | null>(null);
   const saveSeq = useRef(0);
   const saveChain = useRef<Promise<unknown>>(Promise.resolve());
   useEffect(() => {
-    if (!uid || !remoteLoaded.current || !root.user) return;
-    const account = (root.accounts ?? []).find((a) => a.email === root.user);
-    if (!account) return;
+    let alive = true, authEvent = false;
+    const identify = (next: string | null) => {
+      if (!alive) return;
+      if (currentUid.current !== next) {
+        currentUid.current = next;
+        remoteLoaded.current = null;
+        saveSeq.current++;
+        setConfig(null); setMemberships([]);
+        setRoot(initialRoot());
+      }
+      setCloud(next ? "loading" : "local");
+      setUid(next); setLoaded(true);
+    };
+    const { data: sub } = supabase.auth.onAuthStateChange((ev, sess) => {
+      if (["SIGNED_IN", "SIGNED_OUT", "INITIAL_SESSION"].includes(ev)) {
+        authEvent = true; identify(sess?.user.id ?? null);
+      }
+    });
+    supabase.auth.getSession().then(({ data }) => { if (!authEvent) identify(data.session?.user.id ?? null); });
+    return () => { alive = false; sub.subscription.unsubscribe(); };
+  }, []);
+  useEffect(() => {
+    if (!loaded) return;
+    if (uid && remoteLoaded.current === uid) localStorage.setItem(`${STORAGE}:${uid}`, JSON.stringify(root));
+    else if (!uid && !root.user) localStorage.setItem(`${STORAGE}:demo`, JSON.stringify(root));
+  }, [root, loaded, uid]);
+
+  /** Hydrate only the verified identity; never merge another account or demo into a real world. */
+  useEffect(() => {
+    let cancelled = false;
+    const valid = () => !cancelled && sameIdentity(uid, currentUid.current);
+    remoteLoaded.current = null;
+    setConfig(null); setMemberships([]);
+    if (!uid) { setCloud("local"); return; }
+    setCloud("loading");
+    const load = async () => {
+      const { data: auth, error: authError } = await supabase.auth.getUser();
+      if (!valid()) return;
+      if (authError || auth.user?.id !== uid || !auth.user.email) throw new Error("Sesión no válida");
+      const email = auth.user.email;
+      const [world, profile, cfg, roles] = await Promise.all([
+        supabase.from("company_worlds").select("state").eq("owner_id", uid).maybeSingle(),
+        supabase.from("profiles").select("display_name, company_name").eq("id", uid).maybeSingle(),
+        loadConfig(), myMemberships(),
+      ]);
+      if (!valid()) return;
+      if (world.error || !cfg) throw new Error(world.error?.message ?? "No se pudieron recuperar los hoteles");
+      const st = world.data?.state as CloudState | undefined;
+      let cached: Root | undefined;
+      try {
+        const raw = localStorage.getItem(`${STORAGE}:${uid}`) ?? localStorage.getItem(STORAGE);
+        if (raw) cached = JSON.parse(raw) as Root;
+      } catch { /* corrupt cache must not replace remote data */ }
+      const oldAccount = cached?.accounts?.find((a) => a.email === email);
+      const [name = "", ...rest] = (profile.data?.display_name ?? "").split(" ");
+      const org = st?.account?.org ?? oldAccount?.org ?? { name: profile.data?.company_name ?? "", email } as Organization;
+      const account: Account = { ...(oldAccount ?? st?.account), email, password: "", name, surname: rest.join(" "), position: "", role: "owner", org };
+      // Retain unsaved own hotels from the legacy cache only when no Cloud world exists.
+      const own = world.data ? (st?.hotels ?? []).filter((h) => h.owner === email) : visibleHotels(cached?.hotels ?? [], email);
+      const source = world.data ? st?.data : cached?.data;
+      const hotels: Hotel[] = [];
+      const data: Record<string, Data> = {};
+      for (const h of own) {
+        const d = source?.[h.id] ?? emptyData([]);
+        const over = overlayHotel(h, d.rooms, cfg);
+        hotels.push(over.hotel); data[h.id] = { ...d, rooms: over.rooms };
+      }
+      for (const h of cfg.hotels.filter((h) => !h.archived)) {
+        if (hotels.some((x) => x.id === h.key)) continue;
+        const base: Hotel = { id: h.key, name: h.name, address: h.address, city: h.city, category: h.category, owner: h.org_owner === uid ? email : `cloud:${h.org_owner}`, rooms: 0, logo: h.name.slice(0, 2), status: "activo" };
+        const rooms: Room[] = cfg.rooms.filter((x) => x.hotel_id === h.id && !x.archived).map((x) => ({ number: x.number, floor: x.floor, type: x.type, rate: Number(x.rate), hk: "clean", oos: false }));
+        const over = overlayHotel(base, rooms, cfg);
+        hotels.push({ ...over.hotel, rooms: rooms.length }); data[h.key] = emptyData(over.rooms);
+      }
+      const selected = hotels.find((h) => h.id === cached?.hotel) ?? hotels[0];
+      setConfig(cfg); setMemberships(roles);
+      remoteLoaded.current = uid;
+      setRoot({ role: "owner", hotel: selected?.id ?? "", hotels, data, accounts: [account], user: email, org, sim: false });
+      setCloud(world.data || cfg.hotels.length ? "saved" : "local");
+    };
+    load().catch((error) => { if (valid()) { setCloud("error"); toast.error("No se pudieron cargar tus hoteles", { description: error instanceof Error ? error.message : "Inténtalo de nuevo" }); } });
+    return () => { cancelled = true; };
+  }, [uid]);
+
+  /** Serialize saves and discard queued writes after an identity transition. */
+  useEffect(() => {
+    if (!uid || remoteLoaded.current !== uid || !root.user) return;
+    const account = root.accounts?.find((a) => a.email === root.user);
+    const hotels = root.hotels.filter((h) => h.owner === root.user);
+    if (!account || !hotels.length) return;
+    const seq = ++saveSeq.current;
     setCloud("pending");
     const t = setTimeout(() => {
-      const hotels = root.hotels.filter((h) => h.owner === root.user);
       const data: Record<string, Data> = {};
-      hotels.forEach((h) => { if (root.data[h.id]) data[h.id] = root.data[h.id]!; });
+      hotels.forEach((h) => { const d = root.data[h.id]; if (d) data[h.id] = d; });
       const state = JSON.parse(JSON.stringify({ account: { ...account, password: "" }, hotels, data }));
-      const seq = ++saveSeq.current;
-      saveChain.current = saveChain.current.then(async () => {
+      saveChain.current = saveChain.current.catch(() => undefined).then(async () => {
+        if (!sameIdentity(uid, currentUid.current) || remoteLoaded.current !== uid) return;
         const { error } = await supabase.from("company_worlds").upsert({ owner_id: uid, name: "Mi Isla", state }, { onConflict: "owner_id" });
-        if (!error) {
-          const fresh = await loadConfig();
-          if (fresh && isLatest(seq, saveSeq.current)) setConfig(fresh);
+        if (!sameIdentity(uid, currentUid.current) || !isLatest(seq, saveSeq.current)) return;
+        if (error) { setCloud("error"); toast.error("Error al guardar en la nube", { description: error.message }); return; }
+        const fresh = await loadConfig();
+        if (sameIdentity(uid, currentUid.current) && isLatest(seq, saveSeq.current)) {
+          if (fresh) setConfig(fresh);
+          setCloud("saved");
         }
-        if (error) { console.error("[Suite] cloud save failed", error.message); toast.error("Error al guardar en la nube", { description: error.message }); }
-        if (isLatest(seq, saveSeq.current)) setCloud(error ? "error" : "saved");
       });
     }, 1500);
     return () => clearTimeout(t);
   }, [root, uid]);
 
-  const visible = root.hotels.filter((h) => visibleHotels([h], root.user).length || config?.hotels.some((c) => c.key === h.id && !c.archived));
-  const hotel = visible.find((h) => h.id === root.hotel) ?? visible[0] ?? root.hotels.find((h) => !h.owner) ?? root.hotels[0]!;
+  const visible = visibleHotels(root.hotels, uid ? root.user ?? "__loading__" : undefined, config?.hotels.filter((h) => !h.archived).map((h) => h.key));
+  const hotel: Hotel = visible.find((h) => h.id === root.hotel) ?? visible[0] ?? { id: "", name: "Sin hoteles", address: "", city: "", category: "", rooms: 0, logo: "", status: "activo" };
   const record = config?.hotels.find((h) => h.key === hotel.id && !h.archived);
   const memberRole = record ? record.org_owner === uid ? "owner" : memberships.find((m) => m.hotel_id === record.id)?.role : undefined;
   const membership = record && memberRole !== "owner" ? memberships.find((m) => m.hotel_id === record.id) : undefined;
-  const navAccess = membership ? effectiveNav(NAV_ACCESS[membership.role], membership.role, membership.modules) : NAV_ACCESS[(memberRole ?? root.role) as RoleKey];
-  const canEditRoomConfig = record ? canEditRoom(memberRole) : !hotel.owner && canEditRoom(root.role);
-  const s: State = useMemo(() => ({ ...(root.data[hotel.id] ?? root.data[root.hotels[0]!.id])!, role: memberRole ?? root.role, hotel: hotel.id }), [root, hotel.id, memberRole]);
-  /** All actions write through the active hotel's slice — single source of truth */
+  const navAccess = membership ? effectiveNav(NAV_ACCESS[membership.role], membership.role, membership.modules) : uid && record && !memberRole ? [] : NAV_ACCESS[memberRole ?? root.role];
+  const canEditRoomConfig = record ? canEditRoom(memberRole) : !uid && !hotel.owner && canEditRoom(root.role);
+  const s: State = useMemo(() => ({ ...(root.data[hotel.id] ?? emptyData([])), role: memberRole ?? root.role, hotel: hotel.id }), [root, hotel.id, memberRole]);
   const setS = (fn: (p: State) => State) => setRoot((r) => {
-    const { role, hotel: h, ...d } = fn({ ...r.data[r.hotel]!, role: r.role, hotel: r.hotel });
-    return { ...r, role, hotel: h, data: { ...r.data, [r.hotel]: d } };
+    const d = r.data[hotel.id];
+    if (!d || !visible.some((h) => h.id === hotel.id)) return r;
+    const { role, hotel: h, ...next } = fn({ ...d, role: memberRole ?? r.role, hotel: hotel.id });
+    return { ...r, role, hotel: h, data: { ...r.data, [hotel.id]: next } };
   });
 
   const helpers = useMemo(() => {
@@ -284,9 +299,9 @@ function useSuiteState() {
     });
 
     const api = {
-      setRole: (role: RoleKey) => setS((p) => ({ ...p, role })),
-      setHotel: (h: HotelKey) => setRoot((r) => ({ ...r, hotel: h })),
-      resetDemo: () => { setRoot(initialRoot()); say.success("Demo reiniciada", { description: "Datos iniciales restaurados." }); },
+      setRole: (role: RoleKey) => { if (!uid) setS((p) => ({ ...p, role })); },
+      setHotel: (h: HotelKey) => { if (visible.some((x) => x.id === h)) setRoot((r) => ({ ...r, hotel: h })); },
+      resetDemo: () => { if (uid) return; setRoot(initialRoot()); say.success("Demo reiniciada", { description: "Datos iniciales restaurados." }); },
       setOrg: (org: Organization) => setRoot((r) => ({ ...r, org })),
       signUp: async (a: Account, returnPath?: string) => {
         if ((root.accounts ?? []).some((x) => x.email === a.email)) { say.error("Ese email ya tiene cuenta"); return false; }
@@ -294,7 +309,7 @@ function useSuiteState() {
         const redirect = returnPath?.startsWith("/invitacion?token=") ? `${window.location.origin}${returnPath}` : window.location.origin;
         const { data, error } = await supabase.auth.signUp({ email: a.email, password: a.password, options: { emailRedirectTo: redirect, data: { display_name: `${a.name} ${a.surname}`.trim(), company_name: a.org.name } } });
         if (error) { say.error("No se pudo crear la cuenta", { description: error.code === "weak_password" ? "La contraseña es demasiado débil o aparece en filtraciones conocidas. Elige otra más larga y única." : error.message }); return false; }
-        setRoot((r) => ({ ...r, accounts: [...(r.accounts ?? []), a], user: a.email, org: a.org, role: "owner" as RoleKey }));
+        setRoot((r) => ({ ...r, accounts: [...(r.accounts ?? []), { ...a, password: "" }], user: data.session ? a.email : undefined, org: a.org, role: "owner" as RoleKey }));
         if (!data.session) say("Revisa tu correo", { description: "Confirma tu email para guardar tu hotel en la nube." });
         return true;
       },
@@ -306,8 +321,9 @@ function useSuiteState() {
         say.error("No se pudo iniciar sesión en la nube", { description: reason });
         return false;
       },
-      signOut: () => { supabase.auth.signOut(); setRoot((r) => ({ ...r, user: undefined })); },
+      signOut: () => { currentUid.current = null; remoteLoaded.current = null; saveSeq.current++; setUid(null); setRoot(initialRoot()); supabase.auth.signOut(); },
       createHotel: (input: { name: string; address: string; city: string; category: string; description?: string; floors: Floor[]; rooms: Room[]; zones?: string[]; departments?: string[]; checkIn?: string; checkOut?: string; facade?: { primary: string; secondary: string } }) => {
+        if (!uid || remoteLoaded.current !== uid || !root.user || (record && record.org_owner !== uid)) { say.error("Inicia sesión como propietario para crear un hotel"); return; }
         const hid = id("h");
         const h: Hotel = {
           id: hid, name: input.name, address: input.address, city: input.city, category: input.category, description: input.description ?? "",
@@ -320,7 +336,7 @@ function useSuiteState() {
         setRoot((r) => ({ ...r, hotel: hid, hotels: [...r.hotels, h], data: { ...r.data, [hid]: d } }));
         return hid;
       },
-      setSim: (on: boolean) => setRoot((r) => ({ ...r, sim: on })),
+      setSim: (on: boolean) => { if (!uid) setRoot((r) => ({ ...r, sim: on })); },
       readAll: () => setS((p) => ({ ...p, notifications: p.notifications.map((n) => (n.roles.includes(p.role) ? { ...n, read: true } : n)) })),
 
       checkIn: (resId: string) => {
@@ -617,12 +633,12 @@ function useSuiteState() {
   const actionsRef = useRef(actions);
   actionsRef.current = actions;
   useEffect(() => {
-    if (!root.sim) return;
+    if (uid || !root.sim) return;
     const t = setInterval(() => actionsRef.current.simulateStep(), 2800);
     return () => clearInterval(t);
-  }, [root.sim]);
+  }, [root.sim, uid]);
 
-  return { s, sim: !!root.sim, hotel, hotels: visible, world: root.data, org: root.org, ready: loaded && cloud !== "loading", cloud, cloudHotelId: record?.id, canEditRoomConfig, navAccess, user: (root.accounts ?? []).find((a) => a.email === root.user), ...helpers, alerts, actions };
+  return { s, isDemo: !uid, sim: !uid && !!root.sim, hotel, hotels: visible, world: root.data, org: root.org, ready: loaded && cloud !== "loading", cloud, cloudHotelId: record?.id, canEditRoomConfig, navAccess, user: (root.accounts ?? []).find((a) => a.email === root.user), ...helpers, alerts, actions };
 }
 
 type Ctx = ReturnType<typeof useSuiteState>;

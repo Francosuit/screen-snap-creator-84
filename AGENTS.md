@@ -18,3 +18,5 @@
 - Staff permissions: role ceilings live in suite_role_modules() (mirrored in src/lib/suite/staff-access.ts); per-member modules are clamped by trigger and inactive members fail has_hotel_role. Why: deactivate without deleting history, permissions enforced in the database.
 - Revenue figures (YoY, budget, ADR) are computed only by src/lib/suite/revenue.ts from stored reservations; budgets live in hotel_budgets (RLS owner/director/revenue). Why: one counting rule, no fabricated history.
 - Staff join only through single-use invite links (token, expiry ≤30 days, revocation) accepted by suite_accept_invite with matching email; email auto-claim is retired. Why: no silent access, revocable.
+- Cloud hydration replaces demo state per verified identity; caches are UID-scoped and queued loads/saves are identity-guarded. Why: prevent account switches from mixing company data or overwriting another session.
+- Owner membership is allowed only for the immutable hotels.org_owner; invitation roles remain staff-only. Why: permit legitimate world synchronization without staff privilege escalation.

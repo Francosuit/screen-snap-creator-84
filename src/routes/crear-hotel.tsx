@@ -126,8 +126,8 @@ function Builder() {
   const canNext = step !== 0 || (h.name.trim() && h.city.trim());
 
   const build = () => {
-    actions.createHotel({ ...h, floors: floorList, rooms, zones, departments: depts, facade });
-    actions.setSim(true);
+    const created = actions.createHotel({ ...h, floors: floorList, rooms, zones, departments: depts, facade });
+    if (!created) return;
     navigate({ to: "/hotel" });
   };
 

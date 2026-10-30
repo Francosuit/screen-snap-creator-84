@@ -1,5 +1,9 @@
 # Roadmap
 
+- [ ] P0: corregir propietario legítimo sin permitir escalada de empleados
+- [ ] P0: separar demo, cuentas reales y hoteles de empleados; preservar guardados
+- [ ] P0: ejecutar todas las pruebas y verificar persistencia real y aislamiento disponible
+
 - [x] Acceso directo al editor existente, guardado autorizado Owner/Director y pruebas automáticas de bloqueo a Recepción
 - [ ] Verificar edición, recarga, historial y aislamiento en Cloud con Owner/Director y Recepción reales (bloqueado: no hay sesión autenticada disponible para el usuario)
 

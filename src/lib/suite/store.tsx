@@ -127,6 +127,7 @@ function useSuiteState() {
         setConfig(null); setMemberships([]);
         setRoot(initialRoot());
       }
+      setCloud(next ? "loading" : "local");
       setUid(next); setLoaded(true);
     };
     const { data: sub } = supabase.auth.onAuthStateChange((ev, sess) => {

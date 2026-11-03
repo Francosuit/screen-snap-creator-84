@@ -35,6 +35,7 @@ function Invitacion() {
   const [info, setInfo] = useState<Info | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  useEffect(() => { rememberInvite(token); }, [token]);
   useEffect(() => {
     if (!ready) return;
     let cancelled = false;
@@ -51,10 +52,13 @@ function Invitacion() {
   }, [token, ready, authReady]);
   const signIn = () => { rememberInvite(token); window.location.assign("/login"); };
   const accept = async () => {
+    if (busy || !authReady) return;
     setBusy(true); setErr("");
-    const { error } = await supabase.rpc("suite_accept_invite", { _token: token });
-    setBusy(false);
-    if (error) setErr(error.message); else { takeInvite(); window.location.assign("/"); }
+    try {
+      const { error } = await authTimeout(supabase.rpc("suite_accept_invite", { _token: token }));
+      if (error) setErr(error.message); else { takeInvite(); window.location.assign("/"); }
+    } catch (error) { setErr(error instanceof Error ? error.message : "Inténtalo de nuevo"); }
+    finally { setBusy(false); }
   };
   return (
     <div className="grid min-h-screen place-items-center bg-background p-6">

@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] P0 registro: no continuar sin sesión; esperar perfil/hoteles y conservar invitación; 21 pruebas pasan, confirmación simulada y recarga autenticada verificadas. Pendiente externo: confirmar correo y aceptar una invitación reales.
+
 - [ ] P0: corregir propietario legítimo sin permitir escalada de empleados
 - [ ] P0: separar demo, cuentas reales y hoteles de empleados; preservar guardados
 - [ ] P0: ejecutar todas las pruebas y verificar persistencia real y aislamiento disponible

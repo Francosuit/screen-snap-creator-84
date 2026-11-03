@@ -1,4 +1,5 @@
 import { visibleHotels, sameIdentity } from "./isolation";
+import { authTimeout, signupResult, type SignupResult } from "./auth-flow";
 export { visibleHotels } from "./isolation";
 import { effectiveNav } from "./staff-access";
 import { loadConfig, overlayHotel, myMemberships, saveRoomConfig, type CloudConfig, type HotelRole } from "./cloud";
@@ -126,8 +127,8 @@ function useSuiteState() {
         saveSeq.current++;
         setConfig(null); setMemberships([]);
         setRoot(initialRoot());
+        setCloud(next ? "loading" : "local");
       }
-      setCloud(next ? "loading" : "local");
       setUid(next); setLoaded(true);
     };
     const { data: sub } = supabase.auth.onAuthStateChange((ev, sess) => {
@@ -135,7 +136,7 @@ function useSuiteState() {
         authEvent = true; identify(sess?.user.id ?? null);
       }
     });
-    supabase.auth.getSession().then(({ data }) => { if (!authEvent) identify(data.session?.user.id ?? null); });
+    authTimeout(supabase.auth.getSession()).then(({ data }) => { if (!authEvent) identify(data.session?.user.id ?? null); }).catch(() => { if (!authEvent) identify(null); });
     return () => { alive = false; sub.subscription.unsubscribe(); };
   }, []);
   useEffect(() => {
@@ -153,17 +154,17 @@ function useSuiteState() {
     if (!uid) { setCloud("local"); return; }
     setCloud("loading");
     const load = async () => {
-      const { data: auth, error: authError } = await supabase.auth.getUser();
+      const { data: auth, error: authError } = await authTimeout(supabase.auth.getUser());
       if (!valid()) return;
       if (authError || auth.user?.id !== uid || !auth.user.email) throw new Error("Sesión no válida");
       const email = auth.user.email;
-      const [world, profile, cfg, roles] = await Promise.all([
+      const [world, profile, cfg, roles] = await authTimeout(Promise.all([
         supabase.from("company_worlds").select("state").eq("owner_id", uid).maybeSingle(),
         supabase.from("profiles").select("display_name, company_name").eq("id", uid).maybeSingle(),
         loadConfig(), myMemberships(),
-      ]);
+      ]));
       if (!valid()) return;
-      if (world.error || !cfg) throw new Error(world.error?.message ?? "No se pudieron recuperar los hoteles");
+      if (world.error || profile.error || !cfg) throw new Error(world.error?.message ?? profile.error?.message ?? "No se pudieron recuperar los hoteles");
       const st = world.data?.state as CloudState | undefined;
       let cached: Root | undefined;
       try {
@@ -303,23 +304,31 @@ function useSuiteState() {
       setHotel: (h: HotelKey) => { if (visible.some((x) => x.id === h)) setRoot((r) => ({ ...r, hotel: h })); },
       resetDemo: () => { if (uid) return; setRoot(initialRoot()); say.success("Demo reiniciada", { description: "Datos iniciales restaurados." }); },
       setOrg: (org: Organization) => setRoot((r) => ({ ...r, org })),
-      signUp: async (a: Account, returnPath?: string) => {
-        if ((root.accounts ?? []).some((x) => x.email === a.email)) { say.error("Ese email ya tiene cuenta"); return false; }
+      signUp: async (a: Account, returnPath?: string): Promise<SignupResult> => {
         // Create the secure account first; never continue with a browser-only account if it is rejected
         const redirect = returnPath?.startsWith("/invitacion?token=") ? `${window.location.origin}${returnPath}` : window.location.origin;
-        const { data, error } = await supabase.auth.signUp({ email: a.email, password: a.password, options: { emailRedirectTo: redirect, data: { display_name: `${a.name} ${a.surname}`.trim(), company_name: a.org.name } } });
-        if (error) { say.error("No se pudo crear la cuenta", { description: error.code === "weak_password" ? "La contraseña es demasiado débil o aparece en filtraciones conocidas. Elige otra más larga y única." : error.message }); return false; }
-        setRoot((r) => ({ ...r, accounts: [...(r.accounts ?? []), { ...a, password: "" }], user: data.session ? a.email : undefined, org: a.org, role: "owner" as RoleKey }));
-        if (!data.session) say("Revisa tu correo", { description: "Confirma tu email para guardar tu hotel en la nube." });
-        return true;
+        try {
+          const { data, error } = await authTimeout(supabase.auth.signUp({ email: a.email, password: a.password, options: { emailRedirectTo: redirect, data: { display_name: `${a.name} ${a.surname}`.trim(), company_name: a.org.name } } }));
+          if (error) { say.error("No se pudo crear la cuenta", { description: error.code === "weak_password" ? "La contraseña es demasiado débil o aparece en filtraciones conocidas. Elige otra más larga y única." : error.message }); return "error"; }
+          // Only verified Cloud hydration may install the signed-in account.
+          return signupResult(data);
+        } catch (error) {
+          say.error("No se pudo crear la cuenta", { description: error instanceof Error ? error.message : "Inténtalo de nuevo" });
+          return "error";
+        }
       },
       signIn: async (email: string, password: string) => {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        try {
+        const { error } = await authTimeout(supabase.auth.signInWithPassword({ email, password }));
         if (!error) return true; // saved world loads automatically
         // Never fall back to a browser-only session: it would look signed in while nothing reaches the cloud
         const reason = error.code === "email_not_confirmed" ? "Confirma tu correo con el enlace que te enviamos y vuelve a intentarlo." : error.code === "invalid_credentials" ? "Email o contraseña incorrectos." : error.message;
         say.error("No se pudo iniciar sesión en la nube", { description: reason });
         return false;
+        } catch (error) {
+          say.error("No se pudo iniciar sesión", { description: error instanceof Error ? error.message : "Inténtalo de nuevo" });
+          return false;
+        }
       },
       signOut: () => { currentUid.current = null; remoteLoaded.current = null; saveSeq.current++; setUid(null); setRoot(initialRoot()); supabase.auth.signOut(); },
       createHotel: (input: { name: string; address: string; city: string; category: string; description?: string; floors: Floor[]; rooms: Room[]; zones?: string[]; departments?: string[]; checkIn?: string; checkOut?: string; facade?: { primary: string; secondary: string } }) => {
@@ -638,7 +647,7 @@ function useSuiteState() {
     return () => clearInterval(t);
   }, [root.sim, uid]);
 
-  return { s, isDemo: !uid, sim: !uid && !!root.sim, hotel, hotels: visible, world: root.data, org: root.org, ready: loaded && cloud !== "loading", cloud, cloudHotelId: record?.id, canEditRoomConfig, navAccess, user: (root.accounts ?? []).find((a) => a.email === root.user), ...helpers, alerts, actions };
+  return { s, authReady: !!uid && remoteLoaded.current === uid && !!root.user, isDemo: !uid, sim: !uid && !!root.sim, hotel, hotels: visible, world: root.data, org: root.org, ready: loaded && cloud !== "loading", cloud, cloudHotelId: record?.id, canEditRoomConfig, navAccess, user: (root.accounts ?? []).find((a) => a.email === root.user), ...helpers, alerts, actions };
 }
 
 type Ctx = ReturnType<typeof useSuiteState>;

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import postgres from "postgres";
 
 // Runs against Cloud only when its supplied connection is present; every fixture rolls back.
-const connection = process.env.SUPABASE_DB_URL;
+const connection = process.env["SUPABASE_DB_URL"];
 const suite = connection ? describe : describe.skip;
 suite("Cloud owner trigger integration (transactional, privileged connection, not RLS)", () => {
   async function transaction(check: (sql: postgres.TransactionSql) => Promise<void>) {
@@ -23,13 +23,13 @@ suite("Cloud owner trigger integration (transactional, privileged connection, no
     await sql`select set_config('request.jwt.claim.sub', ${owner}, true)`;
     const [row] = await sql`insert into public.hotels(org_owner,key,name) values (${owner},gen_random_uuid()::text,'Transactional P0 test') returning id`;
     if (!row) throw new Error("Hotel fixture failed");
-    return row.id as string;
+    return row["id"] as string;
   }
   it("allows the recorded creator to receive owner membership", async () => {
     await transaction(async (sql) => {
       const id = await hotel(sql);
       const rows = await sql`insert into public.hotel_members(hotel_id,user_id,role) values (${id},${owner},'owner') returning role`;
-      expect(rows[0]?.role).toBe("owner");
+      expect(rows[0]?.["role"]).toBe("owner");
     });
   });
   it("blocks owner membership for a user from another organization", async () => {

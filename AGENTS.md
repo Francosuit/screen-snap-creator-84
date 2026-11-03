@@ -20,3 +20,4 @@
 - Staff join only through single-use invite links (token, expiry ≤30 days, revocation) accepted by suite_accept_invite with matching email; email auto-claim is retired. Why: no silent access, revocable.
 - Cloud hydration replaces demo state per verified identity; caches are UID-scoped and queued loads/saves are identity-guarded. Why: prevent account switches from mixing company data or overwriting another session.
 - Owner membership is allowed only for the immutable hotels.org_owner; invitation roles remain staff-only. Why: permit legitimate world synchronization without staff privilege escalation.
+- Signup returns an explicit confirmation/session/error outcome; login continues once verified identity hydration finishes, and pending invitations are consumed only after acceptance. Why: never confuse a successful signup with an authenticated, loaded account.

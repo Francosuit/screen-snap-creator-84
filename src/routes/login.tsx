@@ -1,7 +1,8 @@
-import { peekInvite, takeInvite } from "@/lib/suite/pending-invite";
+import { peekInvite } from "@/lib/suite/pending-invite";
+import { authenticatedDestination } from "@/lib/suite/auth-flow";
 import { ConstructionScene } from "@/components/suite/login/ConstructionScene";
 import logo from "@/assets/suite-solutions-logo.png.asset.json";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { LogIn, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,7 +24,7 @@ export const Route = createFileRoute("/login")({
   component: LoginPage,
 });
 
-type Mode = "home" | "login" | "signup";
+type Mode = "home" | "login" | "signup" | "confirmation";
 
 function Field({ label, value, onChange, type = "text", placeholder }: { label: string; value: string; onChange: (v: string) => void; type?: string; placeholder?: string }) {
   return (
@@ -35,22 +36,44 @@ function Field({ label, value, onChange, type = "text", placeholder }: { label: 
 }
 
 function LoginPage() {
-  const { actions } = useSuite();
+  const { actions, ready, authReady, user, hotels, cloud } = useSuite();
   const navigate = useNavigate();
   const [mode, setMode] = useState<Mode>("home");
   const [step, setStep] = useState(0);
+  const [busy, setBusy] = useState(false);
+  const navigating = useRef(false);
   const [f, setF] = useState({ email: "", password: "", name: "", surname: "", position: "Director/a", phone: "", company: "", tradeName: "", country: "España", city: "", type: "Hotel independiente", employees: "" });
   const set = (k: keyof typeof f) => (v: string) => setF((p) => ({ ...p, [k]: v }));
 
-  const doLogin = async () => { if (await actions.signIn(f.email.trim(), f.password)) { const next = takeInvite(); if (next) window.location.assign(next); else navigate({ to: "/mundo" }); } };
+  // One continuation handles sign-in, immediate signup and restored sessions.
+  useEffect(() => {
+    const next = authenticatedDestination(!!user && authReady, ready, peekInvite(), hotels.length > 0);
+    if (!next || busy || navigating.current) return;
+    navigating.current = true;
+    if (next.startsWith("/invitacion?token=")) {
+      navigate({ to: "/invitacion", search: { token: next.split("token=")[1] ?? "" }, replace: true });
+    } else {
+      navigate({ to: next === "/crear-hotel" ? "/crear-hotel" : "/mundo", replace: true });
+    }
+  }, [user, authReady, ready, hotels.length, busy, navigate]);
+
+  const doLogin = async () => {
+    if (busy) return;
+    setBusy(true);
+    try { await actions.signIn(f.email.trim(), f.password); }
+    finally { setBusy(false); }
+  };
   const doSignup = async () => {
+    if (busy) return;
+    setBusy(true);
     const invite = peekInvite();
-    const ok = await actions.signUp({
+    try {
+    const result = await actions.signUp({
       email: f.email.trim(), password: f.password, name: f.name, surname: f.surname, position: f.position, role: "Owner / Admin",
       org: { name: f.company, owner: `${f.name} ${f.surname}`.trim(), email: f.email.trim(), tradeName: f.tradeName, country: f.country, city: f.city, phone: f.phone, type: f.type, employees: f.employees },
     }, invite ?? undefined);
-    if (!ok) return;
-    if (invite) { takeInvite(); window.location.assign(invite); } else navigate({ to: "/crear-hotel" });
+    if (result === "confirmation") { setMode("confirmation"); set("password") (""); }
+    } finally { setBusy(false); }
   };
   const step0 = f.email.includes("@") && f.password.length >= 4 && f.name.trim();
   const step1 = f.company.trim() && f.city.trim();
@@ -67,6 +90,17 @@ function LoginPage() {
         </div>
         <div className="flex flex-1 items-center justify-center py-8">
         <div className="w-full max-w-md space-y-6">
+          {!ready && <p role="status" className="text-sm text-muted-foreground">Cargando tu cuenta…</p>}
+          {cloud === "error" && !authReady && <div role="alert" className="space-y-2 text-sm text-destructive">
+            <p>No se pudo validar la sesión o cargar tu cuenta. No continuaremos hasta comprobarla.</p>
+            <Button variant="outline" onClick={() => window.location.reload()}>Reintentar</Button>
+          </div>}
+          {mode === "confirmation" && <div className="space-y-4" role="status">
+            <h2 className="text-2xl font-semibold">Confirma tu correo</h2>
+            <p className="text-muted-foreground">Revisa el mensaje enviado a {f.email} y abre el enlace de confirmación. Después, inicia sesión.</p>
+            {peekInvite() && <p className="text-sm text-muted-foreground">Tu invitación sigue pendiente. Podrás revisarla y aceptarla al iniciar sesión.</p>}
+            <Button className="w-full" onClick={() => setMode("login")}>Iniciar sesión</Button>
+          </div>}
           {mode === "home" && (
             <>
               <div><h2 className="text-3xl font-semibold">Empecemos</h2><p className="mt-1 text-muted-foreground">Vamos a construir digitalmente tu hotel.</p></div>
@@ -83,7 +117,7 @@ function LoginPage() {
               <h2 className="text-2xl font-semibold">Iniciar sesión</h2>
               <Field label="Email" type="email" value={f.email} onChange={set("email")} />
               <Field label="Contraseña" type="password" value={f.password} onChange={set("password")} />
-              <Button type="submit" className="w-full">Entrar</Button>
+              <Button type="submit" className="w-full" disabled={busy || !ready}>{busy ? "Comprobando…" : "Entrar"}</Button>
               <Button type="button" variant="link" className="w-full" onClick={() => setMode("signup")}>¿No tienes cuenta? Créala</Button>
             </form>
           )}
@@ -122,10 +156,10 @@ function LoginPage() {
                 </div>
               )}
               <div className="flex gap-2">
-                <Button variant="outline" onClick={() => (step === 0 ? setMode("home") : setStep(0))}>Atrás</Button>
+                <Button variant="outline" disabled={busy} onClick={() => (step === 0 ? setMode("home") : setStep(0))}>Atrás</Button>
                 {step === 0
                   ? <Button className="flex-1" disabled={!step0} onClick={() => setStep(1)}>Continuar</Button>
-                  : <Button className="flex-1" disabled={!step1} onClick={doSignup}>Crear cuenta y construir mi hotel</Button>}
+                  : <Button className="flex-1" disabled={!step1 || busy || !ready} onClick={doSignup}>{busy ? "Creando cuenta…" : "Crear cuenta y construir mi hotel"}</Button>}
               </div>
             </div>
           )}

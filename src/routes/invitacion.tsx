@@ -3,7 +3,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ROLE_LABELS, type HotelRole } from "@/lib/suite/cloud";
-import { rememberInvite } from "@/lib/suite/pending-invite";
+import { rememberInvite, takeInvite } from "@/lib/suite/pending-invite";
+import { useSuite } from "@/lib/suite/store";
+import { authTimeout } from "@/lib/suite/auth-flow";
 
 export const Route = createFileRoute("/invitacion")({
   validateSearch: (s: Record<string, unknown>) => ({ token: typeof s["token"] === "string" ? (s["token"] as string) : "" }),
@@ -28,25 +30,31 @@ const MSG: Record<string, string> = {
 };
 
 function Invitacion() {
+  const { ready, authReady, cloud } = useSuite();
   const { token } = Route.useSearch();
   const [info, setInfo] = useState<Info | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   useEffect(() => {
+    if (!ready) return;
+    let cancelled = false;
     (async () => {
-      const { data: s } = await supabase.auth.getSession();
-      if (!s.session) { setInfo({ status: "signin" }); return; }
+      const { data: s } = await authTimeout(supabase.auth.getUser());
+      if (cancelled) return;
+      if (!s.user || !authReady) { setInfo({ status: "signin" }); return; }
       if (!/^[0-9a-f-]{36}$/i.test(token)) { setInfo({ status: "invalid" }); return; }
-      const { data, error } = await supabase.rpc("suite_invite_info", { _token: token });
+      const { data, error } = await authTimeout(supabase.rpc("suite_invite_info", { _token: token }));
+      if (cancelled) return;
       setInfo(error ? { status: "invalid" } : (data as Info));
-    })();
-  }, [token]);
+    })().catch(() => { if (!cancelled) setInfo({ status: "signin" }); });
+    return () => { cancelled = true; };
+  }, [token, ready, authReady]);
   const signIn = () => { rememberInvite(token); window.location.assign("/login"); };
   const accept = async () => {
     setBusy(true); setErr("");
     const { error } = await supabase.rpc("suite_accept_invite", { _token: token });
     setBusy(false);
-    if (error) setErr(error.message); else window.location.assign("/");
+    if (error) setErr(error.message); else { takeInvite(); window.location.assign("/"); }
   };
   return (
     <div className="grid min-h-screen place-items-center bg-background p-6">
@@ -63,9 +71,9 @@ function Invitacion() {
           <Button className="mt-4" onClick={signIn}>Iniciar sesión</Button>
         </>}
         {info?.status === "ok" && <>
-          <p className="mt-3 text-sm">Te unirás a <b>{info.hotel}</b> como <b>{ROLE_LABELS[info.role!]}</b>{info.position ? ` (${info.position})` : ""}.</p>
+          <p className="mt-3 text-sm">Te unirás a <b>{info.hotel}</b> como <b>{info.role ? ROLE_LABELS[info.role] : ""}</b>{info.position ? ` (${info.position})` : ""}.</p>
           <p className="mt-2 text-xs text-muted-foreground">Tendrás acceso solo a las secciones de ese rol. El propietario puede ajustarlas o desactivar tu acceso cuando quiera.</p>
-          <Button className="mt-4" disabled={busy} onClick={accept}>{busy ? "Aceptando…" : "Aceptar invitación"}</Button>
+          <Button className="mt-4" disabled={busy || !authReady || cloud === "loading"} onClick={accept}>{busy ? "Aceptando…" : "Aceptar invitación"}</Button>
           {err && <p className="mt-3 text-sm text-destructive">{err}</p>}
         </>}
         {info && MSG[info.status] && <p className="mt-3 text-sm text-muted-foreground">{MSG[info.status]}</p>}

@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] P0 registro: no continuar sin sesión; esperar perfil/hoteles y conservar invitación; probar confirmación, acceso y recarga.
+
 - [ ] P0: corregir propietario legítimo sin permitir escalada de empleados
 - [ ] P0: separar demo, cuentas reales y hoteles de empleados; preservar guardados
 - [ ] P0: ejecutar todas las pruebas y verificar persistencia real y aislamiento disponible

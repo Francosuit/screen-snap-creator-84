@@ -4,6 +4,7 @@ export { visibleHotels } from "./isolation";
 import { effectiveNav } from "./staff-access";
 import { loadConfig, overlayHotel, myMemberships, saveRoomConfig, type CloudConfig, type HotelRole } from "./cloud";
 import { canEditRoom } from "./room-permissions";
+import { loadOperations, saveOperations, operationChanges, overlayOperations } from './operations';
 import { useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 
@@ -117,6 +118,12 @@ function useSuiteState() {
   const currentUid = useRef<string | null>(null);
   const saveSeq = useRef(0);
   const saveChain = useRef<Promise<unknown>>(Promise.resolve());
+  const rootRef = useRef(root);
+  rootRef.current = root;
+  const operationChain = useRef<Promise<unknown>>(Promise.resolve());
+  const operationPending = useRef(0);
+  const operationGeneration = useRef(0);
+  const [operationCloud, setOperationCloud] = useState<'saved' | 'pending' | 'error'>('saved');
   useEffect(() => {
     let alive = true, authEvent = false;
     const identify = (next: string | null) => {
@@ -125,6 +132,9 @@ function useSuiteState() {
         currentUid.current = next;
         remoteLoaded.current = null;
         saveSeq.current++;
+        operationGeneration.current++;
+        operationPending.current = 0;
+        setOperationCloud('saved');
         setConfig(null); setMemberships([]);
         setRoot(initialRoot());
         setCloud(next ? "loading" : "local");
@@ -192,6 +202,12 @@ function useSuiteState() {
         const over = overlayHotel(base, rooms, cfg);
         hotels.push({ ...over.hotel, rooms: rooms.length }); data[h.key] = emptyData(over.rooms);
       }
+      await Promise.all(cfg.hotels.filter(h => !h.archived).map(async h => {
+        const stored = await loadOperations(h.id);
+        const slice = data[h.key];
+        if (slice) data[h.key] = overlayOperations(slice, stored);
+      }));
+      if (!valid()) return;
       const selected = hotels.find((h) => h.id === cached?.hotel) ?? hotels[0];
       setConfig(cfg); setMemberships(roles);
       remoteLoaded.current = uid;
@@ -229,6 +245,34 @@ function useSuiteState() {
     return () => clearTimeout(t);
   }, [root, uid]);
 
+  // Poll shared rows without reinstalling the world or overwriting in-flight local actions.
+  useEffect(() => {
+    if (!uid || remoteLoaded.current !== uid || !config) return;
+    let stopped = false, busy = false;
+    const refresh = async () => {
+      if (busy || operationPending.current || !sameIdentity(uid, currentUid.current)) return;
+      busy = true;
+      const generation = operationGeneration.current;
+      try {
+        const rows = await Promise.all(config.hotels.filter(h => !h.archived).map(async h => ({ key: h.key, stored: await loadOperations(h.id) })));
+        if (stopped || operationPending.current || generation !== operationGeneration.current || !sameIdentity(uid, currentUid.current)) return;
+        setRoot(r => {
+          const data = { ...r.data };
+          for (const { key, stored } of rows) {
+            const slice = data[key];
+            if (slice) data[key] = overlayOperations(slice, stored);
+          }
+          return JSON.stringify(data) === JSON.stringify(r.data) ? r : { ...r, data };
+        });
+      } catch { if (!stopped && sameIdentity(uid, currentUid.current)) setOperationCloud('error'); }
+      finally { busy = false; }
+    };
+    const timer = setInterval(() => void refresh(), 8000);
+    const focus = () => void refresh();
+    window.addEventListener('focus', focus);
+    return () => { stopped = true; clearInterval(timer); window.removeEventListener('focus', focus); };
+  }, [uid, config]);
+
   const visible = visibleHotels(root.hotels, uid ? root.user ?? "__loading__" : undefined, config?.hotels.filter((h) => !h.archived).map((h) => h.key));
   const hotel: Hotel = visible.find((h) => h.id === root.hotel) ?? visible[0] ?? { id: "", name: "Sin hoteles", address: "", city: "", category: "", rooms: 0, logo: "", status: "activo" };
   const record = config?.hotels.find((h) => h.key === hotel.id && !h.archived);
@@ -237,12 +281,46 @@ function useSuiteState() {
   const navAccess = membership ? effectiveNav(NAV_ACCESS[membership.role], membership.role, membership.modules) : uid && record && !memberRole ? [] : NAV_ACCESS[memberRole ?? root.role];
   const canEditRoomConfig = record ? canEditRoom(memberRole) : !uid && !hotel.owner && canEditRoom(root.role);
   const s: State = useMemo(() => ({ ...(root.data[hotel.id] ?? emptyData([])), role: memberRole ?? root.role, hotel: hotel.id }), [root, hotel.id, memberRole]);
-  const setS = (fn: (p: State) => State) => setRoot((r) => {
+  const setS = (fn: (p: State) => State) => {
+    const r = rootRef.current;
     const d = r.data[hotel.id];
-    if (!d || !visible.some((h) => h.id === hotel.id)) return r;
+    if (!d || !visible.some((h) => h.id === hotel.id)) return;
     const { role, hotel: h, ...next } = fn({ ...d, role: memberRole ?? r.role, hotel: hotel.id });
-    return { ...r, role, hotel: h, data: { ...r.data, [hotel.id]: next } };
-  });
+    const changes = operationChanges(d, next);
+    if (uid && changes.length && (!record || remoteLoaded.current !== uid)) { toast.error('Espera a que el hotel termine de guardarse en la nube'); return; }
+    const updated = { ...r, role, hotel: h, data: { ...r.data, [hotel.id]: next } };
+    rootRef.current = updated;
+    setRoot(updated);
+    if (!uid || !record || !changes.length) return;
+    const identity = uid, hotelId = record.id, key = hotel.id;
+    const generation = operationGeneration.current;
+    operationPending.current++;
+    setOperationCloud('pending');
+    operationChain.current = operationChain.current.catch(() => undefined).then(async () => {
+      if (!sameIdentity(identity, currentUid.current) || generation !== operationGeneration.current) return;
+      try {
+        await saveOperations(hotelId, changes);
+        if (sameIdentity(identity, currentUid.current) && generation === operationGeneration.current) {
+          operationPending.current--;
+          if (!operationPending.current) { setOperationCloud('saved'); toast.success('Operación guardada en la nube'); }
+        }
+      } catch (error) {
+        if (!sameIdentity(identity, currentUid.current) || generation !== operationGeneration.current) return;
+        operationGeneration.current++;
+        operationPending.current = 0;
+        setOperationCloud('error');
+        toast.error('No se guardó la operación', { description: error instanceof Error ? error.message : 'Inténtalo de nuevo' });
+        try {
+          const stored = await loadOperations(hotelId);
+          if (!sameIdentity(identity, currentUid.current)) return;
+          setRoot(current => {
+            const slice = current.data[key];
+            return slice ? { ...current, data: { ...current.data, [key]: overlayOperations(slice, stored) } } : current;
+          });
+        } catch { /* Keep error visible; never report a failed write as saved. */ }
+      }
+    });
+  };
 
   const helpers = useMemo(() => {
     const occupant = (room: string) => s.reservations.find((r) => r.room === room && r.stay === "inhouse");
@@ -635,7 +713,15 @@ function useSuiteState() {
       return true;
     };
 
-    return { ...api, roomOp, simulateStep, createReservation, updateRoom, changeStay };
+    const collection = { ...api, roomOp, simulateStep, createReservation, updateRoom, changeStay };
+    // Cloud actions report success only after the atomic write, not optimistic UI changes.
+    if (!uid) return collection;
+    const persisted = new Set(['checkIn','checkOut','startTask','finishTask','reportIssue','arriveIncident','roomOp','createReservation','changeStay']);
+    return Object.fromEntries(Object.entries(collection).map(([name, action]) => [name, persisted.has(name) ? (...args: unknown[]) => {
+      quiet = true;
+      try { return (action as (...values: unknown[]) => unknown)(...args); }
+      finally { quiet = false; }
+    } : action])) as typeof collection;
   }, [s, helpers, canEditRoomConfig, record, hotel.id]);
 
   // Activity simulator: fires a real action every few seconds while enabled
@@ -647,7 +733,8 @@ function useSuiteState() {
     return () => clearInterval(t);
   }, [root.sim, uid]);
 
-  return { s, authReady: !!uid && remoteLoaded.current === uid && !!root.user, isDemo: !uid, sim: !uid && !!root.sim, hotel, hotels: visible, world: root.data, org: root.org, ready: loaded && cloud !== "loading", cloud, cloudHotelId: record?.id, canEditRoomConfig, navAccess, user: (root.accounts ?? []).find((a) => a.email === root.user), ...helpers, alerts, actions };
+  const effectiveCloud = operationCloud === 'error' ? 'error' : operationCloud === 'pending' ? 'pending' : cloud;
+  return { s, authReady: !!uid && remoteLoaded.current === uid && !!root.user, isDemo: !uid, sim: !uid && !!root.sim, hotel, hotels: visible, world: root.data, org: root.org, ready: loaded && cloud !== "loading", cloud: effectiveCloud, cloudHotelId: record?.id, canEditRoomConfig, navAccess, user: (root.accounts ?? []).find((a) => a.email === root.user), ...helpers, alerts, actions };
 }
 
 type Ctx = ReturnType<typeof useSuiteState>;

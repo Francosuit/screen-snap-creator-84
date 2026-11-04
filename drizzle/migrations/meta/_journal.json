@@ -71,6 +71,13 @@
       "when": 1793371718627,
       "tag": "0009_legitimate_hotel_owner",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793808333791,
+      "tag": "0010_shared_hotel_operations",
+      "breakpoints": true
     }
   ]
 }

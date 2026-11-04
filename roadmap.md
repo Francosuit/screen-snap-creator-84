@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] P1 solicitado: tablas operativas por hotel, guardado atómico compartido, permisos por rol, protección de concurrencia y pruebas; conservar interfaz/demo/mundo.
+
 - [x] P0 registro: no continuar sin sesión; esperar perfil/hoteles y conservar invitación; 21 pruebas pasan, confirmación simulada y recarga autenticada verificadas. Pendiente externo: confirmar correo y aceptar una invitación reales.
 
 - [ ] P0: corregir propietario legítimo sin permitir escalada de empleados

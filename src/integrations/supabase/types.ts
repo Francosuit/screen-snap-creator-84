@@ -135,6 +135,76 @@ export type Database = {
           },
         ]
       }
+      hotel_guests: {
+        Row: {
+          data: Json
+          hotel_id: string
+          id: string
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          data: Json
+          hotel_id: string
+          id: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          data?: Json
+          hotel_id?: string
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hotel_guests_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hotel_incidents: {
+        Row: {
+          data: Json
+          hotel_id: string
+          id: string
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          data: Json
+          hotel_id: string
+          id: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          data?: Json
+          hotel_id?: string
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hotel_incidents_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hotel_invites: {
         Row: {
           accepted_at: string | null
@@ -229,6 +299,86 @@ export type Database = {
           },
         ]
       }
+      hotel_reservations: {
+        Row: {
+          data: Json
+          guest_id: string | null
+          hotel_id: string
+          id: string
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          data: Json
+          guest_id?: string | null
+          hotel_id: string
+          id: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          data?: Json
+          guest_id?: string | null
+          hotel_id?: string
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hotel_reservations_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservations_guest_fk"
+            columns: ["hotel_id", "guest_id"]
+            isOneToOne: false
+            referencedRelation: "hotel_guests"
+            referencedColumns: ["hotel_id", "id"]
+          },
+        ]
+      }
+      hotel_room_operations: {
+        Row: {
+          data: Json
+          hotel_id: string
+          id: string
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          data: Json
+          hotel_id: string
+          id: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          data?: Json
+          hotel_id?: string
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hotel_room_operations_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hotel_rooms: {
         Row: {
           archived: boolean
@@ -293,6 +443,41 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "hotel_rooms_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hotel_tasks: {
+        Row: {
+          data: Json
+          hotel_id: string
+          id: string
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          data: Json
+          hotel_id: string
+          id: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          data?: Json
+          hotel_id?: string
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hotel_tasks_hotel_id_fkey"
             columns: ["hotel_id"]
             isOneToOne: false
             referencedRelation: "hotels"
@@ -402,6 +587,10 @@ export type Database = {
         Returns: boolean
       }
       suite_accept_invite: { Args: { _token: string }; Returns: Json }
+      suite_apply_operations: {
+        Args: { _changes: Json; _hotel: string }
+        Returns: undefined
+      }
       suite_can_access: {
         Args: { _hotel: string; _module: string }
         Returns: boolean
@@ -412,6 +601,7 @@ export type Database = {
         Returns: Json
       }
       suite_invite_info: { Args: { _token: string }; Returns: Json }
+      suite_load_operations: { Args: { _hotel: string }; Returns: Json }
       suite_role_modules: {
         Args: { _role: Database["public"]["Enums"]["hotel_role"] }
         Returns: string[]

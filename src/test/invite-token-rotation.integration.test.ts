@@ -11,7 +11,7 @@ if (connection) {
     throw new Error("Invitation tests require a disposable local invite_security_test database");
   }
 }
-const migration = readFileSync(new URL("../../drizzle/migrations/0007_secure_invite_links.sql", import.meta.url), "utf8");
+const migration = readFileSync("drizzle/migrations/0007_secure_invite_links.sql", "utf8");
 function migrationFunction(name: string) {
   const start = migration.indexOf(`CREATE OR REPLACE FUNCTION public.${name}(`);
   const end = migration.indexOf("END $$;", start);

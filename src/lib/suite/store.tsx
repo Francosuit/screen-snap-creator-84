@@ -367,7 +367,8 @@ function useSuiteState() {
   }, [s, helpers]);
 
   const actions = useMemo(() => {
-    const actor = ROLES[s.role].person;
+    const account = root.accounts?.find((a) => a.email === root.user);
+    const actor = uid ? [account?.name, account?.surname].filter(Boolean).join(" ").trim() || root.user || uid : ROLES[s.role].person;
     const push = (st: State, entries: Omit<LogEntry, "id" | "time">[], minutes = 1): State => {
       const clock = st.clock + minutes;
       const t = fmtClock(clock);
@@ -459,7 +460,7 @@ function useSuiteState() {
         const deadlineMin = next ? Math.max(toMin(next.eta) - 30, s.clock + 30) : s.clock + 180;
         const priority: Priority = next ? (toMin(next.eta) - s.clock < 120 ? "urgente" : "alta") : nextTom ? "media" : "baja";
         const task: Task = {
-          id: id("T"), title: "Limpieza post check-out", room: r.room, assignee: "María López", dept: "housekeeping", priority,
+          id: id("T"), title: "Limpieza post check-out", room: r.room, assignee: uid ? "" : "María López", dept: "housekeeping", priority,
           day: 0, deadline: fmtClock(deadlineMin), status: "pendiente", kind: "limpieza",
           nextCheckIn: next ? next.eta : nextTom ? `Mañana ${nextTom.eta}` : undefined,
           comments: next ? `Próximo check-in hoy ${next.eta} · ${helpers.guest(next.guestId).name}.` : "Creada automáticamente por Suite.",
@@ -477,7 +478,7 @@ function useSuiteState() {
             { actor: "Suite", text: `Estancia finalizada. Mensajes detenidos para ${gName}.`, kind: "suite" },
             { actor: "Suite", text: `Habitación ${r.room} → PENDIENTE DE LIMPIEZA. Tarea creada · prioridad ${priority.toUpperCase()}.`, kind: "suite" },
           ]);
-          return notify(n, ["housekeeping"], `Nueva habitación asignada: ${r.room} (post check-out).`);
+          return notify(n, ["housekeeping"], `Nueva limpieza pendiente: ${r.room} (post check-out).`);
         });
         say.success("Check-out completado", { description: "✓ Comunicaciones detenidas\n✓ Limpieza creada automáticamente" });
       },
@@ -526,7 +527,7 @@ function useSuiteState() {
           return n;
         });
         say.success(t.dept === "housekeeping" ? `Habitación ${t.room} LISTA` : `Resuelto · ${t.room}`, {
-          description: t.dept === "housekeeping" ? "✓ Recepción notificada\n✓ Alerta de check-in actualizada" : "✓ Incidencia cerrada\n✓ Responsables notificados",
+          description: uid ? "Estado operativo actualizado" : t.dept === "housekeeping" ? "✓ Recepción notificada\n✓ Alerta de check-in actualizada" : "✓ Incidencia cerrada\n✓ Responsables notificados",
         });
       },
 
@@ -537,20 +538,20 @@ function useSuiteState() {
           const t = fmtClock(p.clock + 1);
           let n: State = {
             ...p,
-            incidents: [{ ...input, id: incId, status: "abierta", createdAt: t, reporter: actor, assignee: "Carlos Ruiz", taskId }, ...p.incidents],
+            incidents: [{ ...input, id: incId, status: "abierta", createdAt: t, reporter: actor, assignee: uid ? "" : "Carlos Ruiz", taskId }, ...p.incidents],
             tasks: [{
-              id: taskId, title: `${input.category}: ${input.description.slice(0, 40)}`, room: input.room, assignee: "Carlos Ruiz", dept: "mantenimiento",
+              id: taskId, title: `${input.category}: ${input.description.slice(0, 40)}`, room: input.room, assignee: uid ? "" : "Carlos Ruiz", dept: "mantenimiento",
               priority: input.blocking ? "alta" : "media", day: 0, deadline: fmtClock(p.clock + 120), status: "pendiente", comments: input.description,
               kind: "mantenimiento", incidentId: incId,
             }, ...p.tasks],
           };
           n = push(n, [
             { actor, text: `Reportó incidencia ${input.category.toLowerCase()} habitación ${input.room}.`, kind: "human" },
-            { actor: "Suite", text: `Tarea de mantenimiento creada y asignada a Carlos Ruiz${input.blocking ? " · habitación BLOQUEADA" : ""}.`, kind: "suite" },
+            { actor: "Suite", text: `Tarea de mantenimiento creada${uid ? " sin responsable" : " y asignada a Carlos Ruiz"}${input.blocking ? " · habitación BLOQUEADA" : ""}.`, kind: "suite" },
           ]);
           return notify(n, ["maintenance", "director", "owner"], `Nueva incidencia: ${input.category} · ${input.room}.`, "urgent");
         });
-        say.success("Incidencia reportada", { description: "✓ Tarea de mantenimiento creada\n✓ Carlos Ruiz notificado" });
+        say.success("Incidencia reportada", { description: uid ? "Tarea de mantenimiento creada sin responsable" : "✓ Tarea de mantenimiento creada\n✓ Carlos Ruiz notificado" });
       },
 
       /** Technician reaches the room of an incident in progress */
@@ -604,11 +605,11 @@ function useSuiteState() {
       if (op === "start" && open && open.status === "pendiente") return api.startTask(open.id);
       if (op === "finish" && open && open.status === "en_proceso") return api.finishTask(open.id);
       if (op === "dirty" || (op === "start" && !open)) {
-        const task: Task = { id: id("T"), title: op === "dirty" ? "Limpieza solicitada" : "Limpieza", room: num, assignee: "María López", dept: "housekeeping", priority: "media", day: 0, deadline: fmtClock(s.clock + 90), status: op === "start" ? "en_proceso" : "pendiente", comments: "Creada desde el hotel digital.", kind: "limpieza", ...(op === "start" ? { startedAt: fmtClock(s.clock + 1) } : {}) };
+        const task: Task = { id: id("T"), title: op === "dirty" ? "Limpieza solicitada" : "Limpieza", room: num, assignee: uid ? op === "start" ? actor : "" : "María López", dept: "housekeeping", priority: "media", day: 0, deadline: fmtClock(s.clock + 90), status: op === "start" ? "en_proceso" : "pendiente", comments: "Creada desde el hotel digital.", kind: "limpieza", ...(op === "start" ? { startedAt: fmtClock(s.clock + 1) } : {}) };
         setS((p) => notify(push({ ...p, tasks: [task, ...p.tasks], rooms: p.rooms.map((r) => (r.number === num ? { ...r, hk: op === "start" ? "cleaning" : "dirty" } : r)) }, [
           { actor, text: op === "dirty" ? `Marcó habitación ${num} pendiente de limpieza.` : `Empezó limpieza habitación ${num}.`, kind: "human" },
-          { actor: "Suite", text: `Habitación ${num} → ${op === "dirty" ? "PENDIENTE DE LIMPIEZA" : "LIMPIEZA EN PROCESO"}. Tarea asignada a María López.`, kind: "suite" },
-        ]), ["housekeeping"], `Nueva habitación asignada: ${num}.`));
+          { actor: "Suite", text: `Habitación ${num} → ${op === "dirty" ? "PENDIENTE DE LIMPIEZA" : "LIMPIEZA EN PROCESO"}. ${uid ? "Tarea creada." : "Tarea asignada a María López."}`, kind: "suite" },
+        ]), ["housekeeping"], `Limpieza de habitación: ${num}.`));
         say(op === "dirty" ? `Habitación ${num} pendiente de limpieza` : `Limpieza en proceso · ${num}`, { description: "✓ Tarea de housekeeping creada" });
       }
     };
@@ -722,7 +723,7 @@ function useSuiteState() {
       try { return (action as (...values: unknown[]) => unknown)(...args); }
       finally { quiet = false; }
     } : action])) as typeof collection;
-  }, [s, helpers, canEditRoomConfig, record, hotel.id]);
+  }, [s, helpers, canEditRoomConfig, record, hotel.id, uid, root.user, root.accounts]);
 
   // Activity simulator: fires a real action every few seconds while enabled
   const actionsRef = useRef(actions);

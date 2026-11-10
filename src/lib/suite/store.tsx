@@ -483,6 +483,7 @@ function useSuiteState() {
           return notify(n, ["housekeeping"], `Nueva limpieza pendiente: ${r.room} (post check-out).`);
         });
         say.success("Check-out completado", { description: "✓ Comunicaciones detenidas\n✓ Limpieza creada automáticamente" });
+        return true;
       },
 
       startTask: (taskId: string) => {
@@ -502,6 +503,7 @@ function useSuiteState() {
           return n;
         });
         say(t.dept === "housekeeping" ? `Limpieza en proceso · ${t.room}` : `Tarea iniciada · ${t.room}`, { description: "Recepción y dirección ven el cambio en tiempo real." });
+        return true;
       },
 
       finishTask: (taskId: string) => {
@@ -533,6 +535,7 @@ function useSuiteState() {
         say.success(t.dept === "housekeeping" ? `Habitación ${t.room} LISTA` : `Resuelto · ${t.room}`, {
           description: uid ? "Estado operativo actualizado" : t.dept === "housekeeping" ? "✓ Recepción notificada\n✓ Alerta de check-in actualizada" : "✓ Incidencia cerrada\n✓ Responsables notificados",
         });
+        return true;
       },
 
       reportIssue: (input: { room: string; category: string; description: string; photo: boolean; blocking: boolean }) => {
@@ -624,7 +627,9 @@ function useSuiteState() {
           { actor: "Suite", text: `Habitación ${num} → ${op === "dirty" ? "PENDIENTE DE LIMPIEZA" : "LIMPIEZA EN PROCESO"}. ${uid ? "Tarea creada." : "Tarea asignada a María López."}`, kind: "suite" },
         ]), ["housekeeping"], `Limpieza de habitación: ${num}.`));
         say(op === "dirty" ? `Habitación ${num} pendiente de limpieza` : `Limpieza en proceso · ${num}`, { description: "✓ Tarea de housekeeping creada" });
+        return true;
       }
+      return false;
     };
 
     const NAMES = ["Lucía Romero", "Thomas Weber", "Sara Conti", "Ahmed Nasser", "Julia Novak", "Diego Castro", "Mia Jensen", "Oliver King", "Nora Silva", "Leo Fischer"];

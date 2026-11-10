@@ -59,7 +59,7 @@ describe('Sprint 02 — limpieza consistente', () => {
   it.each([true, false])('reutiliza limpieza abierta y bloquea repeticiones incluso en la misma llamada (real=%s)', async real => {
     mock.real = real;
     const { result } = await mount();
-    const room = real ? '101' : '103';
+    const room = real ? '101' : result.current.s.rooms.find(r => !r.oos && !result.current.s.tasks.some(t => t.room === r.number && t.dept === 'housekeeping' && t.status !== 'completada'))?.number ?? '';
     const before = result.current.s.tasks.filter(t => t.room === room).length;
     await act(async () => {
       result.current.actions.roomOp(room, 'dirty');

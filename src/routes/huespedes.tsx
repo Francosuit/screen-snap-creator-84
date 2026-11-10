@@ -5,6 +5,8 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { fmtDay, resDisplay, useSuite } from "@/lib/suite/store";
 import { Card, PageHeader, ResPill, Row } from "@/components/suite/ui";
 import { ReservationSheet } from "@/components/suite/panels";
+import { GuestEditor } from "@/components/suite/GuestEditor";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/huespedes")({
   head: () => ({
@@ -25,6 +27,7 @@ function Huespedes() {
   const [tab, setTab] = useState("inhouse");
   const [open, setOpen] = useState<string | null>(null);
   const [res, setRes] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
   const filt = {
     inhouse: s.reservations.filter((r) => r.stay === "inhouse"),
     llegadas: s.reservations.filter((r) => r.status === "confirmed" && r.stay === "none" && r.inDay >= 0 && r.inDay <= 1),
@@ -43,7 +46,7 @@ function Huespedes() {
         {filt.map((x) => {
           const gg = guest(x.guestId);
           return (
-            <button key={x.id} onClick={() => setOpen(x.id)} className="text-left">
+            <button key={x.id} onClick={() => { setEditing(false); setOpen(x.id); }} className="text-left">
               <Card className="transition hover:shadow-md">
                 <div className="flex items-center gap-3">
                   <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-secondary text-xs font-semibold ring-1 ring-border">{gg.name.split(" ").map((p) => p[0]).join("")}</div>
@@ -61,6 +64,7 @@ function Huespedes() {
           {r && g && (
             <>
               <SheetHeader className="p-0"><ResPill status={resDisplay(r)} /><SheetTitle className="text-xl">{g.name}</SheetTitle><SheetDescription>{g.country} · {g.lang}</SheetDescription></SheetHeader>
+              {editing ? <GuestEditor key={g.id} guest={g} onClose={() => setEditing(false)} /> : <>
               <div className="mt-4 divide-y">
                 <Row k="Documento" v={g.doc} /><Row k="Teléfono" v={g.phone} /><Row k="Email" v={<span className="break-all">{g.email}</span>} />
                 <Row k="Habitación" v={r.room} /><Row k="Entrada" v={fmtDay(r.inDay)} /><Row k="Salida" v={fmtDay(r.outDay)} />
@@ -68,7 +72,9 @@ function Huespedes() {
                 <Row k="Mensajes" v={g.messaging ? "Activos" : "Detenidos"} />
               </div>
               <p className="mt-4 rounded-xl bg-muted p-3 text-sm">{g.notes || "Sin notas."}</p>
+              {["owner", "director", "reception"].includes(s.role) && <Button className="mt-4" variant="outline" onClick={() => setEditing(true)}>Editar huésped</Button>}
               <button className="mt-4 text-sm font-medium text-brand hover:underline" onClick={() => { setOpen(null); setRes(r.id); }}>Abrir reserva {r.id} →</button>
+              </>}
             </>
           )}
         </SheetContent>

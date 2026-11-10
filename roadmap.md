@@ -1,7 +1,22 @@
 # Roadmap
 
 - [x] Sprint 02: revisión estática de Reservas, Habitaciones, Huéspedes y Limpieza completada. No repetir esta auditoría al retomar.
-- [ ] Sprint 02 — Tarea 01: eliminar asignaciones de personal ficticio en operaciones reales. **PAUSADA antes de implementar; no continuar hasta disponer de créditos.**
+- [ ] Sprint 02 — Tarea 01: implementada; 6 pruebas aisladas pasan (demo, identidad simulada, cambios y recarga). Validación cloud real pendiente en hotel independiente autorizado.
+- [ ] Sprint 02 — Tarea 02: implementada; 2 pruebas aisladas pasan, habitación actual y descripción obligatorias, formulario real vacío. Validación Cloud pendiente.
+- [ ] Sprint 02 — Tarea 03: implementada; reutilización de tareas abiertas, guardas contra inicio/finalización/checkout repetidos, nueva limpieza tras completar la anterior. Pruebas en curso.
+- [ ] Sprint 02 — Tarea 04: implementada con `updateGuest` y editor de los seis campos; 2 pruebas de acción/recarga aislada pasan. Comprobación formulario en curso; Cloud real pendiente.
+- [ ] Sprint 02 — Tarea 05: bienvenida/envíos/adjuntos ficticios desactivados en cuentas reales. Fechas BLOQUEADAS: días relativos a `DEMO_DATE` sin origen por reserva; cambiar el origen desplazaría reservas existentes. Requiere migración compatible fuera del alcance autorizado; no se modificó la base de fechas.
+
+## Reanudación — 10 de noviembre de 2026
+
+- Tarea 01: `store.tsx` crea nuevas tareas/incidencias reales sin responsables inventados; inicia con nombre del perfil verificado (correo/UID como respaldo). Conserva responsables demo y elimina afirmaciones reales de asignación/notificación no confirmadas.
+- Pruebas ejecutadas: `sprint02.test.tsx` 6/6 y `auth-flow.test.tsx` 7/7. Recarga mediante almacenamiento simulado, no Cloud real. Error de tipos detectado en la prueba y corregido; siguiente comprobación pendiente.
+- Sin escrituras en Cloud ni modificaciones de Hotel Homeless; sin cambios de autenticación, roles, guardado atómico ni configuración.
+- Archivos hasta este punto: `store.tsx`, `sprint02.test.tsx`, `panels.tsx`, `roadmap.md`.
+- El punto de pausa siguiente se registra aquí; las secciones anteriores se conservan como historial, no describen el estado actual.
+- Tarea 02: `sprint02.test.tsx` 8/8 y `calendar.test.ts` 13/13; compilación OK tras corregir acceso de índices en la prueba.
+- Tarea 03: 11/11 pruebas de Sprint pasan; compilación OK. Caso demo corregido para usar una habitación sin tarea abierta. Sin cambios en el guardado atómico.
+- Tarea 04: 13/13 pruebas de Sprint y 28 de regresión (acceso, calendario, revenue) pasan; compilación OK. `GuestEditor.tsx` nuevo, conectado a `huespedes.tsx`; regla registrada en `AGENTS.md`.
 
 ## Punto exacto de pausa — Sprint 02 (9 de noviembre de 2026)
 

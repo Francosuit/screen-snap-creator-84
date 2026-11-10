@@ -243,12 +243,18 @@ export function RoomSheet({ room, onClose, onOpenRes, edit = false }: { room: st
 }
 
 export function ReportIssueDialog({ open, onOpenChange, defaultRoom }: { open: boolean; onOpenChange: (o: boolean) => void; defaultRoom?: string | undefined }) {
-  const { s, actions } = useSuite();
-  const [room, setRoom] = useState(defaultRoom ?? "204");
+  const { s, actions, isDemo } = useSuite();
+  const [room, setRoom] = useState(defaultRoom ?? (isDemo ? "204" : ""));
   const [category, setCategory] = useState("Climatización");
-  const [description, setDescription] = useState("Aire acondicionado no funciona.");
+  const [description, setDescription] = useState(isDemo ? "Aire acondicionado no funciona." : "");
   const [photo, setPhoto] = useState(false);
   const [blocking, setBlocking] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    setRoom(defaultRoom && s.rooms.some(r => r.number === defaultRoom) ? defaultRoom : isDemo && s.rooms.some(r => r.number === "204") ? "204" : "");
+    setDescription(isDemo ? "Aire acondicionado no funciona." : "");
+    setPhoto(false); setBlocking(false);
+  }, [open, defaultRoom, s.hotel, isDemo]);
   return (
     <Dialog open={open} onOpenChange={(o) => { onOpenChange(o); if (o && defaultRoom) setRoom(defaultRoom); }}>
       <DialogContent className="sm:max-w-md">
@@ -270,12 +276,12 @@ export function ReportIssueDialog({ open, onOpenChange, defaultRoom }: { open: b
           <label className="grid gap-1 text-xs text-muted-foreground">Descripción
             <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
           </label>
-          <button type="button" onClick={() => setPhoto(!photo)}
+          {isDemo && <Button variant="outline" type="button" onClick={() => setPhoto(!photo)}
             className={`flex h-20 items-center justify-center gap-2 rounded-xl border border-dashed text-sm ${photo ? "border-st-ready bg-st-ready/10 text-st-ready" : "text-muted-foreground hover:bg-accent"}`}>
             <Camera className="h-4 w-4" />{photo ? "Foto adjunta (simulada) ✓" : "Añadir foto (simulada)"}
-          </button>
+          </Button>}
           <label className="flex items-center justify-between rounded-xl border px-3 py-2.5 text-sm">Bloquear habitación<Switch checked={blocking} onCheckedChange={setBlocking} /></label>
-          <Button disabled={!description.trim()} onClick={() => { actions.reportIssue({ room, category, description, photo, blocking }); onOpenChange(false); }}>Crear incidencia</Button>
+          <Button disabled={!description.trim() || !s.rooms.some(r => r.number === room)} onClick={() => { if (actions.reportIssue({ room, category, description, photo, blocking })) onOpenChange(false); }}>Crear incidencia</Button>
         </div>
       </DialogContent>
     </Dialog>

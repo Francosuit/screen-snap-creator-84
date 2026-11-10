@@ -1,4 +1,5 @@
-import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
+import { act, cleanup, renderHook, waitFor, render, screen, fireEvent } from '@testing-library/react';
+import { GuestEditor } from '@/components/suite/GuestEditor';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { SuiteProvider, useSuite } from '@/lib/suite/store';
 import { operationSnapshot, overlayOperations, operationChanges, type Operations } from '@/lib/suite/operations';
@@ -99,6 +100,45 @@ describe('Sprint 02 — limpieza consistente', () => {
   });
 });
 afterEach(cleanup);
+describe('Sprint 02 — operaciones honestas', () => {
+  it.each([true, false])('check-in solo simula bienvenida en demo (real=%s)', async real => {
+    mock.real = real;
+    mock.stored.reservations = mock.stored.reservations.map(r => ({ ...r, stay: 'none', inDay: 0, outDay: 2 }));
+    const { result } = await mount();
+    const reservation = result.current.s.reservations.find(r => r.stay === 'none' && result.current.roomState(r.room) === 'ready');
+    if (!reservation) throw new Error('Missing arrival');
+    const count = result.current.s.sent.length;
+    await act(async () => { result.current.actions.checkIn(reservation.id); });
+    expect(result.current.s.sent).toHaveLength(count + (real ? 0 : 1));
+    expect(result.current.s.reservations.find(r => r.id === reservation.id)?.stay).toBe('inhouse');
+  });
+  it('cuenta real no guarda fotos ficticias ni simula envíos', async () => {
+    const { result } = await mount();
+    await act(async () => {
+      result.current.actions.reportIssue({ room: '101', category: 'Otros', description: 'Problema', photo: true, blocking: false });
+      result.current.actions.simulateRule('m1');
+    });
+    expect(mock.stored.incidents[0]?.photo).toBe(false);
+    expect(result.current.s.sent).toHaveLength(0);
+  });
+});
+it('ficha de huésped guarda desde el formulario y lee el resultado tras remontar', async () => {
+  function Harness() {
+    const suite = useSuite();
+    const guest = suite.s.guests.find(g => g.id === 'g-test');
+    return suite.authReady && guest ? <GuestEditor guest={guest} onClose={() => {}} /> : null;
+  }
+  const first = render(<SuiteProvider><Harness /></SuiteProvider>);
+  const name = await screen.findByLabelText('Nombre');
+  fireEvent.change(name, { target: { value: 'Nombre Formulario' } });
+  fireEvent.change(screen.getByLabelText('Correo'), { target: { value: 'form@example.test' } });
+  await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Guardar' })); });
+  expect(mock.stored.guests[0]?.name).toBe('Nombre Formulario');
+  first.unmount();
+  render(<SuiteProvider><Harness /></SuiteProvider>);
+  expect(await screen.findByLabelText('Nombre')).toHaveValue('Nombre Formulario');
+  expect(screen.getByLabelText('Correo')).toHaveValue('form@example.test');
+});
 describe('Sprint 02 — ficha persistente', () => {
   it('edita los seis campos, conserva identidad/reserva y los recupera tras recarga aislada', async () => {
     const first = await mount();

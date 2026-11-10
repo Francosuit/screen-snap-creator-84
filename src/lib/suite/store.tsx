@@ -438,13 +438,13 @@ function useSuiteState() {
           let n: State = {
             ...p,
             reservations: p.reservations.map((x) => (x.id === resId ? { ...x, stay: "inhouse" } : x)),
-            guests: p.guests.map((g) => (g.id === r.guestId ? { ...g, messaging: true } : g)),
-            sent: [{ id: id("s"), time: fmtClock(p.clock + 1), guest: gName, rule: "Bienvenida", result: "enviado" }, ...p.sent],
+            guests: uid ? p.guests : p.guests.map((g) => (g.id === r.guestId ? { ...g, messaging: true } : g)),
+            sent: uid ? p.sent : [{ id: id("s"), time: fmtClock(p.clock + 1), guest: gName, rule: "Bienvenida", result: "enviado" }, ...p.sent],
           };
           n = push(n, [
             { actor, text: `Check-in habitación ${r.room} · ${gName}.`, kind: "human" },
             { actor: "Suite", text: `Reserva ${r.id} → IN HOUSE · habitación ${r.room} → OCUPADA.`, kind: "suite" },
-            { actor: "Suite", text: `Comunicaciones In-House activadas para ${gName}. Bienvenida enviada.`, kind: "suite" },
+            ...(!uid ? [{ actor: "Suite", text: `Comunicaciones In-House activadas para ${gName}. Bienvenida enviada.`, kind: "suite" as const }] : []),
           ]);
           return notify(n, ["director", "owner"], `Check-in completado: ${gName} · ${r.room}.`, "ok");
         });
@@ -543,7 +543,7 @@ function useSuiteState() {
           say.error("Selecciona una habitación del hotel y describe el problema");
           return false;
         }
-        input = { ...input, description: input.description.trim() };
+        input = { ...input, description: input.description.trim(), photo: uid ? false : input.photo };
         const incId = id("I");
         const taskId = id("T");
         setS((p) => {
@@ -588,6 +588,7 @@ function useSuiteState() {
       toggleRule: (rid: string) => setS((p) => ({ ...p, rules: p.rules.map((r) => (r.id === rid ? { ...r, active: !r.active } : r)) })),
 
       simulateRule: (rid: string) => {
+        if (uid) { say.error("No hay un servicio de envío conectado"); return; }
         const rule = s.rules.find((r) => r.id === rid)!;
         const candidates = s.reservations.filter((r) => r.status === "confirmed" && (r.stay === "inhouse" || (r.stay === "finished" && r.outDay === 0)));
         const entries: SentMessage[] = candidates.map((r) => {

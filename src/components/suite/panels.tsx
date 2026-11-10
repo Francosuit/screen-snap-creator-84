@@ -276,10 +276,10 @@ export function ReportIssueDialog({ open, onOpenChange, defaultRoom }: { open: b
           <label className="grid gap-1 text-xs text-muted-foreground">Descripción
             <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
           </label>
-          <button type="button" onClick={() => setPhoto(!photo)}
+          {isDemo && <Button variant="outline" type="button" onClick={() => setPhoto(!photo)}
             className={`flex h-20 items-center justify-center gap-2 rounded-xl border border-dashed text-sm ${photo ? "border-st-ready bg-st-ready/10 text-st-ready" : "text-muted-foreground hover:bg-accent"}`}>
             <Camera className="h-4 w-4" />{photo ? "Foto adjunta (simulada) ✓" : "Añadir foto (simulada)"}
-          </button>
+          </Button>}
           <label className="flex items-center justify-between rounded-xl border px-3 py-2.5 text-sm">Bloquear habitación<Switch checked={blocking} onCheckedChange={setBlocking} /></label>
           <Button disabled={!description.trim() || !s.rooms.some(r => r.number === room)} onClick={() => { if (actions.reportIssue({ room, category, description, photo, blocking })) onOpenChange(false); }}>Crear incidencia</Button>
         </div>

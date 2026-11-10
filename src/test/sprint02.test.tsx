@@ -31,10 +31,27 @@ beforeEach(() => {
   mock.save.mockImplementation(async (_hotel, changes) => {
     for (const change of changes) {
       const rows = mock.stored[change.entity as keyof Operations] as Array<Record<string, unknown>>;
-      const index = rows.findIndex(row => String(row.id ?? row.number) === change.id);
+      const index = rows.findIndex(row => String(row['id'] ?? row['number']) === change.id);
       if (index >= 0) rows.splice(index, 1);
       if (change.after) rows.push(structuredClone(change.after));
     }
+  });
+});
+
+describe('Sprint 02 — informes válidos', () => {
+  it('rechaza una habitación ajena al hotel sin crear tarea ni incidencia', async () => {
+    const { result } = await mount();
+    act(() => { expect(result.current.actions.reportIssue({ room: '999', category: 'Otros', description: 'Problema', photo: false, blocking: false })).toBe(false); });
+    expect(result.current.s.incidents).toHaveLength(0);
+    expect(result.current.s.tasks).toHaveLength(0);
+    expect(mock.save).not.toHaveBeenCalled();
+  });
+  it('rechaza descripción vacía y guarda una descripción válida sin espacios sobrantes', async () => {
+    const { result } = await mount();
+    act(() => { expect(result.current.actions.reportIssue({ room: '101', category: 'Otros', description: '   ', photo: false, blocking: false })).toBe(false); });
+    expect(result.current.s.incidents).toHaveLength(0);
+    await act(async () => { result.current.actions.reportIssue({ room: '101', category: 'Otros', description: '  Luz rota  ', photo: false, blocking: false }); });
+    expect(mock.stored.incidents[0]?.description).toBe('Luz rota');
   });
 });
 afterEach(cleanup);

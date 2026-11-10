@@ -1,7 +1,19 @@
 # Roadmap
 
 - [x] Sprint 02: revisión estática de Reservas, Habitaciones, Huéspedes y Limpieza completada. No repetir esta auditoría al retomar.
-- [ ] Sprint 02 — Tarea 01: eliminar asignaciones de personal ficticio en operaciones reales. **PAUSADA antes de implementar; no continuar hasta disponer de créditos.**
+- [ ] Sprint 02 — Tarea 01: implementada; 6 pruebas aisladas pasan (demo, identidad simulada, cambios y recarga). Validación cloud real pendiente en hotel independiente autorizado.
+- [ ] Sprint 02 — Tarea 02: implementada; validación de habitación actual y descripción, formulario real vacío. Pruebas en curso.
+- [ ] Sprint 02 — Tarea 03: evitar duplicados y transiciones incorrectas de limpieza.
+- [ ] Sprint 02 — Tarea 04: edición persistente de huéspedes.
+- [ ] Sprint 02 — Tarea 05: fechas compatibles y eliminación de envíos/adjuntos simulados en cuentas reales.
+
+## Reanudación — 10 de noviembre de 2026
+
+- Tarea 01: `store.tsx` crea nuevas tareas/incidencias reales sin responsables inventados; inicia con nombre del perfil verificado (correo/UID como respaldo). Conserva responsables demo y elimina afirmaciones reales de asignación/notificación no confirmadas.
+- Pruebas ejecutadas: `sprint02.test.tsx` 6/6 y `auth-flow.test.tsx` 7/7. Recarga mediante almacenamiento simulado, no Cloud real. Error de tipos detectado en la prueba y corregido; siguiente comprobación pendiente.
+- Sin escrituras en Cloud ni modificaciones de Hotel Homeless; sin cambios de autenticación, roles, guardado atómico ni configuración.
+- Archivos hasta este punto: `store.tsx`, `sprint02.test.tsx`, `panels.tsx`, `roadmap.md`.
+- El punto de pausa siguiente se registra aquí; las secciones anteriores se conservan como historial, no describen el estado actual.
 
 ## Punto exacto de pausa — Sprint 02 (9 de noviembre de 2026)
 

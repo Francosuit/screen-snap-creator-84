@@ -532,6 +532,11 @@ function useSuiteState() {
       },
 
       reportIssue: (input: { room: string; category: string; description: string; photo: boolean; blocking: boolean }) => {
+        if (!s.rooms.some(r => r.number === input.room) || !input.description.trim()) {
+          say.error("Selecciona una habitación del hotel y describe el problema");
+          return false;
+        }
+        input = { ...input, description: input.description.trim() };
         const incId = id("I");
         const taskId = id("T");
         setS((p) => {
@@ -552,6 +557,7 @@ function useSuiteState() {
           return notify(n, ["maintenance", "director", "owner"], `Nueva incidencia: ${input.category} · ${input.room}.`, "urgent");
         });
         say.success("Incidencia reportada", { description: uid ? "Tarea de mantenimiento creada sin responsable" : "✓ Tarea de mantenimiento creada\n✓ Carlos Ruiz notificado" });
+        return true;
       },
 
       /** Technician reaches the room of an incident in progress */

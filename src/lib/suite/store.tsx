@@ -453,7 +453,9 @@ function useSuiteState() {
       },
 
       checkOut: (resId: string) => {
-        const r = s.reservations.find((x) => x.id === resId)!;
+        const current = rootRef.current.data[hotel.id];
+        const r = current?.reservations.find((x) => x.id === resId);
+        if (!r || r.stay !== "inhouse") return false;
         const gName = helpers.guest(r.guestId).name;
         const next = s.reservations.find((x) => x.room === r.room && x.id !== r.id && x.status === "confirmed" && x.stay === "none" && x.inDay === 0);
         const nextTom = s.reservations.find((x) => x.room === r.room && x.id !== r.id && x.status === "confirmed" && x.stay === "none" && x.inDay === 1);
@@ -471,7 +473,7 @@ function useSuiteState() {
             reservations: p.reservations.map((x) => (x.id === resId ? { ...x, stay: "finished", outDay: Math.min(x.outDay, 0) } : x)),
             guests: p.guests.map((g) => (g.id === r.guestId ? { ...g, messaging: false } : g)),
             rooms: p.rooms.map((x) => (x.number === r.room ? { ...x, hk: "dirty" } : x)),
-            tasks: [task, ...p.tasks],
+            tasks: p.tasks.some(t => t.room === r.room && t.dept === "housekeeping" && t.status !== "completada") ? p.tasks : [task, ...p.tasks],
           };
           n = push(n, [
             { actor, text: `Check-out habitación ${r.room} · ${gName}.`, kind: "human" },
@@ -484,7 +486,8 @@ function useSuiteState() {
       },
 
       startTask: (taskId: string) => {
-        const t = s.tasks.find((x) => x.id === taskId)!;
+        const t = rootRef.current.data[hotel.id]?.tasks.find((x) => x.id === taskId);
+        if (!t || t.status !== "pendiente") return false;
         setS((p) => {
           let n: State = {
             ...p,
@@ -502,7 +505,8 @@ function useSuiteState() {
       },
 
       finishTask: (taskId: string) => {
-        const t = s.tasks.find((x) => x.id === taskId)!;
+        const t = rootRef.current.data[hotel.id]?.tasks.find((x) => x.id === taskId);
+        if (!t || t.status !== "en_proceso") return false;
         setS((p) => {
           let n: State = {
             ...p,
@@ -599,8 +603,10 @@ function useSuiteState() {
 
     /** Direct room operations from the digital twin — all go through the same tasks/state */
     const roomOp = (num: string, op: "dirty" | "start" | "finish" | "oos") => {
-      const room = s.rooms.find((r) => r.number === num)!;
-      const open = s.tasks.find((t) => t.room === num && t.dept === "housekeeping" && t.status !== "completada");
+      const current = rootRef.current.data[hotel.id];
+      const room = current?.rooms.find((r) => r.number === num);
+      if (!room) return false;
+      const open = current?.tasks.find((t) => t.room === num && t.dept === "housekeeping" && t.status !== "completada");
       if (op === "oos") {
         setS((p) => push({ ...p, rooms: p.rooms.map((r) => (r.number === num ? { ...r, oos: !r.oos } : r)) }, [
           { actor, text: `Habitación ${num} → ${room.oos ? "EN SERVICIO" : "FUERA DE SERVICIO"}.`, kind: "human" },
@@ -610,6 +616,7 @@ function useSuiteState() {
       }
       if (op === "start" && open && open.status === "pendiente") return api.startTask(open.id);
       if (op === "finish" && open && open.status === "en_proceso") return api.finishTask(open.id);
+      if (open || op === "finish") return false;
       if (op === "dirty" || (op === "start" && !open)) {
         const task: Task = { id: id("T"), title: op === "dirty" ? "Limpieza solicitada" : "Limpieza", room: num, assignee: uid ? op === "start" ? actor : "" : "María López", dept: "housekeeping", priority: "media", day: 0, deadline: fmtClock(s.clock + 90), status: op === "start" ? "en_proceso" : "pendiente", comments: "Creada desde el hotel digital.", kind: "limpieza", ...(op === "start" ? { startedAt: fmtClock(s.clock + 1) } : {}) };
         setS((p) => notify(push({ ...p, tasks: [task, ...p.tasks], rooms: p.rooms.map((r) => (r.number === num ? { ...r, hk: op === "start" ? "cleaning" : "dirty" } : r)) }, [

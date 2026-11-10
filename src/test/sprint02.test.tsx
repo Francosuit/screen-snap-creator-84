@@ -54,6 +54,50 @@ describe('Sprint 02 — informes válidos', () => {
     expect(mock.stored.incidents[0]?.description).toBe('Luz rota');
   });
 });
+
+describe('Sprint 02 — limpieza consistente', () => {
+  it.each([true, false])('reutiliza limpieza abierta y bloquea repeticiones incluso en la misma llamada (real=%s)', async real => {
+    mock.real = real;
+    const { result } = await mount();
+    const room = real ? '101' : '103';
+    const before = result.current.s.tasks.filter(t => t.room === room).length;
+    await act(async () => {
+      result.current.actions.roomOp(room, 'dirty');
+      result.current.actions.roomOp(room, 'dirty');
+    });
+    expect(result.current.s.tasks.filter(t => t.room === room)).toHaveLength(before + 1);
+    const task = result.current.s.tasks.find(t => t.room === room && t.status === 'pendiente');
+    if (!task) throw new Error('Missing cleaning');
+    const clock = result.current.s.clock;
+    await act(async () => {
+      result.current.actions.finishTask(task.id);
+      result.current.actions.startTask(task.id);
+      result.current.actions.startTask(task.id);
+    });
+    expect(result.current.s.clock).toBe(clock + 1);
+    expect(result.current.s.rooms.find(r => r.number === room)?.hk).toBe('cleaning');
+    await act(async () => {
+      result.current.actions.roomOp(room, 'dirty');
+      result.current.actions.finishTask(task.id);
+      result.current.actions.finishTask(task.id);
+      result.current.actions.startTask(task.id);
+    });
+    expect(result.current.s.clock).toBe(clock + 2);
+    expect(result.current.s.rooms.find(r => r.number === room)?.hk).toBe('clean');
+    await act(async () => { result.current.actions.roomOp(room, 'dirty'); });
+    expect(result.current.s.tasks.filter(t => t.room === room)).toHaveLength(before + 2);
+  });
+  it('checkout repetido no duplica limpieza y reutiliza una tarea existente', async () => {
+    const { result } = await mount();
+    await act(async () => {
+      result.current.actions.roomOp('101', 'dirty');
+      result.current.actions.checkOut('r-test');
+      result.current.actions.checkOut('r-test');
+    });
+    expect(result.current.s.tasks).toHaveLength(1);
+    expect(result.current.s.reservations[0]?.stay).toBe('finished');
+  });
+});
 afterEach(cleanup);
 async function mount() {
   const hook = renderHook(useSuite, { wrapper: SuiteProvider });

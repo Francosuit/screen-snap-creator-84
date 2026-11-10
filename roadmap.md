@@ -2,8 +2,8 @@
 
 - [x] Sprint 02: revisión estática de Reservas, Habitaciones, Huéspedes y Limpieza completada. No repetir esta auditoría al retomar.
 - [ ] Sprint 02 — Tarea 01: implementada; 6 pruebas aisladas pasan (demo, identidad simulada, cambios y recarga). Validación cloud real pendiente en hotel independiente autorizado.
-- [ ] Sprint 02 — Tarea 02: implementada; validación de habitación actual y descripción, formulario real vacío. Pruebas en curso.
-- [ ] Sprint 02 — Tarea 03: evitar duplicados y transiciones incorrectas de limpieza.
+- [ ] Sprint 02 — Tarea 02: implementada; 2 pruebas aisladas pasan, habitación actual y descripción obligatorias, formulario real vacío. Validación Cloud pendiente.
+- [ ] Sprint 02 — Tarea 03: implementada; reutilización de tareas abiertas, guardas contra inicio/finalización/checkout repetidos, nueva limpieza tras completar la anterior. Pruebas en curso.
 - [ ] Sprint 02 — Tarea 04: edición persistente de huéspedes.
 - [ ] Sprint 02 — Tarea 05: fechas compatibles y eliminación de envíos/adjuntos simulados en cuentas reales.
 
@@ -14,6 +14,7 @@
 - Sin escrituras en Cloud ni modificaciones de Hotel Homeless; sin cambios de autenticación, roles, guardado atómico ni configuración.
 - Archivos hasta este punto: `store.tsx`, `sprint02.test.tsx`, `panels.tsx`, `roadmap.md`.
 - El punto de pausa siguiente se registra aquí; las secciones anteriores se conservan como historial, no describen el estado actual.
+- Tarea 02: `sprint02.test.tsx` 8/8 y `calendar.test.ts` 13/13; compilación OK tras corregir acceso de índices en la prueba.
 
 ## Punto exacto de pausa — Sprint 02 (9 de noviembre de 2026)
 

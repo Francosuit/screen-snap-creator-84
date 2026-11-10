@@ -732,10 +732,19 @@ function useSuiteState() {
       return true;
     };
 
-    const collection = { ...api, roomOp, simulateStep, createReservation, updateRoom, changeStay };
+    const updateGuest = (guestId: string, input: Pick<Guest, "name" | "doc" | "phone" | "email" | "lang" | "notes">) => {
+      if (!input.name.trim() || !rootRef.current.data[hotel.id]?.guests.some(g => g.id === guestId)) return false;
+      const fields = { name: input.name.trim(), doc: input.doc.trim(), phone: input.phone.trim(), email: input.email.trim(), lang: input.lang.trim(), notes: input.notes.trim() };
+      setS(p => push({ ...p, guests: p.guests.map(g => g.id === guestId ? { ...g, ...fields } : g) }, [
+        { actor, text: `Ficha de huésped actualizada: ${fields.name}.`, kind: "human" },
+      ]));
+      if (!uid) say.success("Ficha actualizada");
+      return true;
+    };
+    const collection = { ...api, roomOp, simulateStep, createReservation, updateRoom, changeStay, updateGuest };
     // Cloud actions report success only after the atomic write, not optimistic UI changes.
     if (!uid) return collection;
-    const persisted = new Set(['checkIn','checkOut','startTask','finishTask','reportIssue','arriveIncident','roomOp','createReservation','changeStay']);
+    const persisted = new Set(['checkIn','checkOut','startTask','finishTask','reportIssue','arriveIncident','roomOp','createReservation','changeStay','updateGuest']);
     return Object.fromEntries(Object.entries(collection).map(([name, action]) => [name, persisted.has(name) ? (...args: unknown[]) => {
       quiet = true;
       try { return (action as (...values: unknown[]) => unknown)(...args); }

@@ -99,6 +99,27 @@ describe('Sprint 02 — limpieza consistente', () => {
   });
 });
 afterEach(cleanup);
+describe('Sprint 02 — ficha persistente', () => {
+  it('edita los seis campos, conserva identidad/reserva y los recupera tras recarga aislada', async () => {
+    const first = await mount();
+    const fields = { name: 'Nombre Editado', doc: 'DOC-123', phone: '+34 600123123', email: 'guest@example.test', lang: 'Inglés', notes: 'Nota real' };
+    await act(async () => { expect(first.result.current.actions.updateGuest('g-test', fields)).toBe(true); });
+    expect(mock.stored.guests[0]).toMatchObject({ id: 'g-test', ...fields });
+    expect(mock.stored.reservations[0]?.guestId).toBe('g-test');
+    first.unmount();
+    const second = await mount();
+    expect(second.result.current.s.guests[0]).toMatchObject(fields);
+  });
+  it('rechaza nombres vacíos y huéspedes ausentes sin guardar', async () => {
+    const { result } = await mount();
+    const fields = { name: '', doc: '', phone: '', email: '', lang: '', notes: '' };
+    act(() => {
+      expect(result.current.actions.updateGuest('g-test', fields)).toBe(false);
+      expect(result.current.actions.updateGuest('unknown', { ...fields, name: 'Nombre' })).toBe(false);
+    });
+    expect(mock.save).not.toHaveBeenCalled();
+  });
+});
 async function mount() {
   const hook = renderHook(useSuite, { wrapper: SuiteProvider });
   await waitFor(() => expect(mock.real ? hook.result.current.authReady : hook.result.current.ready).toBe(true));

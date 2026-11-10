@@ -4,7 +4,7 @@
 - [ ] Sprint 02 — Tarea 01: implementada; 6 pruebas aisladas pasan (demo, identidad simulada, cambios y recarga). Validación cloud real pendiente en hotel independiente autorizado.
 - [ ] Sprint 02 — Tarea 02: implementada; 2 pruebas aisladas pasan, habitación actual y descripción obligatorias, formulario real vacío. Validación Cloud pendiente.
 - [ ] Sprint 02 — Tarea 03: implementada; reutilización de tareas abiertas, guardas contra inicio/finalización/checkout repetidos, nueva limpieza tras completar la anterior. Pruebas en curso.
-- [ ] Sprint 02 — Tarea 04: edición persistente de huéspedes.
+- [ ] Sprint 02 — Tarea 04: implementada con `updateGuest` y editor de los seis campos; pruebas en curso, Cloud real pendiente.
 - [ ] Sprint 02 — Tarea 05: fechas compatibles y eliminación de envíos/adjuntos simulados en cuentas reales.
 
 ## Reanudación — 10 de noviembre de 2026
@@ -15,6 +15,7 @@
 - Archivos hasta este punto: `store.tsx`, `sprint02.test.tsx`, `panels.tsx`, `roadmap.md`.
 - El punto de pausa siguiente se registra aquí; las secciones anteriores se conservan como historial, no describen el estado actual.
 - Tarea 02: `sprint02.test.tsx` 8/8 y `calendar.test.ts` 13/13; compilación OK tras corregir acceso de índices en la prueba.
+- Tarea 03: 11/11 pruebas de Sprint pasan; compilación OK. Caso demo corregido para usar una habitación sin tarea abierta. Sin cambios en el guardado atómico.
 
 ## Punto exacto de pausa — Sprint 02 (9 de noviembre de 2026)
 

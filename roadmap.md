@@ -120,3 +120,10 @@ Reglas de implementación:
 - Hotel Homeless: 25 huéspedes, 25 reservas, 66 tareas, 53 incidencias, 12 habitaciones; última escritura 04-11-2026 → sin alteraciones.
 - NO IMPLEMENTADO: compatibilidad DEMO_DATE con fecha real (store.tsx, data.ts, RevenueBoard.tsx), zona horaria por hotel.
 - PENDIENTE DE VALIDACIÓN: persistencia Cloud real, circuito reserva→check-in→checkout→limpieza, ficha tras recarga y tras cerrar sesión.
+
+## Sprint 02 — Tarea 05 Fechas reales (11 nov 2026) — PARCIALMENTE IMPLEMENTADO
+- Hallazgo: todas las fechas (reservas inDay/outDay, tareas day) son desplazamientos en días respecto a DEMO_DATE = 10-11-2026; no hay fechas absolutas ni zona horaria en `hotels`. "Hoy" = 0 está fijo en ~100 comparaciones (store.tsx, reservas, index, huéspedes, panels, mundo…). Hotel Homeless (escrito el 04-11) usa los mismos desplazamientos.
+- Decisión: los desplazamientos pasan a ser absolutos con época 10-11-2026 (sin migrar datos: conservan exactamente la fecha que mostraba la app al crearlos). Demo: hoy = 0 fijo. Real: hoy = fecha del hotel en su zona horaria. Aritmética por día de calendario en UTC (sin desfases).
+- Hecho: `src/lib/suite/clock.ts` + `src/test/clock.test.ts` (7 pruebas: histórica, futura, check-in, checkout, 1/2/varias noches, medianoche, zonas, horario de verano, demo independiente). 37/37 pasan junto a calendario y Sprint 02.
+- BLOQUEADO hasta aprobación: (1) migración aditiva `hotels.timezone text default 'Europe/Madrid'` (toca el esquema de hoteles reales, incl. Homeless); (2) sustituir "0 = hoy" por `todayOffset` en store y pantallas. Sin esto las cuentas reales siguen en DEMO_DATE.
+- Pendiente de prueba: recarga y persistencia con cuenta real.

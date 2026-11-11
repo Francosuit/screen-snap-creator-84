@@ -6,7 +6,7 @@
 export const EPOCH_YMD = "2026-11-10";
 export const DEFAULT_TZ = "Europe/Madrid";
 const DAY = 86_400_000;
-const utcOf = (ymd: string) => { const [y, m, d] = ymd.split("-").map(Number); return Date.UTC(y, m - 1, d); };
+const utcOf = (ymd: string) => { const [y = 0, m = 1, d = 1] = ymd.split("-").map(Number); return Date.UTC(y, m - 1, d); };
 
 /** Calendar date (YYYY-MM-DD) at instant `now` in time zone `tz`. */
 export function hotelYmd(tz: string, now: Date): string {

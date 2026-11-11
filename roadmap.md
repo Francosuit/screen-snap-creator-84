@@ -112,3 +112,11 @@ Reglas de implementación:
 - [x] Edición completa de cada cuarto desde el mapa: ocupación (doble/triple), camas separadas, extras; visible en mapa y ficha
 - [x] Detalle de cada habitación (ducha, escritorio, baño, ventana y lado) editable y también en Crear hotel
 - [x] Animación en bucle de entrada a la app Suite Solutions
+
+## Auditoría Sprint 02 — 11 nov 2026 (solo lectura)
+- Ejecución completa hoy: 108 pruebas → 101 pasan, 6 omitidas (integración invitaciones sin PostgreSQL local), 1 falla (`cloud-owner.integration.test.ts:39`, devuelve XX000 en vez de 42501; prueba previa, no de Sprint 02 — PENDIENTE DE REVISIÓN).
+- `src/test/sprint02.test.tsx`: 13 pruebas, todas pasan (personal 6, incidencias 2, limpieza 1+, huéspedes 3, simulaciones 1). Las "65" del informe anterior eran un subconjunto, no el total.
+- Tareas 01–04 y simulaciones: IMPLEMENTADO, PENDIENTE DE VALIDACIÓN en Cloud (verificado solo en pruebas aisladas).
+- Hotel Homeless: 25 huéspedes, 25 reservas, 66 tareas, 53 incidencias, 12 habitaciones; última escritura 04-11-2026 → sin alteraciones.
+- NO IMPLEMENTADO: compatibilidad DEMO_DATE con fecha real (store.tsx, data.ts, RevenueBoard.tsx), zona horaria por hotel.
+- PENDIENTE DE VALIDACIÓN: persistencia Cloud real, circuito reserva→check-in→checkout→limpieza, ficha tras recarga y tras cerrar sesión.

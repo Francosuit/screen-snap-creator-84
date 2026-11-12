@@ -29,3 +29,14 @@ export function stayPhase(inDay: number, outDay: number, today: number): StayPha
   if (outDay === today) return "salida_hoy";
   return "en_curso";
 }
+/** Hotel time zone: stored IANA zone if valid, else the default. Never throws. */
+export function resolveTimeZone(tz?: string | null): string {
+  if (!tz) return DEFAULT_TZ;
+  try { new Intl.DateTimeFormat("en-CA", { timeZone: tz }); return tz; } catch { return DEFAULT_TZ; }
+}
+/** Single entry point for "today" of a hotel (offset + calendar date). */
+export function hotelToday(mode: "demo" | "real", tz?: string | null, now: Date = new Date()) {
+  const zone = resolveTimeZone(tz);
+  const offset = todayOffset(mode, zone, now);
+  return { zone, offset, ymd: offsetToYmd(offset) };
+}

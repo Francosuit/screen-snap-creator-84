@@ -498,6 +498,7 @@ export type Database = {
           key: string
           name: string
           org_owner: string
+          timezone: string | null
           updated_at: string
           zones: string[]
         }
@@ -513,6 +514,7 @@ export type Database = {
           key: string
           name?: string
           org_owner: string
+          timezone?: string | null
           updated_at?: string
           zones?: string[]
         }
@@ -528,6 +530,7 @@ export type Database = {
           key?: string
           name?: string
           org_owner?: string
+          timezone?: string | null
           updated_at?: string
           zones?: string[]
         }

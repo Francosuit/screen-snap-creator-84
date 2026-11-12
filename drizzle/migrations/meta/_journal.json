@@ -78,6 +78,13 @@
       "when": 1793808333791,
       "tag": "0010_shared_hotel_operations",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1794472175153,
+      "tag": "0011_hotel_timezone_nullable",
+      "breakpoints": true
     }
   ]
 }

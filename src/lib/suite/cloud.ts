@@ -11,7 +11,7 @@ export const ROLE_LABELS: Record<HotelRole, string> = {
 };
 export const STAFF_ROLES: HotelRole[] = ["director", "reception", "housekeeping", "maintenance", "revenue"];
 
-export interface CloudHotel { id: string; key: string; name: string; address: string; city: string; category: string; check_in: string | null; check_out: string | null; zones: string[]; departments: string[]; archived: boolean; org_owner: string }
+export interface CloudHotel { id: string; key: string; name: string; address: string; city: string; category: string; check_in: string | null; check_out: string | null; zones: string[]; departments: string[]; archived: boolean; org_owner: string; timezone?: string | null }
 export interface CloudFloor { hotel_id: string; number: number; name: string }
 export interface CloudRoom { hotel_id: string; number: string; floor: number; type: string; rate: number; capacity: number | null; beds: string | null; bath: string | null; terrace: boolean | null; view: string | null; sqm: number | null; notes: string | null; archived: boolean; extras?: string[]; window_side?: string | null; layout?: FurnitureItem[] | null }
 export interface CloudConfig { hotels: CloudHotel[]; floors: CloudFloor[]; rooms: CloudRoom[] }
@@ -28,7 +28,7 @@ export function overlayHotel(h: Hotel, rooms: Room[], cfg: CloudConfig): { hotel
   const recs = new Map(cfg.rooms.filter((r) => r.hotel_id === ch.id && !r.archived).map((r) => [r.number, r]));
   const hotel = clean({
     ...h, name: ch.name || h.name, address: ch.address, city: ch.city, category: ch.category,
-    zones: ch.zones, departments: ch.departments, checkIn: nn(ch.check_in) ?? h.checkIn, checkOut: nn(ch.check_out) ?? h.checkOut,
+    zones: ch.zones, departments: ch.departments, checkIn: nn(ch.check_in) ?? h.checkIn, checkOut: nn(ch.check_out) ?? h.checkOut, timezone: nn(ch.timezone ?? null) ?? h.timezone,
     floors: floors.length ? floors.map((f) => ({ number: f.number, name: f.name })) : h.floors,
   }) as Hotel;
   const out = rooms.map((r) => {

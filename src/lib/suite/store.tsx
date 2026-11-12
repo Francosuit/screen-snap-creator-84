@@ -87,10 +87,11 @@ const STORAGE = "suite-demo-v3";
 export const fmtClock = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 export const toMin = (t: string) => { const [h = 0, m = 0] = t.split(":").map(Number); return h * 60 + (m || 0); };
 export const dayDate = (off: number) => new Date(DEMO_DATE.getFullYear(), DEMO_DATE.getMonth(), DEMO_DATE.getDate() + off);
-export const fmtDay = (off: number) => {
-  if (off === 0) return "Hoy";
-  if (off === 1) return "Mañana";
-  if (off === -1) return "Ayer";
+/** Relative label against `today` (defaults to the demo day 0, so unconnected screens keep their behaviour). */
+export const fmtDay = (off: number, today = 0) => {
+  if (off === today) return "Hoy";
+  if (off === today + 1) return "Mañana";
+  if (off === today - 1) return "Ayer";
   return dayDate(off).toLocaleDateString("es-ES", { weekday: "short", day: "numeric", month: "short" });
 };
 export const eur = (n: number) => `${Math.round(n).toLocaleString("es-ES")} €`;

@@ -9,6 +9,10 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { dayDate, eur, fmtDay, resDisplay, useSuite } from "@/lib/suite/store";
 import { dragToStay, stayAmount } from "@/lib/suite/data";
+import { hotelToday } from "@/lib/suite/clock";
+
+/** Reservas/Calendario "today": demo fixed, real hotels follow the hotel clock. Stored days stay absolute. */
+function useToday() { const { isDemo, hotel } = useSuite(); return hotelToday(isDemo ? "demo" : "real", hotel?.timezone).offset; }
 import { Card, PageHeader, ResPill } from "@/components/suite/ui";
 import { ReservationSheet } from "@/components/suite/panels";
 
@@ -31,6 +35,7 @@ const CHANNELS = ["Todos", "Booking.com", "Expedia", "Web directa", "Recepción"
 
 function Reservas() {
   const { s, guest } = useSuite();
+  const today = useToday();
   const [q, setQ] = useState("");
   const [st, setSt] = useState("Todas");
   const [ch, setCh] = useState("Todos");
@@ -65,8 +70,8 @@ function Reservas() {
                   <tr key={r.id} onClick={() => setOpen(r.id)} className="cursor-pointer border-b last:border-0 hover:bg-accent/60">
                     <td className="px-4 py-3"><div className="font-medium">{guest(r.guestId).name}</div><div className="font-mono text-[11px] text-muted-foreground">{r.id}</div></td>
                     <td className="px-4 py-3 font-medium">{r.room}</td>
-                    <td className="px-4 py-3">{fmtDay(r.inDay)}</td>
-                    <td className="px-4 py-3">{fmtDay(r.outDay)}</td>
+                    <td className="px-4 py-3">{fmtDay(r.inDay, today)}</td>
+                    <td className="px-4 py-3">{fmtDay(r.outDay, today)}</td>
                     <td className="tnum px-4 py-3">{r.outDay - r.inDay}</td>
                     <td className="tnum px-4 py-3">{r.pax}</td>
                     <td className="px-4 py-3"><span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ background: CH_COLOR[r.channel] }} />{CH_LABEL[r.channel] ?? r.channel}</span></td>
@@ -101,7 +106,8 @@ const SPANS = { dia: 1, semana: 7, mes: 30 } as const;
 function Timeline({ ids, onOpen }: { ids: Set<string>; onOpen: (id: string) => void }) {
   const { s, guest } = useSuite();
   const [span, setSpan] = useState<keyof typeof SPANS>("semana");
-  const [start, setStart] = useState(-1);
+  const today = useToday();
+  const [start, setStart] = useState(today - 1);
   const [roomQ, setRoomQ] = useState("Todas");
   const [creating, setCreating] = useState(false);
   const [prefill, setPrefill] = useState<{ room: string; inDay: number; nights: number } | undefined>();
@@ -116,7 +122,7 @@ function Timeline({ ids, onOpen }: { ids: Set<string>; onOpen: (id: string) => v
       <div className="flex flex-wrap items-center gap-2 border-b p-3">
         <Tabs value={span} onValueChange={(v) => setSpan(v as keyof typeof SPANS)}><TabsList><TabsTrigger value="dia">Día</TabsTrigger><TabsTrigger value="semana">Semana</TabsTrigger><TabsTrigger value="mes">Mes</TabsTrigger></TabsList></Tabs>
         <Button variant="outline" size="icon" onClick={() => setStart(start - DAYS)} aria-label="Anterior"><ChevronLeft className="h-4 w-4" /></Button>
-        <Button variant="outline" size="sm" onClick={() => setStart(span === "dia" ? 0 : -1)}>Hoy</Button>
+        <Button variant="outline" size="sm" onClick={() => setStart(span === "dia" ? today : today - 1)}>Hoy</Button>
         <Button variant="outline" size="icon" onClick={() => setStart(start + DAYS)} aria-label="Siguiente"><ChevronRight className="h-4 w-4" /></Button>
         <span className="text-sm text-muted-foreground">{dayDate(START).toLocaleDateString("es-ES", { day: "numeric", month: "short" })} – {dayDate(START + DAYS - 1).toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" })}</span>
         <Select value={roomQ} onValueChange={setRoomQ}><SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Todas">Todas las hab.</SelectItem>{s.rooms.map((r) => <SelectItem key={r.number} value={r.number}>Hab. {r.number}</SelectItem>)}</SelectContent></Select>
@@ -138,7 +144,7 @@ function Timeline({ ids, onOpen }: { ids: Set<string>; onOpen: (id: string) => v
           <div className="flex border-b bg-muted/50 text-xs text-muted-foreground">
             <div className="w-[72px] shrink-0 px-3 py-2">Hab.</div>
             {days.map((d) => (
-              <div key={d} style={{ width: W }} className={cn("shrink-0 border-l px-1 py-2 text-center", d === 0 && "bg-brand/10 font-semibold text-foreground")}>
+              <div key={d} style={{ width: W }} className={cn("shrink-0 border-l px-1 py-2 text-center", d === today && "bg-brand/10 font-semibold text-foreground")}>
                 <div>{dayDate(d).toLocaleDateString("es-ES", { weekday: "short" })}</div><div className="tnum">{dayDate(d).getDate()}</div>
               </div>
             ))}
@@ -149,11 +155,11 @@ function Timeline({ ids, onOpen }: { ids: Set<string>; onOpen: (id: string) => v
               {days.map((d) => {
                 const st = sel && sel.room === room.number ? dragToStay(sel.a, sel.b) : null;
                 const on = !!st && d >= st.inDay && d < st.outDay;
-                return <div key={d} style={{ width: W }} className={cn("shrink-0 cursor-crosshair border-l", d === 0 && "bg-brand/5", on && "bg-brand/25")}
-                  onPointerDown={() => { if (d >= 0 && !room.oos) setSel({ room: room.number, a: d, b: d }); }}
+                return <div key={d} style={{ width: W }} className={cn("shrink-0 cursor-crosshair border-l", d === today && "bg-brand/5", on && "bg-brand/25")}
+                  onPointerDown={() => { if (d >= today && !room.oos) setSel({ room: room.number, a: d, b: d }); }}
                   onPointerEnter={() => { if (sel && sel.room === room.number) setSel({ ...sel, b: d }); }} />;
               })}
-              {(() => { const st = sel && sel.room === room.number ? dragToStay(sel.a, sel.b) : null; return st && <div data-testid="drag-label" className="pointer-events-none absolute -top-5 z-10 whitespace-nowrap rounded bg-foreground px-1.5 text-[10px] text-background" style={{ left: 72 + (st.inDay - START) * W }}>{st.nights} noche(s) · {fmtDay(st.inDay)} → {fmtDay(st.outDay)} · {stayAmount(room.rate, st.nights)} €</div>; })()}
+              {(() => { const st = sel && sel.room === room.number ? dragToStay(sel.a, sel.b) : null; return st && <div data-testid="drag-label" className="pointer-events-none absolute -top-5 z-10 whitespace-nowrap rounded bg-foreground px-1.5 text-[10px] text-background" style={{ left: 72 + (st.inDay - START) * W }}>{st.nights} noche(s) · {fmtDay(st.inDay, today)} → {fmtDay(st.outDay, today)} · {stayAmount(room.rate, st.nights)} €</div>; })()}
               {s.reservations.filter((r) => r.room === room.number && ids.has(r.id) && r.outDay > START && r.inDay < START + DAYS).map((r) => {
                 // Bars run from mid check-in day to mid check-out day, so same-day turnovers never overlap
                 const out = rs?.id === r.id ? rs.out : r.outDay;
@@ -181,7 +187,8 @@ function Timeline({ ids, onOpen }: { ids: Set<string>; onOpen: (id: string) => v
 
 function NewReservation({ open, onOpenChange, prefill }: { open: boolean; onOpenChange: (o: boolean) => void; prefill?: { room: string; inDay: number; nights: number } | undefined }) {
   const { s, actions } = useSuite();
-  const [f, setF] = useState({ name: "", room: prefill?.room ?? s.rooms[0]?.number ?? "", inDay: prefill?.inDay ?? 0, nights: prefill?.nights ?? 1, pax: 2, notes: "" });
+  const today = useToday();
+  const [f, setF] = useState({ name: "", room: prefill?.room ?? s.rooms[0]?.number ?? "", inDay: prefill?.inDay ?? today, nights: prefill?.nights ?? 1, pax: 2, notes: "" });
   const save = () => { if (actions.createReservation({ name: f.name, room: f.room, inDay: f.inDay, outDay: f.inDay + f.nights, pax: f.pax, notes: f.notes })) onOpenChange(false); };
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -191,11 +198,11 @@ function NewReservation({ open, onOpenChange, prefill }: { open: boolean; onOpen
           <Input placeholder="Nombre del huésped" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
           <div className="grid grid-cols-2 gap-2">
             <Select value={f.room} onValueChange={(v) => setF({ ...f, room: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{s.rooms.map((r) => <SelectItem key={r.number} value={r.number}>Hab. {r.number} · {r.type}</SelectItem>)}</SelectContent></Select>
-            <Select value={String(f.inDay)} onValueChange={(v) => setF({ ...f, inDay: Number(v) })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{Array.from({ length: 30 }, (_, i) => <SelectItem key={i} value={String(i)}>Entrada {fmtDay(i)}</SelectItem>)}</SelectContent></Select>
+            <Select value={String(f.inDay)} onValueChange={(v) => setF({ ...f, inDay: Number(v) })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{Array.from({ length: 30 }, (_, i) => today + i).map((d) => <SelectItem key={d} value={String(d)}>Entrada {fmtDay(d, today)}</SelectItem>)}</SelectContent></Select>
             <label className="text-xs text-muted-foreground">Noches<Input type="number" min={1} value={f.nights} onChange={(e) => setF({ ...f, nights: Math.max(1, Number(e.target.value)) })} /></label>
             <label className="text-xs text-muted-foreground">Huéspedes<Input type="number" min={1} value={f.pax} onChange={(e) => setF({ ...f, pax: Math.max(1, Number(e.target.value)) })} /></label>
           </div>
-          <p className="text-sm text-muted-foreground">Importe: {(s.rooms.find((r) => r.number === f.room)?.rate ?? 0)} € × {f.nights} noche(s) = <b className="text-foreground">{stayAmount(s.rooms.find((r) => r.number === f.room)?.rate ?? 0, f.nights)} €</b> · salida {fmtDay(f.inDay + f.nights)}</p>
+          <p className="text-sm text-muted-foreground">Importe: {(s.rooms.find((r) => r.number === f.room)?.rate ?? 0)} € × {f.nights} noche(s) = <b className="text-foreground">{stayAmount(s.rooms.find((r) => r.number === f.room)?.rate ?? 0, f.nights)} €</b> · salida {fmtDay(f.inDay + f.nights, today)}</p>
           <Input placeholder="Observaciones (opcional)" value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} />
         </div>
         <DialogFooter><Button onClick={save}>Crear reserva</Button></DialogFooter>

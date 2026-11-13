@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Sprint 02 — Tarea 08 (13 nov 2026): ficha individual conectada a `hotelToday` en cabecera, entrada, salida y desglose por noche. Conserva fechas almacenadas, estados y demás módulos. 8 pruebas nuevas y 48 comprobaciones relacionadas pasan; compilación OK. Verificación visual en «Validación P0 — prueba de persistencia»: entrada real «Hoy», desglose correcto y ficha idéntica tras recarga, sin acciones operativas. Hotel Homeless no utilizado. Pendiente para cerrar Sprint 02: conectar las pantallas restantes y validación multiusuario Cloud ya registrada.
+
 - [x] Sprint 02: revisión estática de Reservas, Habitaciones, Huéspedes y Limpieza completada. No repetir esta auditoría al retomar.
 - [ ] Sprint 02 — Tarea 01: implementada; 6 pruebas aisladas pasan (demo, identidad simulada, cambios y recarga). Validación cloud real pendiente en hotel independiente autorizado.
 - [ ] Sprint 02 — Tarea 02: implementada; 2 pruebas aisladas pasan, habitación actual y descripción obligatorias, formulario real vacío. Validación Cloud pendiente.

@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Sprint 02 — Tarea 08 (13 nov 2026): conectar únicamente la ficha individual de reserva al reloj central; conservar fechas almacenadas, estados y demás módulos. Validar casos pasado/entrada hoy/salida hoy/futuro/varias noches, demo, zona horaria real y recarga aislada. No escribir en Hotel Homeless.
+
 - [x] Sprint 02: revisión estática de Reservas, Habitaciones, Huéspedes y Limpieza completada. No repetir esta auditoría al retomar.
 - [ ] Sprint 02 — Tarea 01: implementada; 6 pruebas aisladas pasan (demo, identidad simulada, cambios y recarga). Validación cloud real pendiente en hotel independiente autorizado.
 - [ ] Sprint 02 — Tarea 02: implementada; 2 pruebas aisladas pasan, habitación actual y descripción obligatorias, formulario real vacío. Validación Cloud pendiente.

@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { futureReservations, BED_KINDS, OCCUPANCY, ROOM_EXTRAS, BATH_OPTIONS, WINDOW_SIDES, type WindowSide, bedSleeps, bedsText, parseBeds, validateRoomEdit, type Room, type RoomEdit } from "@/lib/suite/data";
 import { PrioPill, ResPill, RoomPill, Row, TaskPill } from "./ui";
 import { roomHistory } from "@/lib/suite/cloud";
+import { hotelToday } from "@/lib/suite/clock";
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -66,7 +67,9 @@ function StayActions({ resId }: { resId: string }) {
 }
 
 export function ReservationSheet({ resId, onClose }: { resId: string | null; onClose: () => void }) {
-  const { s, guest } = useSuite();
+  const { s, guest, isDemo, hotel } = useSuite();
+  const today = hotelToday(isDemo ? "demo" : "real", hotel?.timezone).offset;
+  const dateLabel = (offset: number) => fmtDay(offset, today);
   const r = resId ? s.reservations.find((x) => x.id === resId) : undefined;
   const g = r ? guest(r.guestId) : undefined;
   return (
@@ -77,7 +80,7 @@ export function ReservationSheet({ resId, onClose }: { resId: string | null; onC
             <SheetHeader className="px-6 pt-6">
               <div className="flex items-center gap-2 text-xs text-muted-foreground"><span className="font-mono">{r.id}</span><ResPill status={resDisplay(r)} /></div>
               <SheetTitle className="text-xl">{g.name}</SheetTitle>
-              <SheetDescription>Habitación {r.room} · {fmtDay(r.inDay)} → {fmtDay(r.outDay)}</SheetDescription>
+              <SheetDescription>Habitación {r.room} · {dateLabel(r.inDay)} → {dateLabel(r.outDay)}</SheetDescription>
             </SheetHeader>
             <div className="mt-4" />
             <Section title="Huésped">
@@ -85,13 +88,13 @@ export function ReservationSheet({ resId, onClose }: { resId: string | null; onC
               <Row k="Comunicaciones" v={g.messaging ? <span className="text-st-ready">Activas</span> : <span className="text-muted-foreground">Detenidas</span>} />
             </Section>
             <Section title="Estancia">
-              <Row k="Entrada" v={`${fmtDay(r.inDay)}${r.stay === "none" && r.eta !== "—" ? ` · ${r.eta}` : ""}`} />
-              <Row k="Salida" v={`${fmtDay(r.outDay)} · 11:00`} />
+              <Row k="Entrada" v={`${dateLabel(r.inDay)}${r.stay === "none" && r.eta !== "—" ? ` · ${r.eta}` : ""}`} />
+              <Row k="Salida" v={`${dateLabel(r.outDay)} · 11:00`} />
               <Row k="Noches" v={r.outDay - r.inDay} /><Row k="Huéspedes" v={r.pax} />
               <Row k="Habitación" v={`${r.room} · ${s.rooms.find((x) => x.number === r.room)!.type}`} />
               <Row k="Canal" v={r.channel === "Recepción" ? "Manual" : r.channel === "Web directa" ? "Motor directo" : r.channel} /><Row k="Importe total" v={eur(r.amount)} />
               {r.outDay > r.inDay && <Row k="Tarifa media / noche" v={eur(r.amount / (r.outDay - r.inDay))} />}
-              {r.outDay > r.inDay && <Row k="Desglose por noche" v={<span className="text-right text-xs">{Array.from({ length: r.outDay - r.inDay }, (_, i) => `${fmtDay(r.inDay + i)}: ${eur(r.amount / (r.outDay - r.inDay))}`).join(" · ")}<br /><span className="text-muted-foreground">Tarifa única guardada para toda la estancia</span></span>} />}
+              {r.outDay > r.inDay && <Row k="Desglose por noche" v={<span className="text-right text-xs">{Array.from({ length: r.outDay - r.inDay }, (_, i) => `${dateLabel(r.inDay + i)}: ${eur(r.amount / (r.outDay - r.inDay))}`).join(" · ")}<br /><span className="text-muted-foreground">Tarifa única guardada para toda la estancia</span></span>} />}
             </Section>
             <Section title="Notas"><p className="py-2 text-sm">{r.notes || g.notes || "—"}</p></Section>
             <div className="px-6 pb-2"><Link to="/hotel" search={{ room: r.room }} onClick={onClose} className="inline-flex w-full items-center justify-center rounded-md border px-3 py-2 text-sm font-medium hover:bg-accent">Localizar habitación {r.room} en Mi mundo</Link></div>

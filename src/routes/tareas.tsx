@@ -6,6 +6,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSuite } from "@/lib/suite/store";
 import { Card, PageHeader, PrioPill, TaskPill } from "@/components/suite/ui";
 import { ReportIssueDialog } from "@/components/suite/panels";
+import { taskDayLabel } from "@/lib/suite/task-date";
 
 export const Route = createFileRoute("/tareas")({
   head: () => ({
@@ -24,7 +25,7 @@ export const Route = createFileRoute("/tareas")({
 const DEPT = { housekeeping: "Housekeeping", mantenimiento: "Mantenimiento", recepcion: "Recepción", revenue: "Revenue" } as const;
 
 function Tareas() {
-  const { s, actions } = useSuite();
+  const { s, actions, isDemo } = useSuite();
   const scope = s.role === "housekeeping" ? "housekeeping" : s.role === "maintenance" ? "mantenimiento" : null;
   const [dept, setDept] = useState<string>("todas");
   const [report, setReport] = useState(false);
@@ -48,7 +49,7 @@ function Tareas() {
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2"><span className="font-medium">{t.title}</span><PrioPill p={t.priority} /><TaskPill s={t.status} /></div>
                 <div className="tnum mt-1 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-muted-foreground">
-                  <span>{t.assignee}</span><span>{DEPT[t.dept]}</span><span>Hoy · límite {t.deadline}</span>
+                  <span>{t.assignee}</span><span>{DEPT[t.dept]}</span><span>{taskDayLabel(t.day, isDemo ? "demo" : "real")} · límite {t.deadline}</span>
                   {t.nextCheckIn && <span>Próx. check-in {t.nextCheckIn}</span>}
                   {t.startedAt && <span>Inicio {t.startedAt}</span>}{t.endedAt && <span>Fin {t.endedAt}</span>}
                 </div>

@@ -129,3 +129,11 @@ Reglas de implementación:
 - Hecho: `src/lib/suite/clock.ts` + `src/test/clock.test.ts` (7 pruebas: histórica, futura, check-in, checkout, 1/2/varias noches, medianoche, zonas, horario de verano, demo independiente). 37/37 pasan junto a calendario y Sprint 02.
 - BLOQUEADO hasta aprobación: (1) migración aditiva `hotels.timezone text default 'Europe/Madrid'` (toca el esquema de hoteles reales, incl. Homeless); (2) sustituir "0 = hoy" por `todayOffset` en store y pantallas. Sin esto las cuentas reales siguen en DEMO_DATE.
 - Pendiente de prueba: recarga y persistencia con cuenta real.
+
+## Sprint 02 — Tarea 06 (auditoría y diseño de fechas) — 14-11-2026
+Solo diagnóstico. Sin cambios de código, datos ni migraciones.
+- Auditadas: Dashboard (index.tsx + RoleHomes), Habitaciones, Tareas, Control, RevenueBoard/revenue.ts.
+- Fechas fijas: Dashboard (inDay/outDay 0 y 1, mes [-9,1), "1–10 nov"); store nextArrival (inDay>=0), alertas, checkOut (day:0, "Mañana", min(outDay,0)); Habitaciones/RoomSheet fmtDay sin hoy; Tareas/RoleHomes "Hoy" literal; RevenueBoard today=DEMO_DATE; Control previsión 0–20 (demo).
+- Campos relativos: reservas inDay/outDay/createdDay; tareas day; horas como texto (deadline, eta, createdAt) sin fecha.
+- Diseño propuesto (pendiente de aprobación): columnas aditivas check_in_date/check_out_date/created_date y task_date, backfill = 2026-11-10 + offset, tabla de respaldo, lectura dual, sin borrar offsets.
+- Siguiente tarea mínima: conectar hotelToday en Tareas (etiqueta fmtDay(t.day, hoy)).

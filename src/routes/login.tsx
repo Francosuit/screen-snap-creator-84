@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSuite } from "@/lib/suite/store";
+import { enterDemo } from "@/lib/suite/demo-access";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -108,6 +109,7 @@ function LoginPage() {
                 <Button size="lg" onClick={() => { setMode("signup"); setStep(0); }}><Sparkles className="mr-2 h-4 w-4" />Crear mi hotel</Button>
                 <Button size="lg" variant="outline" onClick={() => { setMode("signup"); setStep(0); }}>Crear mi cuenta</Button>
                 <Button size="lg" variant="ghost" onClick={() => setMode("login")}><LogIn className="mr-2 h-4 w-4" />Iniciar sesión</Button>
+                <Button size="lg" variant="link" onClick={() => { enterDemo(); navigate({ to: "/" }); }}>Ver demostración (datos ficticios)</Button>
               </div>
             </>
           )}

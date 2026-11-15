@@ -137,3 +137,13 @@ Solo diagnóstico. Sin cambios de código, datos ni migraciones.
 - Campos relativos: reservas inDay/outDay/createdDay; tareas day; horas como texto (deadline, eta, createdAt) sin fecha.
 - Diseño propuesto (pendiente de aprobación): columnas aditivas check_in_date/check_out_date/created_date y task_date, backfill = 2026-11-10 + offset, tabla de respaldo, lectura dual, sin borrar offsets.
 - Siguiente tarea mínima: conectar hotelToday en Tareas (etiqueta fmtDay(t.day, hoy)).
+
+## Sprint 02 — Tarea 07 (fechas en Tareas) — 15-11-2026
+- Código implementado (etiqueta de fecha en Tareas vía task-date.ts). Pruebas unitarias: 23/23.
+- Validación visual cuenta real (hotel de validación, no Hotel Homeless): 10 tareas muestran «Fecha sin validar · límite HH:MM», ninguna «Hoy» engañosa; filtros Housekeeping/Mantenimiento funcionan; sin errores de consola; no se guardó nada (escrituras bloqueadas en la prueba).
+- No verificado en navegador: modo demostración (sin sesión la app redirige a /login; no hay acceso demo desde la interfaz) y botones Iniciar/Finalizar (no había tareas pendientes visibles y no se pulsaron para no alterar datos). Cubierto solo por pruebas unitarias.
+- Fechas reales en cuentas reales: pendientes de la migración diseñada en Tarea 06 (requiere aprobación).
+- Estado: ABIERTA hasta validar demo y botones en navegador.
+
+## Siguiente prioridad
+Implementar el núcleo temporal compartido (hotelToday en store y todas las pantallas) y la conversión segura de días relativos de reservas y tareas a fechas reales, con migración aprobada.

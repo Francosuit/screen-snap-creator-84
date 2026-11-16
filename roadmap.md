@@ -145,5 +145,10 @@ Solo diagnóstico. Sin cambios de código, datos ni migraciones.
 - Fechas reales en cuentas reales: pendientes de la migración diseñada en Tarea 06 (requiere aprobación).
 - Estado: ABIERTA hasta validar demo y botones en navegador.
 
+## Sprint 02 — Validación funcional Tarea 07 — 16-11-2026
+- [ ] En curso: validar únicamente en «Validación P0 — prueba de persistencia» la creación de una tarea ficticia identificada, Iniciar → recarga → Finalizar → recarga, conservación del resto de tareas y aislamiento respecto a Hotel Homeless.
+- Sin migraciones, cambios del reloj compartido, modificaciones de reservas/tareas existentes ni escrituras en Hotel Homeless. Eliminar la tarea de prueba solo si existe una acción segura de la aplicación.
+- Si la validación pasa, cerrar Tarea 07; el siguiente trabajo será el núcleo temporal compartido y la conversión segura de fechas, pendiente de aprobación de migración.
+
 ## Siguiente prioridad
 Implementar el núcleo temporal compartido (hotelToday en store y todas las pantallas) y la conversión segura de días relativos de reservas y tareas a fechas reales, con migración aprobada.

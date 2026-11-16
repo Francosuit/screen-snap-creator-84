@@ -143,12 +143,17 @@ Solo diagnóstico. Sin cambios de código, datos ni migraciones.
 - Validación visual cuenta real (hotel de validación, no Hotel Homeless): 10 tareas muestran «Fecha sin validar · límite HH:MM», ninguna «Hoy» engañosa; filtros Housekeeping/Mantenimiento funcionan; sin errores de consola; no se guardó nada (escrituras bloqueadas en la prueba).
 - No verificado en navegador: modo demostración (sin sesión la app redirige a /login; no hay acceso demo desde la interfaz) y botones Iniciar/Finalizar (no había tareas pendientes visibles y no se pulsaron para no alterar datos). Cubierto solo por pruebas unitarias.
 - Fechas reales en cuentas reales: pendientes de la migración diseñada en Tarea 06 (requiere aprobación).
-- Estado: ABIERTA hasta validar demo y botones en navegador.
+- Estado: COMPLETADA el 16-11-2026; validación funcional y evidencias en la sección posterior «Validación funcional Tarea 07».
 
 ## Sprint 02 — Validación funcional Tarea 07 — 16-11-2026
-- [ ] En curso: validar únicamente en «Validación P0 — prueba de persistencia» la creación de una tarea ficticia identificada, Iniciar → recarga → Finalizar → recarga, conservación del resto de tareas y aislamiento respecto a Hotel Homeless.
-- Sin migraciones, cambios del reloj compartido, modificaciones de reservas/tareas existentes ni escrituras en Hotel Homeless. Eliminar la tarea de prueba solo si existe una acción segura de la aplicación.
-- Si la validación pasa, cerrar Tarea 07; el siguiente trabajo será el núcleo temporal compartido y la conversión segura de fechas, pendiente de aprobación de migración.
+- [x] COMPLETADA: validación Cloud y navegador en «Validación P0 — prueba de persistencia», hotel aislado con propietario `3bb2396f-77b9-4263-bc2d-6d3899511546` y sin acceso a Hotel Homeless.
+- Creada desde «Reportar problema» la tarea ficticia `T-mwizr3vxcypj` e incidencia asociada `I-mwizr3vxe17m`, habitación 101, descripción «PRUEBA T07 2026-11-16», sin responsable inicial, foto ni bloqueo.
+- Iniciar: «Pendiente» → «En proceso»; tras recarga persisten estado, responsable real Franco Albornoz e inicio 14:10. Cloud confirma versión 2 e incidencia en proceso.
+- Finalizar: «En proceso» → «Completada»; tras segunda recarga persisten estado, inicio 14:10 y fin 14:11, sin botones de acción. Cloud confirma versión 3 e incidencia resuelta.
+- Integridad: las 10 tareas y 9 incidencias anteriores conservan exactamente sus hashes iniciales; sin cambios en 6 reservas, 6 huéspedes ni 5 operaciones de habitación. Hotel Homeless conserva 66 tareas, 53 incidencias, 25 reservas y 25 huéspedes, últimas escrituras 04-11-2026 y 0 eventos de auditoría durante la prueba.
+- Navegador sin errores de consola; compilación OK. No se repitieron los 26 tests ya aprobados ni se ejecutaron migraciones. No se modificó código de aplicación.
+- La tarea ficticia y su incidencia resuelta se conservan como evidencia: no existe una acción segura de borrado en la interfaz y no se hizo ninguna eliminación directa en la base.
+- Siguiente trabajo Sprint 02: núcleo temporal compartido y conversión segura de días relativos de reservas/tareas a fechas reales; requiere aprobación de la migración diseñada en Tarea 06.
 
 ## Siguiente prioridad
 Implementar el núcleo temporal compartido (hotelToday en store y todas las pantallas) y la conversión segura de días relativos de reservas y tareas a fechas reales, con migración aprobada.

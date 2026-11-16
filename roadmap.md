@@ -1,5 +1,11 @@
 # Roadmap
 
+## En curso — Sprint 02: núcleo temporal compartido (16 nov 2026)
+- Recuperar el diseño aditivo de Tarea 06 y comprobar el almacenamiento real de reservas/tareas.
+- Implementar y probar de forma aislada el núcleo de calendario, zona horaria, conversión y lectura compatible.
+- Preparar backup, migración, validación y rollback verificables; NO ejecutar migraciones ni escribir en hoteles reales.
+- Mantener la demo fija en 10/11/2026 y conservar los campos antiguos hasta validar la conversión.
+
 - [x] Sprint 02 — Tarea 08 (13 nov 2026): ficha individual conectada a `hotelToday` en cabecera, entrada, salida y desglose por noche. Conserva fechas almacenadas, estados y demás módulos. 8 pruebas nuevas y 48 comprobaciones relacionadas pasan; compilación OK. Verificación visual en «Validación P0 — prueba de persistencia»: entrada real «Hoy», desglose correcto y ficha idéntica tras recarga, sin acciones operativas. Hotel Homeless no utilizado. Pendiente para cerrar Sprint 02: conectar las pantallas restantes y validación multiusuario Cloud ya registrada.
 
 - [x] Sprint 02: revisión estática de Reservas, Habitaciones, Huéspedes y Limpieza completada. No repetir esta auditoría al retomar.

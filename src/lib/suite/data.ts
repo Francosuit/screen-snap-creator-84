@@ -76,10 +76,14 @@ export interface Guest {
 export interface Reservation {
   id: string; guestId: string; room: string; inDay: number; outDay: number; eta: string;
   pax: number; channel: Channel; amount: number; status: BookingStatus; stay: StayStatus; notes: string; createdDay: number;
+  /** Absolute calendar dates (YYYY-MM-DD); legacy rows gain them only through the approved migration. */
+  checkInDate?: string; checkOutDate?: string; createdDate?: string;
 }
 export interface Task {
   id: string; title: string; room: string; assignee: string; dept: Dept; priority: Priority;
   day: number; deadline: string; status: TaskStatus; comments: string; nextCheckIn?: string | undefined;
+  /** Absolute task date; offsets remain stored for compatibility and rollback. */
+  taskDate?: string;
   kind: "limpieza" | "repaso" | "mantenimiento" | "general"; incidentId?: string; startedAt?: string; endedAt?: string;
 }
 export interface Incident {

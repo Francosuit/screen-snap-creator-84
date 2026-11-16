@@ -8,6 +8,16 @@ export const DEFAULT_TZ = "Europe/Madrid";
 const DAY = 86_400_000;
 const utcOf = (ymd: string) => { const [y = 0, m = 1, d = 1] = ymd.split("-").map(Number); return Date.UTC(y, m - 1, d); };
 
+/** Strict YYYY-MM-DD validation: impossible or normalized dates are rejected. */
+export function isCalendarDate(ymd: unknown): ymd is string {
+  if (typeof ymd !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return false;
+  return new Date(utcOf(ymd)).toISOString().slice(0, 10) === ymd;
+}
+
+function assertCalendarDate(ymd: string): void {
+  if (!isCalendarDate(ymd)) throw new Error(`Fecha de calendario inválida: ${ymd}`);
+}
+
 /** Calendar date (YYYY-MM-DD) at instant `now` in time zone `tz`. */
 export function hotelYmd(tz: string, now: Date): string {
   const p = new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(now);

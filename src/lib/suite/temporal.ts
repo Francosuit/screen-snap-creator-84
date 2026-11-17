@@ -38,7 +38,8 @@ export function withReservationCalendar<T extends Reservation>(reservation: T): 
 /** Updates both representations only after migration/new creation; legacy rows stay untouched. */
 export function syncReservationCalendar<T extends Reservation>(reservation: T): T {
   if (reservation.checkInDate === undefined && reservation.checkOutDate === undefined && reservation.createdDate === undefined) return reservation;
-  return withReservationCalendar(reservation);
+  // Offsets were just edited legitimately: recompute absolute dates from them.
+  return { ...reservation, ...reservationCalendar(reservation.inDay, reservation.outDay, reservation.createdDay) };
 }
 
 export function withTaskCalendar<T extends Task>(task: T): T {

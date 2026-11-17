@@ -163,3 +163,9 @@ Solo diagnóstico. Sin cambios de código, datos ni migraciones.
 
 ## Siguiente prioridad
 Implementar el núcleo temporal compartido (hotelToday en store y todas las pantallas) y la conversión segura de días relativos de reservas y tareas a fechas reales, con migración aprobada.
+
+### Núcleo temporal — validación (17/11/2026)
+- [x] temporal.test.ts 8/8, suite completa 140/140, compilación OK.
+- [x] Corregido: syncReservationCalendar recalcula fechas tras editar desplazamientos.
+- [ ] Pendiente de autorización: conectar Operaciones, Dashboard, Habitaciones, Tareas, Revenue.
+- [ ] Guardar zona horaria al crear hotel; procedimientos de backup/migración/rollback; migración real.

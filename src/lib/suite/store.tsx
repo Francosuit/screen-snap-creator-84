@@ -25,6 +25,8 @@ import {
   type RoomEdit, validateRoomEdit, applyRoomEdit, checkStayChange, stayAmount,
 } from "./data";
 import { SuiteCtx } from "./context";
+import { hotelToday, offsetToYmd } from "./clock";
+import { syncReservationCalendar, withReservationCalendar, withTaskCalendar } from "./temporal";
 import { supabase } from "@/integrations/supabase/client";
 interface CloudState { account?: Account; hotels?: Hotel[]; data?: Record<string, Data> }
 /** Only the most recent save may set the save status */
@@ -97,12 +99,13 @@ export const fmtDay = (off: number, today = 0) => {
 export const eur = (n: number) => `${Math.round(n).toLocaleString("es-ES")} €`;
 
 export type ResDisplay = "Confirmada" | "Check-in pendiente" | "IN HOUSE" | "Check-out pendiente" | "Finalizada" | "Cancelada" | "No-show";
-export function resDisplay(r: Reservation): ResDisplay {
+/** Display status relative to the hotel day `today` (demo default 0). */
+export function resDisplay(r: Reservation, today = 0): ResDisplay {
   if (r.status === "cancelled") return "Cancelada";
   if (r.status === "noshow") return "No-show";
   if (r.stay === "finished") return "Finalizada";
-  if (r.stay === "inhouse") return r.outDay <= 0 ? "Check-out pendiente" : "IN HOUSE";
-  if (r.inDay === 0) return "Check-in pendiente";
+  if (r.stay === "inhouse") return r.outDay <= today ? "Check-out pendiente" : "IN HOUSE";
+  if (r.inDay === today) return "Check-in pendiente";
   return "Confirmada";
 }
 
@@ -276,6 +279,12 @@ function useSuiteState() {
 
   const visible = visibleHotels(root.hotels, uid ? root.user ?? "__loading__" : undefined, config?.hotels.filter((h) => !h.archived).map((h) => h.key));
   const hotel: Hotel = visible.find((h) => h.id === root.hotel) ?? visible[0] ?? { id: "", name: "Sin hoteles", address: "", city: "", category: "", rooms: 0, logo: "", status: "activo" };
+  // Single source of "today": demo keeps its fixed day, real hotels use the real clock in their zone.
+  const today = hotelToday(uid ? "real" : "demo", hotel.timezone);
+  const T = today.offset;
+  /** Real rows get both representations; demo rows stay offset-only so demo and production never mix. */
+  const stampTask = (t: Task): Task => (uid ? withTaskCalendar(t) : t);
+  const stampRes = (r: Reservation): Reservation => (uid ? withReservationCalendar(r) : r);
   const record = config?.hotels.find((h) => h.key === hotel.id && !h.archived);
   const memberRole = record ? record.org_owner === uid ? "owner" : memberships.find((m) => m.hotel_id === record.id)?.role : undefined;
   const membership = record && memberRole !== "owner" ? memberships.find((m) => m.hotel_id === record.id) : undefined;
@@ -326,7 +335,7 @@ function useSuiteState() {
   const helpers = useMemo(() => {
     const occupant = (room: string) => s.reservations.find((r) => r.room === room && r.stay === "inhouse");
     const nextArrival = (room: string) =>
-      s.reservations.filter((r) => r.room === room && r.status === "confirmed" && r.stay === "none" && r.inDay >= 0).sort((a, b) => a.inDay - b.inDay)[0];
+      s.reservations.filter((r) => r.room === room && r.status === "confirmed" && r.stay === "none" && r.inDay >= T).sort((a, b) => a.inDay - b.inDay)[0];
     const guest = (gid: string) => s.guests.find((g) => g.id === gid)!;
     const roomState = (num: string): RoomState => {
       const room = s.rooms.find((x) => x.number === num)!;
@@ -337,13 +346,13 @@ function useSuiteState() {
       if (room.hk === "dirty" || room.hk === "inspect") return "dirty";
       return "ready";
     };
-    return { occupant, nextArrival, guest, roomState };
-  }, [s]);
+    return { occupant, nextArrival, guest, roomState, today: T, todayYmd: today.ymd, timeZone: today.zone };
+  }, [s, T, today.ymd, today.zone]);
 
   /** Exceptions & action center — computed from live state */
   const alerts = useMemo(() => {
     const out: { id: string; level: "URGENTE" | "ALTA" | "MEDIA" | "OPORTUNIDAD"; title: string; detail: string; link: string; notify?: string }[] = [];
-    s.reservations.filter((r) => r.inDay === 0 && r.stay === "none" && r.status === "confirmed").forEach((r) => {
+    s.reservations.filter((r) => r.inDay === T && r.stay === "none" && r.status === "confirmed").forEach((r) => {
       const st = helpers.roomState(r.room);
       const mins = toMin(r.eta) - s.clock;
       if (st !== "ready" && mins <= 120) {
@@ -365,7 +374,7 @@ function useSuiteState() {
     s.opportunities.filter((o) => o.status === "nueva" && o.level === "alta").forEach((o) =>
       out.push({ id: `a-op-${o.id}`, level: "OPORTUNIDAD", title: `Revenue detectó una oportunidad para ${o.dates}.`, detail: `Ocupación ${o.occupancy}% · pickup ${o.pickup} · impacto +${eur(o.impact)}.`, link: "/control" }));
     return out;
-  }, [s, helpers]);
+  }, [s, helpers, T]);
 
   const actions = useMemo(() => {
     const account = root.accounts?.find((a) => a.email === root.user);
@@ -458,20 +467,21 @@ function useSuiteState() {
         const r = current?.reservations.find((x) => x.id === resId);
         if (!r || r.stay !== "inhouse") return false;
         const gName = helpers.guest(r.guestId).name;
-        const next = s.reservations.find((x) => x.room === r.room && x.id !== r.id && x.status === "confirmed" && x.stay === "none" && x.inDay === 0);
-        const nextTom = s.reservations.find((x) => x.room === r.room && x.id !== r.id && x.status === "confirmed" && x.stay === "none" && x.inDay === 1);
+        const next = s.reservations.find((x) => x.room === r.room && x.id !== r.id && x.status === "confirmed" && x.stay === "none" && x.inDay === T);
+        const nextTom = s.reservations.find((x) => x.room === r.room && x.id !== r.id && x.status === "confirmed" && x.stay === "none" && x.inDay === T + 1);
         const deadlineMin = next ? Math.max(toMin(next.eta) - 30, s.clock + 30) : s.clock + 180;
         const priority: Priority = next ? (toMin(next.eta) - s.clock < 120 ? "urgente" : "alta") : nextTom ? "media" : "baja";
-        const task: Task = {
+        const task: Task = stampTask({
           id: id("T"), title: "Limpieza post check-out", room: r.room, assignee: uid ? "" : "María López", dept: "housekeeping", priority,
-          day: 0, deadline: fmtClock(deadlineMin), status: "pendiente", kind: "limpieza",
-          nextCheckIn: next ? next.eta : nextTom ? `Mañana ${nextTom.eta}` : undefined,
+          day: T, deadline: fmtClock(deadlineMin), status: "pendiente", kind: "limpieza",
+          // Real hotels store the explicit date instead of a relative word that goes stale.
+          nextCheckIn: next ? next.eta : nextTom ? `${uid ? offsetToYmd(T + 1) : "Mañana"} ${nextTom.eta}` : undefined,
           comments: next ? `Próximo check-in hoy ${next.eta} · ${helpers.guest(next.guestId).name}.` : "Creada automáticamente por Suite.",
-        };
+        });
         setS((p) => {
           let n: State = {
             ...p,
-            reservations: p.reservations.map((x) => (x.id === resId ? { ...x, stay: "finished", outDay: Math.min(x.outDay, 0) } : x)),
+            reservations: p.reservations.map((x) => (x.id === resId ? syncReservationCalendar({ ...x, stay: "finished", outDay: Math.min(x.outDay, T) }) : x)),
             guests: p.guests.map((g) => (g.id === r.guestId ? { ...g, messaging: false } : g)),
             rooms: p.rooms.map((x) => (x.number === r.room ? { ...x, hk: "dirty" } : x)),
             tasks: p.tasks.some(t => t.room === r.room && t.dept === "housekeeping" && t.status !== "completada") ? p.tasks : [task, ...p.tasks],
@@ -552,11 +562,11 @@ function useSuiteState() {
           let n: State = {
             ...p,
             incidents: [{ ...input, id: incId, status: "abierta", createdAt: t, reporter: actor, assignee: uid ? "" : "Carlos Ruiz", taskId }, ...p.incidents],
-            tasks: [{
+            tasks: [stampTask({
               id: taskId, title: `${input.category}: ${input.description.slice(0, 40)}`, room: input.room, assignee: uid ? "" : "Carlos Ruiz", dept: "mantenimiento",
-              priority: input.blocking ? "alta" : "media", day: 0, deadline: fmtClock(p.clock + 120), status: "pendiente", comments: input.description,
+              priority: input.blocking ? "alta" : "media", day: T, deadline: fmtClock(p.clock + 120), status: "pendiente", comments: input.description,
               kind: "mantenimiento", incidentId: incId,
-            }, ...p.tasks],
+            }), ...p.tasks],
           };
           n = push(n, [
             { actor, text: `Reportó incidencia ${input.category.toLowerCase()} habitación ${input.room}.`, kind: "human" },
@@ -591,11 +601,11 @@ function useSuiteState() {
       simulateRule: (rid: string) => {
         if (uid) { say.error("No hay un servicio de envío conectado"); return; }
         const rule = s.rules.find((r) => r.id === rid)!;
-        const candidates = s.reservations.filter((r) => r.status === "confirmed" && (r.stay === "inhouse" || (r.stay === "finished" && r.outDay === 0)));
+        const candidates = s.reservations.filter((r) => r.status === "confirmed" && (r.stay === "inhouse" || (r.stay === "finished" && r.outDay === T)));
         const entries: SentMessage[] = candidates.map((r) => {
           const g = helpers.guest(r.guestId);
           if (r.stay !== "inhouse") return { id: id("s"), time: rule.time, guest: g.name, rule: rule.name, result: "omitido", reason: "Check-out realizado — no se envía" };
-          if (rid === "m2" && r.outDay <= 1) return { id: id("s"), time: rule.time, guest: g.name, rule: rule.name, result: "omitido", reason: "Sale mañana — no aplica" };
+          if (rid === "m2" && r.outDay <= T + 1) return { id: id("s"), time: rule.time, guest: g.name, rule: rule.name, result: "omitido", reason: "Sale mañana — no aplica" };
           return { id: id("s"), time: rule.time, guest: g.name, rule: rule.name, result: "enviado" };
         });
         const sent = entries.filter((e) => e.result === "enviado").length;
@@ -623,7 +633,7 @@ function useSuiteState() {
       if (op === "finish" && open && open.status === "en_proceso") return api.finishTask(open.id);
       if (open || op === "finish") return false;
       if (op === "dirty" || (op === "start" && !open)) {
-        const task: Task = { id: id("T"), title: op === "dirty" ? "Limpieza solicitada" : "Limpieza", room: num, assignee: uid ? op === "start" ? actor : "" : "María López", dept: "housekeeping", priority: "media", day: 0, deadline: fmtClock(s.clock + 90), status: op === "start" ? "en_proceso" : "pendiente", comments: "Creada desde el hotel digital.", kind: "limpieza", ...(op === "start" ? { startedAt: fmtClock(s.clock + 1) } : {}) };
+        const task: Task = stampTask({ id: id("T"), title: op === "dirty" ? "Limpieza solicitada" : "Limpieza", room: num, assignee: uid ? op === "start" ? actor : "" : "María López", dept: "housekeeping", priority: "media", day: T, deadline: fmtClock(s.clock + 90), status: op === "start" ? "en_proceso" : "pendiente", comments: "Creada desde el hotel digital.", kind: "limpieza", ...(op === "start" ? { startedAt: fmtClock(s.clock + 1) } : {}) };
         setS((p) => notify(push({ ...p, tasks: [task, ...p.tasks], rooms: p.rooms.map((r) => (r.number === num ? { ...r, hk: op === "start" ? "cleaning" : "dirty" } : r)) }, [
           { actor, text: op === "dirty" ? `Marcó habitación ${num} pendiente de limpieza.` : `Empezó limpieza habitación ${num}.`, kind: "human" },
           { actor: "Suite", text: `Habitación ${num} → ${op === "dirty" ? "PENDIENTE DE LIMPIEZA" : "LIMPIEZA EN PROCESO"}. ${uid ? "Tarea creada." : "Tarea asignada a María López."}`, kind: "suite" },
@@ -640,12 +650,12 @@ function useSuiteState() {
     const addBooking = (today: boolean) => {
       const free = s.rooms.filter((r) => !r.oos && !s.reservations.some((x) => x.room === r.number && x.status === "confirmed" && x.stay !== "finished"));
       if (!free.length) return false;
-      const room = pick(free), name = pick(NAMES), gid = id("g"), inDay = today ? 0 : 1 + Math.floor(Math.random() * 6), nights = 1 + Math.floor(Math.random() * 4);
+      const room = pick(free), name = pick(NAMES), gid = id("g"), inDay = today ? T : T + 1 + Math.floor(Math.random() * 6), nights = 1 + Math.floor(Math.random() * 4);
       const channel = pick(CHANNELS);
       const g: Guest = { id: gid, name, doc: `PAS ${gid.slice(-6).toUpperCase()}`, phone: "+34 600 000 000", email: `${gid}@demo-mail.com`, lang: "Español", companions: [], notes: "", country: "ES", messaging: false };
-      const res: Reservation = { id: id("R"), guestId: gid, room: room.number, inDay, outDay: inDay + nights, eta: fmtClock(s.clock + 20), pax: 2, channel, amount: room.rate * nights, status: "confirmed", stay: "none", notes: "", createdDay: 0 };
+      const res: Reservation = { id: id("R"), guestId: gid, room: room.number, inDay, outDay: inDay + nights, eta: fmtClock(s.clock + 20), pax: 2, channel, amount: room.rate * nights, status: "confirmed", stay: "none", notes: "", createdDay: T };
       setS((p) => notify(push({ ...p, guests: [g, ...p.guests], reservations: [res, ...p.reservations] }, [
-        { actor: channel, text: `Nueva reserva ${res.id} · ${name} · habitación ${room.number} · ${fmtDay(inDay).toLowerCase()}.`, kind: "channel" },
+        { actor: channel, text: `Nueva reserva ${res.id} · ${name} · habitación ${room.number} · ${fmtDay(inDay, T).toLowerCase()}.`, kind: "channel" },
       ]), ["reception", "owner", "director"], `Nueva reserva ${channel} · ${name}.`, "ok"));
       return true;
     };
@@ -660,9 +670,9 @@ function useSuiteState() {
       if (clash) { say.error(`Habitación ${input.room} ocupada en esas fechas`, { description: `Choca con ${clash.id}` }); return false; }
       const gid = id("g");
       const g: Guest = { id: gid, name: input.name.trim(), doc: "—", phone: "—", email: "—", lang: "—", companions: [], notes: "", country: "—", messaging: false };
-      const res: Reservation = { id: id("R"), guestId: gid, room: room.number, inDay: input.inDay, outDay: input.outDay, eta: "—", pax: input.pax, channel: "Recepción", amount: stayAmount(room.rate, input.outDay - input.inDay), status: "confirmed", stay: "none", notes: input.notes, createdDay: 0 };
+      const res: Reservation = stampRes({ id: id("R"), guestId: gid, room: room.number, inDay: input.inDay, outDay: input.outDay, eta: "—", pax: input.pax, channel: "Recepción", amount: stayAmount(room.rate, input.outDay - input.inDay), status: "confirmed", stay: "none", notes: input.notes, createdDay: T });
       setS((p) => notify(push({ ...p, guests: [g, ...p.guests], reservations: [res, ...p.reservations] }, [
-        { actor, text: `Reserva manual ${res.id} · ${g.name} · habitación ${room.number} · ${fmtDay(input.inDay).toLowerCase()} → ${fmtDay(input.outDay).toLowerCase()}.`, kind: "human" },
+        { actor, text: `Reserva manual ${res.id} · ${g.name} · habitación ${room.number} · ${fmtDay(input.inDay, T).toLowerCase()} → ${fmtDay(input.outDay, T).toLowerCase()}.`, kind: "human" },
       ]), ["reception", "owner", "director"], `Reserva manual · ${g.name} · ${room.number}.`, "ok"));
       say.success("Reserva creada");
       return true;
@@ -675,16 +685,16 @@ function useSuiteState() {
       if ("error" in res) { say.error(res.error); return false; }
       if (!r || r.outDay === outDay) return false;
       const longer = outDay > r.outDay;
-      setS((p) => notify(push({ ...p, reservations: p.reservations.map((x) => x.id === rid ? { ...x, outDay, amount: res.amount } : x) }, [
-        { actor, text: `Estancia ${rid} ${longer ? "ampliada" : "acortada"}: salida ${fmtDay(r.outDay).toLowerCase()} → ${fmtDay(outDay).toLowerCase()} · importe ${r.amount} € → ${res.amount} €.`, kind: "human" },
-      ]), ["reception", "housekeeping", "owner", "director"], `Habitación ${r.room}: salida ${longer ? "retrasada" : "adelantada"} a ${fmtDay(outDay).toLowerCase()}. Ajusta la limpieza de salida.`, "info"));
+      setS((p) => notify(push({ ...p, reservations: p.reservations.map((x) => x.id === rid ? syncReservationCalendar({ ...x, outDay, amount: res.amount }) : x) }, [
+        { actor, text: `Estancia ${rid} ${longer ? "ampliada" : "acortada"}: salida ${fmtDay(r.outDay, T).toLowerCase()} → ${fmtDay(outDay, T).toLowerCase()} · importe ${r.amount} € → ${res.amount} €.`, kind: "human" },
+      ]), ["reception", "housekeeping", "owner", "director"], `Habitación ${r.room}: salida ${longer ? "retrasada" : "adelantada"} a ${fmtDay(outDay, T).toLowerCase()}. Ajusta la limpieza de salida.`, "info"));
       say.success(longer ? "Estancia ampliada" : "Estancia acortada", { description: `Nuevo importe: ${res.amount} €` });
       return true;
     };
     const simulateStep = () => {
       const opts: (() => unknown)[] = [];
       const inhouse = s.reservations.filter((r) => r.stay === "inhouse");
-      const arrivals = s.reservations.filter((r) => r.inDay === 0 && r.status === "confirmed" && r.stay === "none" && helpers.roomState(r.room) === "ready");
+      const arrivals = s.reservations.filter((r) => r.inDay === T && r.status === "confirmed" && r.stay === "none" && helpers.roomState(r.room) === "ready");
       const hkPend = s.tasks.filter((t) => t.dept === "housekeeping" && t.status === "pendiente" && helpers.roomState(t.room) === "dirty");
       const hkProg = s.tasks.filter((t) => t.dept === "housekeeping" && t.status === "en_proceso");
       const mtPend = s.tasks.filter((t) => t.dept === "mantenimiento" && t.status === "pendiente");

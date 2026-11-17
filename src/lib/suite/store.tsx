@@ -633,7 +633,7 @@ function useSuiteState() {
       if (op === "finish" && open && open.status === "en_proceso") return api.finishTask(open.id);
       if (open || op === "finish") return false;
       if (op === "dirty" || (op === "start" && !open)) {
-        const task: Task = stampTask({ id: id("T"), title: op === "dirty" ? "Limpieza solicitada" : "Limpieza", room: num, assignee: uid ? op === "start" ? actor : "" : "María López", dept: "housekeeping", priority: "media", day: T, deadline: fmtClock(s.clock + 90), status: op === "start" ? "en_proceso" : "pendiente", comments: "Creada desde el hotel digital.", kind: "limpieza", ...(op === "start" ? { startedAt: fmtClock(s.clock + 1) } : {}) };
+        const task: Task = stampTask({ id: id("T"), title: op === "dirty" ? "Limpieza solicitada" : "Limpieza", room: num, assignee: uid ? op === "start" ? actor : "" : "María López", dept: "housekeeping", priority: "media", day: T, deadline: fmtClock(s.clock + 90), status: op === "start" ? "en_proceso" : "pendiente", comments: "Creada desde el hotel digital.", kind: "limpieza", ...(op === "start" ? { startedAt: fmtClock(s.clock + 1) } : {}) });
         setS((p) => notify(push({ ...p, tasks: [task, ...p.tasks], rooms: p.rooms.map((r) => (r.number === num ? { ...r, hk: op === "start" ? "cleaning" : "dirty" } : r)) }, [
           { actor, text: op === "dirty" ? `Marcó habitación ${num} pendiente de limpieza.` : `Empezó limpieza habitación ${num}.`, kind: "human" },
           { actor: "Suite", text: `Habitación ${num} → ${op === "dirty" ? "PENDIENTE DE LIMPIEZA" : "LIMPIEZA EN PROCESO"}. ${uid ? "Tarea creada." : "Tarea asignada a María López."}`, kind: "suite" },

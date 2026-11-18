@@ -699,7 +699,7 @@ function useSuiteState() {
       const hkProg = s.tasks.filter((t) => t.dept === "housekeeping" && t.status === "en_proceso");
       const mtPend = s.tasks.filter((t) => t.dept === "mantenimiento" && t.status === "pendiente");
       const mtProg = s.tasks.filter((t) => t.dept === "mantenimiento" && t.status === "en_proceso");
-      if (inhouse.length) opts.push(() => api.checkOut(pick(inhouse.filter((r) => r.outDay <= 0).length ? inhouse.filter((r) => r.outDay <= 0) : inhouse).id));
+      if (inhouse.length) opts.push(() => api.checkOut(pick(inhouse.filter((r) => r.outDay <= T).length ? inhouse.filter((r) => r.outDay <= T) : inhouse).id));
       if (arrivals.length) opts.push(() => api.checkIn(pick(arrivals).id), () => api.checkIn(pick(arrivals).id));
       if (hkPend.length) opts.push(() => api.startTask(pick(hkPend).id));
       if (hkProg.length) opts.push(() => api.finishTask(pick(hkProg).id), () => api.finishTask(pick(hkProg).id));

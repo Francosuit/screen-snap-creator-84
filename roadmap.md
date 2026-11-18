@@ -169,3 +169,13 @@ Implementar el núcleo temporal compartido (hotelToday en store y todas las pant
 - [x] Corregido: syncReservationCalendar recalcula fechas tras editar desplazamientos.
 - [ ] Pendiente de autorización: conectar Operaciones, Dashboard, Habitaciones, Tareas, Revenue.
 - [ ] Guardar zona horaria al crear hotel; procedimientos de backup/migración/rollback; migración real.
+
+### Operaciones y conexión de pantallas — 18/11/2026
+- [x] PRIORIDAD 1 validada sin escrituras reales: revisados `store.tsx`, `clock.ts`, `temporal.ts`, `data.ts` y `operations.ts`; este último conserva el guardado atómico sin cambios.
+- [x] Nuevas pruebas aisladas `operations-temporal.test.tsx`: checkout/limpieza, incidencia, hotel digital, alertas, reserva manual, cambio de estancia, recarga y separación demo/real. 46/46 pruebas específicas y suite completa 146/146 antes de conectar pantallas; compilación OK.
+- [x] Confirmado en operaciones reales simuladas: nuevas tareas/reservas guardan fecha absoluta y desplazamiento; registros antiguos no se convierten implícitamente; checkout no duplica limpieza; demo fija 10/11/2026 y no añade campos de producción.
+- [x] Conectados al día compartido: Panel principal (incluido mes en curso), Habitaciones, Hotel digital, Huéspedes, Tareas, Revenue y estados/arrastre de Reservas; fichas compartidas y acción de check-in usan el mismo día.
+- [x] Tareas reales nuevas muestran Hoy/Mañana/fecha solo si `taskDate` coincide con `day`; tareas antiguas sin validar conservan «Fecha sin validar». Inicios de Limpieza/Mantenimiento usan la misma regla.
+- [x] 47/47 pruebas específicas de pantalla y operaciones tras la integración.
+- [ ] Pendiente: suite completa posterior a pantallas, compilación final y validación visual demo/real de solo lectura.
+- [ ] Después: zona horaria individual, validaciones estrictas de fechas/horas y procedimientos de backup/migración/rollback. NO ejecutar migraciones ni escribir en hoteles reales.

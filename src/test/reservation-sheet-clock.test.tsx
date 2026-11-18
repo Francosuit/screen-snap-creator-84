@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { ReservationSheet } from "@/components/suite/panels";
 import { SuiteCtx } from "@/lib/suite/context";
 import { dayDate } from "@/lib/suite/store";
+import { hotelToday } from "@/lib/suite/clock";
 import type { Reservation } from "@/lib/suite/data";
 
 vi.mock("@tanstack/react-router", () => ({
@@ -24,6 +25,7 @@ function renderSheet(r: Reservation, mode: "demo" | "real" = "real", timezone = 
     guest: () => guest,
     roomState: () => "ready",
     isDemo: mode === "demo",
+    today: hotelToday(mode, timezone).offset,
     hotel: { timezone },
   };
   return render(<SuiteCtx.Provider value={value}><ReservationSheet resId={r.id} onClose={() => {}} /></SuiteCtx.Provider>);

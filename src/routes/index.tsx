@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ROLES } from "@/lib/suite/data";
-import { eur, useSuite } from "@/lib/suite/store";
+import { dayDate, eur, useSuite } from "@/lib/suite/store";
 import { Card, Kpi, PageHeader, SectionTitle } from "@/components/suite/ui";
 import { HousekeepingHome, MaintenanceHome } from "@/components/suite/RoleHomes";
 
@@ -38,25 +38,28 @@ const LEVEL = {
 } as const;
 
 function Dashboard() {
-  const { s, alerts, roomState, hotel } = useSuite();
+  const { s, alerts, roomState, hotel, today } = useSuite();
   const nav = useNavigate();
   const [openAlert, setOpenAlert] = useState<string | null>(null);
   const AVAIL = s.rooms.filter((r) => !r.oos).length;
   const inhouse = s.reservations.filter((r) => r.stay === "inhouse");
-  const arrivalsToday = s.reservations.filter((r) => r.inDay === 0 && r.status === "confirmed" && r.stay !== "finished" || (r.inDay === 0 && r.stay === "inhouse"));
-  const pendingIn = s.reservations.filter((r) => r.inDay === 0 && r.status === "confirmed" && r.stay === "none");
-  const departures = s.reservations.filter((r) => r.outDay === 0 && r.status === "confirmed" && r.inDay < 0);
+  const arrivalsToday = s.reservations.filter((r) => r.inDay === today && r.status === "confirmed" && r.stay !== "finished" || (r.inDay === today && r.stay === "inhouse"));
+  const pendingIn = s.reservations.filter((r) => r.inDay === today && r.status === "confirmed" && r.stay === "none");
+  const departures = s.reservations.filter((r) => r.outDay === today && r.status === "confirmed" && r.inDay < today);
   const nightly = (r: (typeof s.reservations)[number]) => r.amount / Math.max(1, r.outDay - r.inDay);
   const sold = [...inhouse, ...pendingIn];
   const revToday = sold.reduce((a, r) => a + nightly(r), 0);
   const occ = AVAIL ? Math.round((sold.length / AVAIL) * 100) : 0;
   const adr = sold.length ? revToday / sold.length : 0;
-  // Month revenue: room-nights from 1 Nov (day offset -9) through today, from real bookings
+  // Current hotel month, including tonight and excluding future nights.
+  const todayDate = dayDate(today);
+  const monthStart = today - todayDate.getDate() + 1;
   const monthRev = s.reservations.filter((r) => r.status !== "cancelled").reduce((acc, r) => {
-    const from = Math.max(r.inDay, -9), to = Math.min(r.outDay, 1);
+    const from = Math.max(r.inDay, monthStart), to = Math.min(r.outDay, today + 1);
     return acc + Math.max(0, to - from) * nightly(r);
   }, 0);
-  const tomorrowStays = s.reservations.filter((r) => r.status === "confirmed" && r.stay !== "finished" && r.inDay <= 1 && r.outDay > 1);
+  const monthHint = `${todayDate.getDate() === 1 ? "1" : `1–${todayDate.getDate()}`} ${todayDate.toLocaleDateString("es-ES", { month: "short" })}`;
+  const tomorrowStays = s.reservations.filter((r) => r.status === "confirmed" && r.stay !== "finished" && r.inDay <= today + 1 && r.outDay > today + 1);
   const isRevenue = s.role === "revenue";
   const a = alerts.find((x) => x.id === openAlert);
   const counts = { ready: 0, dirty: 0 };
@@ -68,7 +71,7 @@ function Dashboard() {
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
         <Kpi className="glass glass-kpi" accent="var(--st-ready)" label="Facturación hoy" value={eur(revToday)} hint={`${sold.length} hab. vendidas`} />
-        <Kpi className="glass glass-kpi" accent="var(--suite-gold)" label="Facturación mes" value={eur(monthRev)} hint="1–10 nov" />
+        <Kpi className="glass glass-kpi" accent="var(--suite-gold)" label="Facturación mes" value={eur(monthRev)} hint={monthHint} />
         <Kpi className="glass glass-kpi" accent="var(--st-occupied)" label="Ocupación" value={`${occ}%`} hint={`${sold.length}/${AVAIL} hab.`} />
         <Kpi className="glass glass-kpi" accent="var(--chart-2)" label="ADR" value={eur(adr)} hint="tarifa media" />
         <Kpi className="glass glass-kpi" accent="var(--st-cleaning)" label="RevPAR" value={eur(AVAIL ? revToday / AVAIL : 0)} hint="por hab. disponible" />
@@ -100,7 +103,7 @@ function Dashboard() {
                 ["Huéspedes IN HOUSE", inhouse.reduce((a, r) => a + r.pax, 0)],
                 ["Check-ins", `${arrivalsToday.length - pendingIn.length}/${arrivalsToday.length}`],
                 ["Check-outs", `${departures.filter((r) => r.stay === "finished").length}/${departures.length}`],
-                ["Reservas nuevas", s.reservations.filter((r) => r.createdDay === 0).length],
+                ["Reservas nuevas", s.reservations.filter((r) => r.createdDay === today).length],
                 ["Habitaciones disponibles", counts.ready],
                 ["Pendientes de limpieza", counts.dirty],
               ]} />
@@ -108,8 +111,8 @@ function Dashboard() {
             <Card className="glass">
               <SectionTitle>Mañana</SectionTitle>
               <Stats items={[
-                ["Check-ins", s.reservations.filter((r) => r.inDay === 1 && r.status === "confirmed").length],
-                ["Check-outs", s.reservations.filter((r) => r.outDay === 1 && r.status === "confirmed" && r.stay !== "finished").length],
+                ["Check-ins", s.reservations.filter((r) => r.inDay === today + 1 && r.status === "confirmed").length],
+                ["Check-outs", s.reservations.filter((r) => r.outDay === today + 1 && r.status === "confirmed" && r.stay !== "finished").length],
                 ["Ocupación prevista", `${AVAIL ? Math.round((tomorrowStays.length / AVAIL) * 100) : 0}%`],
                 ["Reservas previstas", tomorrowStays.length],
               ]} />

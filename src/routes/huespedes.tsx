@@ -23,15 +23,15 @@ export const Route = createFileRoute("/huespedes")({
 });
 
 function Huespedes() {
-  const { s, guest } = useSuite();
+  const { s, guest, today } = useSuite();
   const [tab, setTab] = useState("inhouse");
   const [open, setOpen] = useState<string | null>(null);
   const [res, setRes] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const filt = {
     inhouse: s.reservations.filter((r) => r.stay === "inhouse"),
-    llegadas: s.reservations.filter((r) => r.status === "confirmed" && r.stay === "none" && r.inDay >= 0 && r.inDay <= 1),
-    salidas: s.reservations.filter((r) => r.outDay === 0 && r.status === "confirmed" && r.inDay < 0),
+    llegadas: s.reservations.filter((r) => r.status === "confirmed" && r.stay === "none" && r.inDay >= today && r.inDay <= today + 1),
+    salidas: s.reservations.filter((r) => r.outDay === today && r.status === "confirmed" && r.inDay < today),
     historico: s.reservations.filter((r) => r.stay === "finished" || r.status !== "confirmed"),
   }[tab]!;
   const r = s.reservations.find((x) => x.id === open);
@@ -50,9 +50,9 @@ function Huespedes() {
               <Card className="transition hover:shadow-md">
                 <div className="flex items-center gap-3">
                   <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-secondary text-xs font-semibold ring-1 ring-border">{gg.name.split(" ").map((p) => p[0]).join("")}</div>
-                  <div className="min-w-0 flex-1"><div className="truncate font-medium">{gg.name}</div><div className="text-xs text-muted-foreground">Hab. {x.room} · {fmtDay(x.inDay)} → {fmtDay(x.outDay)}</div></div>
+                  <div className="min-w-0 flex-1"><div className="truncate font-medium">{gg.name}</div><div className="text-xs text-muted-foreground">Hab. {x.room} · {fmtDay(x.inDay, today)} → {fmtDay(x.outDay, today)}</div></div>
                 </div>
-                <div className="mt-3 flex items-center justify-between"><ResPill status={resDisplay(x)} /><span className="text-xs text-muted-foreground">{gg.lang}</span></div>
+                <div className="mt-3 flex items-center justify-between"><ResPill status={resDisplay(x, today)} /><span className="text-xs text-muted-foreground">{gg.lang}</span></div>
               </Card>
             </button>
           );
@@ -63,11 +63,11 @@ function Huespedes() {
         <SheetContent className="w-full overflow-y-auto sm:max-w-md">
           {r && g && (
             <>
-              <SheetHeader className="p-0"><ResPill status={resDisplay(r)} /><SheetTitle className="text-xl">{g.name}</SheetTitle><SheetDescription>{g.country} · {g.lang}</SheetDescription></SheetHeader>
+              <SheetHeader className="p-0"><ResPill status={resDisplay(r, today)} /><SheetTitle className="text-xl">{g.name}</SheetTitle><SheetDescription>{g.country} · {g.lang}</SheetDescription></SheetHeader>
               {editing ? <GuestEditor key={g.id} guest={g} onClose={() => setEditing(false)} /> : <>
               <div className="mt-4 divide-y">
                 <Row k="Documento" v={g.doc} /><Row k="Teléfono" v={g.phone} /><Row k="Email" v={<span className="break-all">{g.email}</span>} />
-                <Row k="Habitación" v={r.room} /><Row k="Entrada" v={fmtDay(r.inDay)} /><Row k="Salida" v={fmtDay(r.outDay)} />
+                <Row k="Habitación" v={r.room} /><Row k="Entrada" v={fmtDay(r.inDay, today)} /><Row k="Salida" v={fmtDay(r.outDay, today)} />
                 <Row k="Acompañantes" v={g.companions.join(", ") || "—"} /><Row k="Idioma" v={g.lang} />
                 <Row k="Mensajes" v={g.messaging ? "Activos" : "Detenidos"} />
               </div>

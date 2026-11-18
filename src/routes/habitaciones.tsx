@@ -21,7 +21,7 @@ export const Route = createFileRoute("/habitaciones")({
 });
 
 function Habitaciones() {
-  const { s, roomState, occupant, nextArrival, guest } = useSuite();
+  const { s, roomState, occupant, nextArrival, guest, today, hotel } = useSuite();
   const [room, setRoom] = useState<string | null>(null);
   const [res, setRes] = useState<string | null>(null);
   const counts = {} as Record<RoomState, number>;
@@ -61,12 +61,12 @@ function Habitaciones() {
                         <>
                           <div className="truncate text-sm font-medium">{guest(occ.guestId).name}</div>
                           <div className="font-semibold text-st-occupied">IN HOUSE</div>
-                          <div className="text-muted-foreground">Salida: {fmtDay(occ.outDay)} 11:00</div>
+                          <div className="text-muted-foreground">Salida: {fmtDay(occ.outDay, today)} {hotel.checkOut ?? "11:00"}</div>
                         </>
                       ) : (
                         <>
                           <div className={cn("font-semibold", S.text)}>{S.label.toUpperCase()}</div>
-                          {next && next.inDay <= 1 && <div className="truncate text-muted-foreground">Llega {fmtDay(next.inDay).toLowerCase()} {next.eta} · {guest(next.guestId).name}</div>}
+                          {next && next.inDay <= today + 1 && <div className="truncate text-muted-foreground">Llega {fmtDay(next.inDay, today).toLowerCase()} {next.eta} · {guest(next.guestId).name}</div>}
                         </>
                       )}
                     </div>

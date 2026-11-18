@@ -87,7 +87,7 @@ function HotelTwin() {
 }
 
 function RoomPanel({ num, onClose, onFloor }: { num: string; onClose: () => void; onFloor: (f: number) => void }) {
-  const { s, actions, roomState, occupant, nextArrival, guest, canEditRoomConfig } = useSuite();
+  const { s, actions, roomState, occupant, nextArrival, guest, canEditRoomConfig, today } = useSuite();
   const [report, setReport] = useState(false);
   const [sheet, setSheet] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -127,7 +127,7 @@ function RoomPanel({ num, onClose, onFloor }: { num: string; onClose: () => void
 
       <div className="grid gap-2 p-5">
         {occ && <Button onClick={() => actions.checkOut(occ.id)}><LogOut className="mr-1.5 h-4 w-4" />Hacer check-out · {guest(occ.guestId).name}</Button>}
-        {!occ && next && next.inDay === 0 && <Button disabled={st !== "ready"} onClick={() => actions.checkIn(next.id)}><LogIn className="mr-1.5 h-4 w-4" />Hacer check-in · {guest(next.guestId).name}</Button>}
+        {!occ && next && next.inDay === today && <Button disabled={st !== "ready"} onClick={() => actions.checkIn(next.id)}><LogIn className="mr-1.5 h-4 w-4" />Hacer check-in · {guest(next.guestId).name}</Button>}
         {st === "dirty" && <Button variant="secondary" onClick={() => actions.roomOp(num, "start")}><Play className="mr-1.5 h-4 w-4" />Empezar limpieza</Button>}
         {st === "cleaning" && <Button variant="secondary" onClick={() => actions.roomOp(num, "finish")}><CheckCircle2 className="mr-1.5 h-4 w-4" />Finalizar limpieza</Button>}
         {st === "ready" && <Button variant="outline" onClick={() => actions.roomOp(num, "dirty")}><Sparkles className="mr-1.5 h-4 w-4" />Marcar pendiente de limpieza</Button>}
@@ -142,9 +142,9 @@ function RoomPanel({ num, onClose, onFloor }: { num: string; onClose: () => void
       <div className="border-t px-5 pt-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Estancia y operación</div>
       <div className="divide-y px-5 pb-2">
         <Row k="Huésped" v={occ ? guest(occ.guestId).name : "—"} />
-        <Row k="Reserva" v={occ ? `${occ.id} · ${resDisplay(occ)}` : "—"} />
-        <Row k="Entrada / salida" v={occ ? `${fmtDay(occ.inDay)} → ${fmtDay(occ.outDay)}` : "—"} />
-        <Row k="Próximo huésped" v={next ? `${guest(next.guestId).name} · ${fmtDay(next.inDay)} ${next.eta}` : "—"} />
+        <Row k="Reserva" v={occ ? `${occ.id} · ${resDisplay(occ, today)}` : "—"} />
+        <Row k="Entrada / salida" v={occ ? `${fmtDay(occ.inDay, today)} → ${fmtDay(occ.outDay, today)}` : "—"} />
+        <Row k="Próximo huésped" v={next ? `${guest(next.guestId).name} · ${fmtDay(next.inDay, today)} ${next.eta}` : "—"} />
         <Row k="Housekeeping" v={task ? `${hk} · ${task.assignee.split(" ")[0]} (${task.status.replace("_", " ")})` : hk} />
         <Row k="Mantenimiento" v={incs.length ? <span className="text-st-maint">{incs.map((i) => i.category).join(", ")}</span> : room.oos ? "Fuera de servicio" : "Sin incidencias"} />
       </div>

@@ -9,10 +9,9 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { dayDate, eur, fmtDay, resDisplay, useSuite } from "@/lib/suite/store";
 import { dragToStay, stayAmount } from "@/lib/suite/data";
-import { hotelToday } from "@/lib/suite/clock";
 
-/** Reservas/Calendario "today": demo fixed, real hotels follow the hotel clock. Stored days stay absolute. */
-function useToday() { const { isDemo, hotel } = useSuite(); return hotelToday(isDemo ? "demo" : "real", hotel?.timezone).offset; }
+/** Reservas/Calendario "today": the same shared hotel clock used by operations. */
+function useToday() { return useSuite().today; }
 import { Card, PageHeader, ResPill } from "@/components/suite/ui";
 import { ReservationSheet } from "@/components/suite/panels";
 
@@ -45,8 +44,8 @@ function Reservas() {
   const rows = useMemo(() => s.reservations.filter((r) => {
     const g = guest(r.guestId);
     return (!q || `${g.name} ${r.room} ${r.id}`.toLowerCase().includes(q.toLowerCase()))
-      && (st === "Todas" || resDisplay(r) === st) && (ch === "Todos" || r.channel === ch);
-  }).sort((a, b) => a.inDay - b.inDay), [s, q, st, ch, guest]);
+      && (st === "Todas" || resDisplay(r, today) === st) && (ch === "Todos" || r.channel === ch);
+  }).sort((a, b) => a.inDay - b.inDay), [s, q, st, ch, guest, today]);
 
   return (
     <div>
@@ -76,7 +75,7 @@ function Reservas() {
                     <td className="tnum px-4 py-3">{r.pax}</td>
                     <td className="px-4 py-3"><span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ background: CH_COLOR[r.channel] }} />{CH_LABEL[r.channel] ?? r.channel}</span></td>
                     <td className="tnum px-4 py-3"><div>{eur(r.amount)}</div>{r.outDay > r.inDay && <div className="text-[11px] text-muted-foreground">{eur(r.amount / (r.outDay - r.inDay))}/noche</div>}</td>
-                    <td className="px-4 py-3"><ResPill status={resDisplay(r)} /></td>
+                    <td className="px-4 py-3"><ResPill status={resDisplay(r, today)} /></td>
                   </tr>
                 ))}
                 {rows.length === 0 && <tr><td colSpan={9} className="p-8 text-center text-muted-foreground">Sin resultados.</td></tr>}
@@ -138,7 +137,7 @@ function Timeline({ ids, onOpen }: { ids: Set<string>; onOpen: (id: string) => v
           onPointerMove={(e) => { if (rs) setRs({ ...rs, out: Math.max(rs.out0 + Math.round((e.clientX - rs.x0) / W), 0) }); }}
           onPointerUp={() => {
             if (rs) { if (rs.out !== rs.out0) actions.changeStay(rs.id, rs.out); setRs(null); }
-            if (sel) { const st = dragToStay(sel.a, sel.b); setSel(null); if (st) { setPrefill({ room: sel.room, inDay: st.inDay, nights: st.nights }); setCreating(true); } }
+            if (sel) { const st = dragToStay(sel.a, sel.b, today); setSel(null); if (st) { setPrefill({ room: sel.room, inDay: st.inDay, nights: st.nights }); setCreating(true); } }
           }}
           onPointerLeave={() => { setSel(null); setRs(null); }}>
           <div className="flex border-b bg-muted/50 text-xs text-muted-foreground">
@@ -153,22 +152,22 @@ function Timeline({ ids, onOpen }: { ids: Set<string>; onOpen: (id: string) => v
             <div key={room.number} className="relative flex h-11 border-b last:border-0">
               <div className="w-[72px] shrink-0 px-3 py-3 text-sm font-medium">{room.number}</div>
               {days.map((d) => {
-                const st = sel && sel.room === room.number ? dragToStay(sel.a, sel.b) : null;
+                const st = sel && sel.room === room.number ? dragToStay(sel.a, sel.b, today) : null;
                 const on = !!st && d >= st.inDay && d < st.outDay;
                 return <div key={d} style={{ width: W }} className={cn("shrink-0 cursor-crosshair border-l", d === today && "bg-brand/5", on && "bg-brand/25")}
                   onPointerDown={() => { if (d >= today && !room.oos) setSel({ room: room.number, a: d, b: d }); }}
                   onPointerEnter={() => { if (sel && sel.room === room.number) setSel({ ...sel, b: d }); }} />;
               })}
-              {(() => { const st = sel && sel.room === room.number ? dragToStay(sel.a, sel.b) : null; return st && <div data-testid="drag-label" className="pointer-events-none absolute -top-5 z-10 whitespace-nowrap rounded bg-foreground px-1.5 text-[10px] text-background" style={{ left: 72 + (st.inDay - START) * W }}>{st.nights} noche(s) · {fmtDay(st.inDay, today)} → {fmtDay(st.outDay, today)} · {stayAmount(room.rate, st.nights)} €</div>; })()}
+              {(() => { const st = sel && sel.room === room.number ? dragToStay(sel.a, sel.b, today) : null; return st && <div data-testid="drag-label" className="pointer-events-none absolute -top-5 z-10 whitespace-nowrap rounded bg-foreground px-1.5 text-[10px] text-background" style={{ left: 72 + (st.inDay - START) * W }}>{st.nights} noche(s) · {fmtDay(st.inDay, today)} → {fmtDay(st.outDay, today)} · {stayAmount(room.rate, st.nights)} €</div>; })()}
               {s.reservations.filter((r) => r.room === room.number && ids.has(r.id) && r.outDay > START && r.inDay < START + DAYS).map((r) => {
                 // Bars run from mid check-in day to mid check-out day, so same-day turnovers never overlap
                 const out = rs?.id === r.id ? rs.out : r.outDay;
                 const from = Math.max(r.inDay - START + 0.5, 0), to = Math.min(out - START + 0.5, DAYS);
                 const editable = r.status === "confirmed" && r.stay !== "finished";
                 return (
-                  <button key={r.id} onClick={() => onOpen(r.id)} title={`${guest(r.guestId).name} · ${r.channel} · ${resDisplay(r)}`}
+                  <button key={r.id} onClick={() => onOpen(r.id)} title={`${guest(r.guestId).name} · ${r.channel} · ${resDisplay(r, today)}`}
                     style={{ left: 72 + from * W, width: Math.max((to - from) * W - 3, 6), background: CH_COLOR[r.channel] ?? "var(--ch-manual)" }}
-                    className={cn("absolute top-1.5 h-8 truncate rounded-md px-2 text-left text-xs font-medium text-primary-foreground shadow-sm transition hover:brightness-110", BAR[resDisplay(r)])}>
+                    className={cn("absolute top-1.5 h-8 truncate rounded-md px-2 text-left text-xs font-medium text-primary-foreground shadow-sm transition hover:brightness-110", BAR[resDisplay(r, today)])}>
                     {guest(r.guestId).name}{rs?.id === r.id && ` · ${out - r.inDay} noches`}
                     {editable && <span role="slider" aria-label="Cambiar salida" aria-valuenow={out} className="absolute right-0 top-0 h-full w-2 cursor-ew-resize rounded-r-md bg-background/40"
                       onClick={(e) => e.stopPropagation()}

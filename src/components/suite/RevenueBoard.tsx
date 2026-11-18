@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { dayDate, eur, useSuite } from "@/lib/suite/store";
-import { DEMO_DATE } from "@/lib/suite/data";
 import { deviation, forecastYear, monthlyAdr, monthlyRevenue, nights, splitBudget, yoy, type Period } from "@/lib/suite/revenue";
 import { Card, SectionTitle } from "@/components/suite/ui";
 
@@ -31,8 +30,8 @@ function Sel<T extends string | number>({ value, onChange, opts, label }: { valu
 }
 
 export function RevenueBoard() {
-  const { s, hotel, hotels, actions, cloudHotelId } = useSuite();
-  const today = DEMO_DATE;
+  const { s, hotel, hotels, actions, cloudHotelId, today: todayOffset } = useSuite();
+  const today = useMemo(() => dayDate(todayOffset), [todayOffset]);
   const ns = useMemo(() => nights(s.reservations, dayDate), [s.reservations]);
   const years = useMemo(() => [...new Set([today.getFullYear(), ...ns.map((n) => n.date.getFullYear())])].sort(), [ns, today]);
   const [year, setYear] = useState(today.getFullYear());

@@ -14,7 +14,6 @@ import { Label } from "@/components/ui/label";
 import { futureReservations, BED_KINDS, OCCUPANCY, ROOM_EXTRAS, BATH_OPTIONS, WINDOW_SIDES, type WindowSide, bedSleeps, bedsText, parseBeds, validateRoomEdit, type Room, type RoomEdit } from "@/lib/suite/data";
 import { PrioPill, ResPill, RoomPill, Row, TaskPill } from "./ui";
 import { roomHistory } from "@/lib/suite/cloud";
-import { hotelToday } from "@/lib/suite/clock";
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -26,10 +25,10 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 function StayActions({ resId }: { resId: string }) {
-  const { s, actions, roomState } = useSuite();
+  const { s, actions, roomState, today } = useSuite();
   const r = s.reservations.find((x) => x.id === resId)!;
   const [confirm, setConfirm] = useState<null | "in" | "out">(null);
-  const canIn = r.status === "confirmed" && r.stay === "none" && r.inDay <= 0;
+  const canIn = r.status === "confirmed" && r.stay === "none" && r.inDay <= today;
   const canOut = r.stay === "inhouse";
   const roomReady = roomState(r.room) === "ready";
   if (!["owner", "director", "reception"].includes(s.role)) return null;
@@ -67,8 +66,7 @@ function StayActions({ resId }: { resId: string }) {
 }
 
 export function ReservationSheet({ resId, onClose }: { resId: string | null; onClose: () => void }) {
-  const { s, guest, isDemo, hotel } = useSuite();
-  const today = hotelToday(isDemo ? "demo" : "real", hotel?.timezone).offset;
+  const { s, guest, hotel, today } = useSuite();
   const dateLabel = (offset: number) => fmtDay(offset, today);
   const r = resId ? s.reservations.find((x) => x.id === resId) : undefined;
   const g = r ? guest(r.guestId) : undefined;
@@ -78,7 +76,7 @@ export function ReservationSheet({ resId, onClose }: { resId: string | null; onC
         {r && g && (
           <>
             <SheetHeader className="px-6 pt-6">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground"><span className="font-mono">{r.id}</span><ResPill status={resDisplay(r)} /></div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground"><span className="font-mono">{r.id}</span><ResPill status={resDisplay(r, today)} /></div>
               <SheetTitle className="text-xl">{g.name}</SheetTitle>
               <SheetDescription>Habitación {r.room} · {dateLabel(r.inDay)} → {dateLabel(r.outDay)}</SheetDescription>
             </SheetHeader>
@@ -89,7 +87,7 @@ export function ReservationSheet({ resId, onClose }: { resId: string | null; onC
             </Section>
             <Section title="Estancia">
               <Row k="Entrada" v={`${dateLabel(r.inDay)}${r.stay === "none" && r.eta !== "—" ? ` · ${r.eta}` : ""}`} />
-              <Row k="Salida" v={`${dateLabel(r.outDay)} · 11:00`} />
+              <Row k="Salida" v={`${dateLabel(r.outDay)} · ${hotel?.checkOut ?? "11:00"}`} />
               <Row k="Noches" v={r.outDay - r.inDay} /><Row k="Huéspedes" v={r.pax} />
               <Row k="Habitación" v={`${r.room} · ${s.rooms.find((x) => x.number === r.room)!.type}`} />
               <Row k="Canal" v={r.channel === "Recepción" ? "Manual" : r.channel === "Web directa" ? "Motor directo" : r.channel} /><Row k="Importe total" v={eur(r.amount)} />
@@ -165,7 +163,7 @@ function RoomEditor({ num, initiallyEditing = false }: { num: string; initiallyE
 }
 
 export function RoomSheet({ room, onClose, onOpenRes, edit = false }: { room: string | null; onClose: () => void; onOpenRes?: (id: string) => void; edit?: boolean }) {
-  const { s, occupant, nextArrival, guest, roomState, cloudHotelId, canEditRoomConfig } = useSuite();
+  const { s, occupant, nextArrival, guest, roomState, cloudHotelId, canEditRoomConfig, today, hotel } = useSuite();
   const [history, setHistory] = useState<Awaited<ReturnType<typeof roomHistory>>>([]);
   useEffect(() => {
     setHistory([]);
@@ -202,7 +200,7 @@ export function RoomSheet({ room, onClose, onOpenRes, edit = false }: { room: st
             <Section title="Estados (separados)">
               <Row k="Habitación" v={<RoomPill state={roomState(rm.number)} />} />
               <Row k="Estancia" v={occ ? "IN HOUSE" : "Sin huésped"} />
-              <Row k="Reserva" v={occ ? resDisplay(occ) : next ? resDisplay(next) : "—"} />
+              <Row k="Reserva" v={occ ? resDisplay(occ, today) : next ? resDisplay(next, today) : "—"} />
               <Row k="Housekeeping" v={hkLabel[rm.hk]} />
               <Row k="Mantenimiento" v={incs.some((i) => i.status !== "resuelta") ? <span className="text-st-maint">Incidencia abierta</span> : rm.oos ? "Fuera de servicio" : "Sin incidencias"} />
             </Section>
@@ -210,7 +208,7 @@ export function RoomSheet({ room, onClose, onOpenRes, edit = false }: { room: st
               {occ ? (
                 <>
                   <Row k="Huésped" v={<button className="underline-offset-2 hover:underline" onClick={() => onOpenRes?.(occ.id)}>{guest(occ.guestId).name}</button>} />
-                  <Row k="Llegada" v={fmtDay(occ.inDay)} /><Row k="Salida" v={`${fmtDay(occ.outDay)} · 11:00`} /><Row k="Reserva" v={occ.id} />
+                  <Row k="Llegada" v={fmtDay(occ.inDay, today)} /><Row k="Salida" v={`${fmtDay(occ.outDay, today)} · ${hotel?.checkOut ?? "11:00"}`} /><Row k="Reserva" v={occ.id} />
                 </>
               ) : <p className="py-2 text-sm text-muted-foreground">Sin huésped alojado.</p>}
             </Section>
@@ -218,7 +216,7 @@ export function RoomSheet({ room, onClose, onOpenRes, edit = false }: { room: st
               {next ? (
                 <>
                   <Row k="Huésped" v={<button className="hover:underline" onClick={() => onOpenRes?.(next.id)}>{guest(next.guestId).name}</button>} />
-                  <Row k="Llegada" v={`${fmtDay(next.inDay)} · ${next.eta}`} /><Row k="Reserva" v={next.id} />
+                  <Row k="Llegada" v={`${fmtDay(next.inDay, today)} · ${next.eta}`} /><Row k="Reserva" v={next.id} />
                 </>
               ) : <p className="py-2 text-sm text-muted-foreground">Sin llegadas previstas.</p>}
             </Section>

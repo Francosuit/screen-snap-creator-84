@@ -3,7 +3,6 @@ import type { Json } from "@/integrations/supabase/types";
 import { applyRoomEdit, validateRoomEdit, type Hotel, type Room, type RoomEdit, type WindowSide } from "./data";
 import { canEditRoom } from "./room-permissions";
 import { isInside, type FurnitureItem } from "./layout";
-import { isTimeZone } from "./clock";
 
 export type HotelRole = "owner" | "director" | "reception" | "housekeeping" | "maintenance" | "revenue";
 export const ROLE_LABELS: Record<HotelRole, string> = {

@@ -38,7 +38,7 @@ const LEVEL = {
 } as const;
 
 function Dashboard() {
-  const { s, alerts, roomState, hotel, today, isDemo, user } = useSuite();
+  const { s, alerts, roomState, hotel, today } = useSuite();
   const nav = useNavigate();
   const [openAlert, setOpenAlert] = useState<string | null>(null);
   const AVAIL = s.rooms.filter((r) => !r.oos).length;

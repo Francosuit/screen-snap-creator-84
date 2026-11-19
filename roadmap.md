@@ -1,5 +1,12 @@
 # Roadmap
 
+## Cierre solicitado — Sprint 02 (19 nov 2026)
+- [ ] Repetir únicamente la validación visual pendiente, en demo y cuenta real autorizada, escritorio y móvil; corregir fallos encontrados.
+- [ ] Completar y probar zona horaria configurable por hotel, cambios de día/medianoche y horario estacional; conservar la demo fija.
+- [ ] Cerrar validaciones temporales de reservas, estancias, tareas, limpieza, incidencias, alertas, calendario e histórico sin conversiones implícitas inseguras.
+- [ ] Verificar integración y persistencia sin migraciones ni escrituras en hoteles reales; Hotel Homeless queda prohibido para pruebas.
+- [ ] Ejecutar pruebas específicas, suite completa y compilación de producción; registrar el resultado definitivo antes de marcar Sprint 02 terminado.
+
 ## En curso — Sprint 02: núcleo temporal compartido (16 nov 2026)
 - Recuperar el diseño aditivo de Tarea 06 y comprobar el almacenamiento real de reservas/tareas.
 - Implementar y probar de forma aislada el núcleo de calendario, zona horaria, conversión y lectura compatible.

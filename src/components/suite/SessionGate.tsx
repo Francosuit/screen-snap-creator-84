@@ -16,8 +16,11 @@ export function SessionGate({ children }: { children: ReactNode }) {
   useEffect(() => { setDemoOptIn(hasDemoAccess()); }, [path]);
   const allowed = gateAllows({ user, isDemo, demoOptIn: !!demoOptIn });
   useEffect(() => {
-    if (ready && demoOptIn !== null && !allowed && !bare) navigate({ to: "/login" });
-  }, [ready, allowed, demoOptIn, bare, path, navigate]);
+    // A demo opt-in can be written immediately before navigating from /login.
+    // Re-read it here so this effect cannot redirect with the previous render's stale value.
+    const currentlyAllowed = gateAllows({ user, isDemo, demoOptIn: hasDemoAccess() });
+    if (ready && demoOptIn !== null && !currentlyAllowed && !bare) navigate({ to: "/login" });
+  }, [ready, user, isDemo, demoOptIn, bare, path, navigate]);
   if (bare) return <>{children}</>;
   if (!ready || !allowed) return <div className="min-h-screen bg-background" />;
   return <AppShell>{children}</AppShell>;

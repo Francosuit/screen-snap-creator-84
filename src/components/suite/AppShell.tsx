@@ -8,7 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { ROLES, type RoleKey } from "@/lib/suite/data";
-import { fmtClock, useSuite } from "@/lib/suite/store";
+import { dayDate, useSuite } from "@/lib/suite/store";
 import { NoAccess } from "./ui";
 import { Button } from "@/components/ui/button";
 

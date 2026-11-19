@@ -35,9 +35,11 @@ function Tareas() {
       <PageHeader title="Tareas" sub={`${list.filter((t) => t.status !== "completada").length} abiertas · ${s.incidents.filter((i) => i.status !== "resuelta").length} incidencias activas`}
         right={<Button variant="outline" onClick={() => setReport(true)}><AlertTriangle className="mr-1.5 h-4 w-4" />Reportar problema</Button>} />
       {!scope && (
-        <Tabs value={dept} onValueChange={setDept} className="mb-4">
-          <TabsList><TabsTrigger value="todas">Todas</TabsTrigger><TabsTrigger value="housekeeping">Housekeeping</TabsTrigger><TabsTrigger value="mantenimiento">Mantenimiento</TabsTrigger><TabsTrigger value="recepcion">Recepción</TabsTrigger></TabsList>
-        </Tabs>
+        <div className="mb-4 max-w-full overflow-x-auto">
+          <Tabs value={dept} onValueChange={setDept}>
+            <TabsList className="min-w-max"><TabsTrigger value="todas">Todas</TabsTrigger><TabsTrigger value="housekeeping">Housekeeping</TabsTrigger><TabsTrigger value="mantenimiento">Mantenimiento</TabsTrigger><TabsTrigger value="recepcion">Recepción</TabsTrigger></TabsList>
+          </Tabs>
+        </div>
       )}
       <div className="grid gap-3">
         {list.map((t) => (

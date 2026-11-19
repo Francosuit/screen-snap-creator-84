@@ -39,10 +39,30 @@ export function stayPhase(inDay: number, outDay: number, today: number): StayPha
   if (outDay === today) return "salida_hoy";
   return "en_curso";
 }
+/** Strict validation for configuration writes; legacy reads still use the safe fallback below. */
+export function isTimeZone(tz: unknown): tz is string {
+  if (typeof tz !== "string" || !tz || tz.trim() !== tz) return false;
+  try { new Intl.DateTimeFormat("en-CA", { timeZone: tz }); return true; } catch { return false; }
+}
 /** Hotel time zone: stored IANA zone if valid, else the default. Never throws. */
 export function resolveTimeZone(tz?: string | null): string {
-  if (!tz) return DEFAULT_TZ;
-  try { new Intl.DateTimeFormat("en-CA", { timeZone: tz }); return tz; } catch { return DEFAULT_TZ; }
+  return isTimeZone(tz) ? tz : DEFAULT_TZ;
+}
+/** Minutes and HH:mm at the same instant and hotel zone; no browser-zone conversion. */
+export function hotelMinutes(tz: string, now: Date = new Date()): number {
+  const parts = new Intl.DateTimeFormat("en-GB", { timeZone: resolveTimeZone(tz), hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(now);
+  const hour = Number(parts.find((p) => p.type === "hour")?.value ?? 0);
+  const minute = Number(parts.find((p) => p.type === "minute")?.value ?? 0);
+  return hour * 60 + minute;
+}
+export const hotelTime = (tz: string, now: Date = new Date()) => {
+  const minutes = hotelMinutes(tz, now);
+  return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+};
+/** Full IANA catalog where available, with a portable fallback for older runtimes. */
+export function timeZoneOptions(): string[] {
+  try { return Intl.supportedValuesOf("timeZone"); }
+  catch { return [DEFAULT_TZ, "UTC", "America/New_York", "America/Argentina/Buenos_Aires", "America/Mexico_City", "Asia/Tokyo", "Australia/Sydney"]; }
 }
 /** Single entry point for "today" of a hotel (offset + calendar date). */
 export function hotelToday(mode: "demo" | "real", tz?: string | null, now: Date = new Date()) {

@@ -2,7 +2,7 @@ import { visibleHotels, sameIdentity } from "./isolation";
 import { authTimeout, signupResult, type SignupResult } from "./auth-flow";
 export { visibleHotels } from "./isolation";
 import { effectiveNav } from "./staff-access";
-import { loadConfig, overlayHotel, myMemberships, saveRoomConfig, type CloudConfig, type HotelRole } from "./cloud";
+import { loadConfig, overlayHotel, myMemberships, saveRoomConfig, saveHotelTimezone, persistHotelTimezones, type CloudConfig, type HotelRole } from "./cloud";
 import { canEditRoom } from "./room-permissions";
 import { loadOperations, saveOperations, operationChanges, overlayOperations } from './operations';
 import { useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -25,7 +25,7 @@ import {
   type RoomEdit, validateRoomEdit, applyRoomEdit, checkStayChange, stayAmount,
 } from "./data";
 import { SuiteCtx } from "./context";
-import { hotelToday, offsetToYmd } from "./clock";
+import { DEFAULT_TZ, hotelToday, hotelMinutes, hotelTime, isTimeZone, offsetToYmd } from "./clock";
 import { syncReservationCalendar, withReservationCalendar, withTaskCalendar } from "./temporal";
 import { supabase } from "@/integrations/supabase/client";
 interface CloudState { account?: Account; hotels?: Hotel[]; data?: Record<string, Data> }
@@ -128,6 +128,14 @@ function useSuiteState() {
   const operationPending = useRef(0);
   const operationGeneration = useRef(0);
   const [operationCloud, setOperationCloud] = useState<'saved' | 'pending' | 'error'>('saved');
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    if (!uid) return;
+    const update = () => setNow(new Date());
+    update();
+    const timer = setInterval(update, 30_000);
+    return () => clearInterval(timer);
+  }, [uid]);
   useEffect(() => {
     let alive = true, authEvent = false;
     const identify = (next: string | null) => {
@@ -239,10 +247,18 @@ function useSuiteState() {
         const { error } = await supabase.from("company_worlds").upsert({ owner_id: uid, name: "Mi Isla", state }, { onConflict: "owner_id" });
         if (!sameIdentity(uid, currentUid.current) || !isLatest(seq, saveSeq.current)) return;
         if (error) { setCloud("error"); toast.error("Error al guardar en la nube", { description: error.message }); return; }
-        const fresh = await loadConfig();
-        if (sameIdentity(uid, currentUid.current) && isLatest(seq, saveSeq.current)) {
-          if (fresh) setConfig(fresh);
-          setCloud("saved");
+        try {
+          let fresh = await loadConfig();
+          if (fresh && await persistHotelTimezones(hotels, fresh)) fresh = await loadConfig();
+          if (sameIdentity(uid, currentUid.current) && isLatest(seq, saveSeq.current)) {
+            if (fresh) setConfig(fresh);
+            setCloud("saved");
+          }
+        } catch (error) {
+          if (sameIdentity(uid, currentUid.current) && isLatest(seq, saveSeq.current)) {
+            setCloud("error");
+            toast.error("La zona horaria no terminó de guardarse", { description: error instanceof Error ? error.message : "Inténtalo de nuevo" });
+          }
         }
       });
     }, 1500);
@@ -280,8 +296,9 @@ function useSuiteState() {
   const visible = visibleHotels(root.hotels, uid ? root.user ?? "__loading__" : undefined, config?.hotels.filter((h) => !h.archived).map((h) => h.key));
   const hotel: Hotel = visible.find((h) => h.id === root.hotel) ?? visible[0] ?? { id: "", name: "Sin hoteles", address: "", city: "", category: "", rooms: 0, logo: "", status: "activo" };
   // Single source of "today": demo keeps its fixed day, real hotels use the real clock in their zone.
-  const today = hotelToday(uid ? "real" : "demo", hotel.timezone);
+  const today = hotelToday(uid ? "real" : "demo", hotel.timezone, now);
   const T = today.offset;
+  const clockNow = hotelMinutes(today.zone, now);
   /** Real rows get both representations; demo rows stay offset-only so demo and production never mix. */
   const stampTask = (t: Task): Task => (uid ? withTaskCalendar(t) : t);
   const stampRes = (r: Reservation): Reservation => (uid ? withReservationCalendar(r) : r);
@@ -290,12 +307,16 @@ function useSuiteState() {
   const membership = record && memberRole !== "owner" ? memberships.find((m) => m.hotel_id === record.id) : undefined;
   const navAccess = membership ? effectiveNav(NAV_ACCESS[membership.role], membership.role, membership.modules) : uid && record && !memberRole ? [] : NAV_ACCESS[memberRole ?? root.role];
   const canEditRoomConfig = record ? canEditRoom(memberRole) : !uid && !hotel.owner && canEditRoom(root.role);
-  const s: State = useMemo(() => ({ ...(root.data[hotel.id] ?? emptyData([])), role: memberRole ?? root.role, hotel: hotel.id }), [root, hotel.id, memberRole]);
+  const canEditHotelConfig = record ? canEditRoom(memberRole) : !uid && canEditRoom(root.role);
+  const s: State = useMemo(() => {
+    const data = root.data[hotel.id] ?? emptyData([]);
+    return { ...data, clock: uid ? clockNow : data.clock, role: memberRole ?? root.role, hotel: hotel.id };
+  }, [root, hotel.id, memberRole, uid, clockNow]);
   const setS = (fn: (p: State) => State) => {
     const r = rootRef.current;
     const d = r.data[hotel.id];
     if (!d || !visible.some((h) => h.id === hotel.id)) return;
-    const { role, hotel: h, ...next } = fn({ ...d, role: memberRole ?? r.role, hotel: hotel.id });
+    const { role, hotel: h, ...next } = fn({ ...d, clock: uid ? clockNow : d.clock, role: memberRole ?? r.role, hotel: hotel.id });
     const changes = operationChanges(d, next);
     if (uid && changes.length && (!record || remoteLoaded.current !== uid)) { toast.error('Espera a que el hotel termine de guardarse en la nube'); return; }
     const updated = { ...r, role, hotel: h, data: { ...r.data, [hotel.id]: next } };
@@ -380,12 +401,13 @@ function useSuiteState() {
     const account = root.accounts?.find((a) => a.email === root.user);
     const actor = uid ? [account?.name, account?.surname].filter(Boolean).join(" ").trim() || root.user || uid : ROLES[s.role].person;
     const push = (st: State, entries: Omit<LogEntry, "id" | "time">[], minutes = 1): State => {
-      const clock = st.clock + minutes;
+      const clock = uid ? clockNow : st.clock + minutes;
       const t = fmtClock(clock);
       return { ...st, clock, log: [...entries.map((e) => ({ ...e, id: id("l"), time: t })).reverse(), ...st.log] };
     };
+    const actionClock = (st: State, minutes = 1) => uid ? st.clock : st.clock + minutes;
     const notify = (st: State, roles: RoleKey[], text: string, tone: Notification["tone"] = "info"): State => ({
-      ...st, notifications: [{ id: id("n"), roles, text, time: fmtClock(st.clock), read: false, tone }, ...st.notifications],
+      ...st, notifications: [{ id: id("n"), roles, text, time: fmtClock(uid ? clockNow : st.clock), read: false, tone }, ...st.notifications],
     });
 
     const api = {
@@ -420,17 +442,19 @@ function useSuiteState() {
         }
       },
       signOut: () => { currentUid.current = null; remoteLoaded.current = null; saveSeq.current++; setUid(null); setRoot(initialRoot()); supabase.auth.signOut(); },
-      createHotel: (input: { name: string; address: string; city: string; category: string; description?: string; floors: Floor[]; rooms: Room[]; zones?: string[]; departments?: string[]; checkIn?: string; checkOut?: string; facade?: { primary: string; secondary: string } }) => {
+      createHotel: (input: { name: string; address: string; city: string; category: string; description?: string; floors: Floor[]; rooms: Room[]; zones?: string[]; departments?: string[]; checkIn?: string; checkOut?: string; timezone?: string; facade?: { primary: string; secondary: string } }) => {
         if (!uid || remoteLoaded.current !== uid || !root.user || (record && record.org_owner !== uid)) { say.error("Inicia sesión como propietario para crear un hotel"); return; }
+        const timezone = input.timezone ?? DEFAULT_TZ;
+        if (!isTimeZone(timezone)) { say.error("Selecciona una zona horaria válida"); return; }
         const hid = id("h");
         const h: Hotel = {
           id: hid, name: input.name, address: input.address, city: input.city, category: input.category, description: input.description ?? "",
-          rooms: input.rooms.length, floors: input.floors, owner: root.user, status: "activo", zones: input.zones ?? [], departments: input.departments ?? [], checkIn: input.checkIn ?? "14:00", checkOut: input.checkOut ?? "12:00",
+          rooms: input.rooms.length, floors: input.floors, owner: root.user, status: "activo", zones: input.zones ?? [], departments: input.departments ?? [], checkIn: input.checkIn ?? "14:00", checkOut: input.checkOut ?? "12:00", timezone,
           logo: input.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase(),
           ...(input.facade ? { facade: input.facade } : {}),
         };
         const d = emptyData(input.rooms);
-        d.log = [{ id: id("l"), time: fmtClock(START_CLOCK), actor: "Suite", text: `Hotel digital generado: ${input.floors.length} plantas · ${input.rooms.length} habitaciones · ${(input.zones ?? []).length} zonas.`, kind: "suite" }];
+        d.log = [{ id: id("l"), time: fmtClock(uid ? clockNow : START_CLOCK), actor: "Suite", text: `Hotel digital generado: ${input.floors.length} plantas · ${input.rooms.length} habitaciones · ${(input.zones ?? []).length} zonas.`, kind: "suite" }];
         setRoot((r) => ({ ...r, hotel: hid, hotels: [...r.hotels, h], data: { ...r.data, [hid]: d } }));
         return hid;
       },
@@ -438,7 +462,11 @@ function useSuiteState() {
       readAll: () => setS((p) => ({ ...p, notifications: p.notifications.map((n) => (n.roles.includes(p.role) ? { ...n, read: true } : n)) })),
 
       checkIn: (resId: string) => {
-        const r = s.reservations.find((x) => x.id === resId)!;
+        const r = s.reservations.find((x) => x.id === resId);
+        if (!r || r.status !== "confirmed" || r.stay !== "none" || r.inDay > T || r.outDay <= T) {
+          say.error("La reserva no está disponible para check-in hoy");
+          return false;
+        }
         const gName = helpers.guest(r.guestId).name;
         if (helpers.roomState(r.room) !== "ready") {
           say.error(`Habitación ${r.room} no está lista`, { description: "Suite bloquea el check-in hasta que housekeeping la marque como LISTA." });
@@ -449,7 +477,7 @@ function useSuiteState() {
             ...p,
             reservations: p.reservations.map((x) => (x.id === resId ? { ...x, stay: "inhouse" } : x)),
             guests: uid ? p.guests : p.guests.map((g) => (g.id === r.guestId ? { ...g, messaging: true } : g)),
-            sent: uid ? p.sent : [{ id: id("s"), time: fmtClock(p.clock + 1), guest: gName, rule: "Bienvenida", result: "enviado" }, ...p.sent],
+            sent: uid ? p.sent : [{ id: id("s"), time: fmtClock(actionClock(p)), guest: gName, rule: "Bienvenida", result: "enviado" }, ...p.sent],
           };
           n = push(n, [
             { actor, text: `Check-in habitación ${r.room} · ${gName}.`, kind: "human" },
@@ -465,7 +493,7 @@ function useSuiteState() {
       checkOut: (resId: string) => {
         const current = rootRef.current.data[hotel.id];
         const r = current?.reservations.find((x) => x.id === resId);
-        if (!r || r.stay !== "inhouse") return false;
+        if (!r || r.stay !== "inhouse" || !Number.isInteger(r.inDay) || T <= r.inDay) return false;
         const gName = helpers.guest(r.guestId).name;
         const next = s.reservations.find((x) => x.room === r.room && x.id !== r.id && x.status === "confirmed" && x.stay === "none" && x.inDay === T);
         const nextTom = s.reservations.find((x) => x.room === r.room && x.id !== r.id && x.status === "confirmed" && x.stay === "none" && x.inDay === T + 1);
@@ -503,9 +531,9 @@ function useSuiteState() {
         setS((p) => {
           let n: State = {
             ...p,
-            tasks: p.tasks.map((x) => (x.id === taskId ? { ...x, status: "en_proceso", startedAt: fmtClock(p.clock + 1), assignee: x.assignee || actor } : x)),
+            tasks: p.tasks.map((x) => (x.id === taskId ? { ...x, status: "en_proceso", startedAt: fmtClock(actionClock(p)), assignee: x.assignee || actor } : x)),
             rooms: t.dept === "housekeeping" ? p.rooms.map((x) => (x.number === t.room ? { ...x, hk: "cleaning" } : x)) : p.rooms,
-            incidents: t.incidentId ? p.incidents.map((i) => (i.id === t.incidentId ? { ...i, status: "en_proceso", startedAt: fmtClock(p.clock + 1) } : i)) : p.incidents,
+            incidents: t.incidentId ? p.incidents.map((i) => (i.id === t.incidentId ? { ...i, status: "en_proceso", startedAt: fmtClock(actionClock(p)) } : i)) : p.incidents,
           };
           n = push(n, [
             { actor, text: `${t.dept === "housekeeping" ? "Empezó limpieza" : "Empezó"} · ${t.title.toLowerCase()} habitación ${t.room}.`, kind: "human" },
@@ -523,9 +551,9 @@ function useSuiteState() {
         setS((p) => {
           let n: State = {
             ...p,
-            tasks: p.tasks.map((x) => (x.id === taskId ? { ...x, status: "completada", endedAt: fmtClock(p.clock + 1) } : x)),
+            tasks: p.tasks.map((x) => (x.id === taskId ? { ...x, status: "completada", endedAt: fmtClock(actionClock(p)) } : x)),
             rooms: t.dept === "housekeeping" ? p.rooms.map((x) => (x.number === t.room ? { ...x, hk: "clean" } : x)) : p.rooms,
-            incidents: t.incidentId ? p.incidents.map((i) => (i.id === t.incidentId ? { ...i, status: "resuelta", arrivedAt: i.arrivedAt ?? fmtClock(p.clock + 1), resolvedAt: fmtClock(p.clock + 1) } : i)) : p.incidents,
+            incidents: t.incidentId ? p.incidents.map((i) => (i.id === t.incidentId ? { ...i, status: "resuelta", arrivedAt: i.arrivedAt ?? fmtClock(actionClock(p)), resolvedAt: fmtClock(actionClock(p)) } : i)) : p.incidents,
           };
           if (t.dept === "housekeeping") {
             n = push(n, [
@@ -558,13 +586,13 @@ function useSuiteState() {
         const incId = id("I");
         const taskId = id("T");
         setS((p) => {
-          const t = fmtClock(p.clock + 1);
+          const t = fmtClock(actionClock(p));
           let n: State = {
             ...p,
             incidents: [{ ...input, id: incId, status: "abierta", createdAt: t, reporter: actor, assignee: uid ? "" : "Carlos Ruiz", taskId }, ...p.incidents],
             tasks: [stampTask({
               id: taskId, title: `${input.category}: ${input.description.slice(0, 40)}`, room: input.room, assignee: uid ? "" : "Carlos Ruiz", dept: "mantenimiento",
-              priority: input.blocking ? "alta" : "media", day: T, deadline: fmtClock(p.clock + 120), status: "pendiente", comments: input.description,
+              priority: input.blocking ? "alta" : "media", day: T, deadline: fmtClock(actionClock(p, 120)), status: "pendiente", comments: input.description,
               kind: "mantenimiento", incidentId: incId,
             }), ...p.tasks],
           };
@@ -582,7 +610,7 @@ function useSuiteState() {
       arriveIncident: (incId: string) => {
         const inc = s.incidents.find((i) => i.id === incId);
         if (!inc || inc.status !== "en_proceso" || inc.arrivedAt) return;
-        setS((p) => push({ ...p, incidents: p.incidents.map((i) => (i.id === incId ? { ...i, arrivedAt: fmtClock(p.clock + 1) } : i)) }, [
+        setS((p) => push({ ...p, incidents: p.incidents.map((i) => (i.id === incId ? { ...i, arrivedAt: fmtClock(actionClock(p)) } : i)) }, [
           { actor: inc.assignee, text: `Llegó a habitación ${inc.room} · incidencia ${inc.category.toLowerCase()}.`, kind: "human" },
         ], 2));
         say(`${inc.assignee} en habitación ${inc.room}`);
@@ -663,7 +691,10 @@ function useSuiteState() {
     /** One controlled event that mutates the real demo state */
     /** Manual booking from reception — rejects overlapping stays in the same room */
     const createReservation = (input: { name: string; room: string; inDay: number; outDay: number; pax: number; notes: string }) => {
-      if (!input.name.trim() || input.outDay <= input.inDay) { say.error("Revisa nombre y fechas"); return false; }
+      if (!input.name.trim() || !Number.isInteger(input.inDay) || !Number.isInteger(input.outDay) || !Number.isInteger(input.pax) || input.inDay < T || input.outDay <= input.inDay || input.pax < 1) {
+        say.error("Revisa nombre, fechas y número de huéspedes; la entrada no puede ser anterior a hoy");
+        return false;
+      }
       const room = s.rooms.find((r) => r.number === input.room);
       if (!room || room.oos) { say.error("Habitación no disponible"); return false; }
       const clash = s.reservations.find((x) => x.room === input.room && x.status === "confirmed" && x.stay !== "finished" && x.inDay < input.outDay && input.inDay < x.outDay);
@@ -681,7 +712,7 @@ function useSuiteState() {
     const changeStay = (rid: string, outDay: number) => {
       const r = s.reservations.find((x) => x.id === rid);
       const nightly = r ? Math.round(r.amount / Math.max(1, r.outDay - r.inDay)) : 0;
-      const res = checkStayChange(s.reservations, rid, outDay, nightly);
+      const res = checkStayChange(s.reservations, rid, outDay, nightly, T);
       if ("error" in res) { say.error(res.error); return false; }
       if (!r || r.outDay === outDay) return false;
       const longer = outDay > r.outDay;
@@ -715,6 +746,21 @@ function useSuiteState() {
       }
       quiet = true;
       try { pick(opts)(); } finally { quiet = false; }
+    };
+
+    const updateHotelTimezone = async (timezone: string): Promise<boolean> => {
+      if (!canEditHotelConfig) { say.error("Solo propietario o dirección pueden cambiar la zona horaria"); return false; }
+      if (!isTimeZone(timezone)) { say.error("Selecciona una zona horaria IANA válida"); return false; }
+      const hotelKey = hotel.id;
+      const hotelRecord = record;
+      if (hotelRecord) {
+        try { await saveHotelTimezone(hotelRecord.id, timezone); }
+        catch (error) { say.error("No se pudo guardar la zona horaria", { description: error instanceof Error ? error.message : "Inténtalo de nuevo" }); return false; }
+      }
+      setRoot((r) => ({ ...r, hotels: r.hotels.map((h) => h.id === hotelKey ? { ...h, timezone } : h) }));
+      setConfig((current) => current ? { ...current, hotels: current.hotels.map((h) => h.id === hotelRecord?.id ? { ...h, timezone } : h) } : current);
+      say.success("Zona horaria actualizada", { description: "Las fechas guardadas no se han modificado." });
+      return true;
     };
 
     /** Edit a room's characteristics only; reservations, tasks and incidents stay untouched */
@@ -753,7 +799,7 @@ function useSuiteState() {
       if (!uid) say.success("Ficha actualizada");
       return true;
     };
-    const collection = { ...api, roomOp, simulateStep, createReservation, updateRoom, changeStay, updateGuest };
+    const collection = { ...api, roomOp, simulateStep, createReservation, updateRoom, updateHotelTimezone, changeStay, updateGuest };
     // Cloud actions report success only after the atomic write, not optimistic UI changes.
     if (!uid) return collection;
     const persisted = new Set(['checkIn','checkOut','startTask','finishTask','reportIssue','arriveIncident','roomOp','createReservation','changeStay','updateGuest']);
@@ -762,7 +808,7 @@ function useSuiteState() {
       try { return (action as (...values: unknown[]) => unknown)(...args); }
       finally { quiet = false; }
     } : action])) as typeof collection;
-  }, [s, helpers, canEditRoomConfig, record, hotel.id, uid, root.user, root.accounts]);
+  }, [s, helpers, canEditRoomConfig, canEditHotelConfig, record, hotel.id, uid, root.user, root.accounts, clockNow]);
 
   // Activity simulator: fires a real action every few seconds while enabled
   const actionsRef = useRef(actions);
@@ -774,7 +820,7 @@ function useSuiteState() {
   }, [root.sim, uid]);
 
   const effectiveCloud = operationCloud === 'error' ? 'error' : operationCloud === 'pending' ? 'pending' : cloud;
-  return { s, authReady: !!uid && remoteLoaded.current === uid && !!root.user, isDemo: !uid, sim: !uid && !!root.sim, hotel, hotels: visible, world: root.data, org: root.org, ready: loaded && cloud !== "loading", cloud: effectiveCloud, cloudHotelId: record?.id, canEditRoomConfig, navAccess, user: (root.accounts ?? []).find((a) => a.email === root.user), ...helpers, alerts, actions };
+  return { s, authReady: !!uid && remoteLoaded.current === uid && !!root.user, isDemo: !uid, sim: !uid && !!root.sim, hotel, hotels: visible, world: root.data, org: root.org, ready: loaded && cloud !== "loading", cloud: effectiveCloud, cloudHotelId: record?.id, hotelClock: uid ? hotelTime(today.zone, now) : fmtClock(s.clock), canEditRoomConfig, canEditHotelConfig, navAccess, user: (root.accounts ?? []).find((a) => a.email === root.user), ...helpers, alerts, actions };
 }
 
 type Ctx = ReturnType<typeof useSuiteState>;

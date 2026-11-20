@@ -3,6 +3,7 @@ import { GuestEditor } from '@/components/suite/GuestEditor';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { SuiteProvider, useSuite } from '@/lib/suite/store';
 import { operationSnapshot, overlayOperations, operationChanges, type Operations } from '@/lib/suite/operations';
+import { todayOffset } from '@/lib/suite/clock';
 
 const mock = vi.hoisted(() => ({ real: true, stored: {} as Operations, save: vi.fn() }));
 vi.mock('@/integrations/supabase/client', () => ({ supabase: {
@@ -16,7 +17,7 @@ vi.mock('@/integrations/supabase/client', () => ({ supabase: {
 vi.mock('@/lib/suite/cloud', () => ({
   loadConfig: async () => ({ hotels: [{ id: 'isolated-hotel', key: 'isolated', name: 'Prueba aislada', org_owner: 'other-owner', archived: false }], rooms: [{ hotel_id: 'isolated-hotel', number: '101', floor: 1, type: 'Doble', rate: 120 }], floors: [] }),
   myMemberships: async () => [{ hotel_id: 'isolated-hotel', role: 'director', modules: null }],
-  overlayHotel: (hotel: unknown, rooms: unknown) => ({ hotel, rooms }), saveRoomConfig: vi.fn(),
+  overlayHotel: (hotel: unknown, rooms: unknown) => ({ hotel, rooms }), saveRoomConfig: vi.fn(), saveHotelTimezone: vi.fn(), persistHotelTimezones: async () => false,
 }));
 vi.mock('@/lib/suite/operations', async importOriginal => ({
   ...await importOriginal<typeof import('@/lib/suite/operations')>(),
@@ -75,7 +76,7 @@ describe('Sprint 02 — limpieza consistente', () => {
       result.current.actions.startTask(task.id);
       result.current.actions.startTask(task.id);
     });
-    expect(result.current.s.clock).toBe(clock + 1);
+    expect(result.current.s.clock).toBe(clock + (real ? 0 : 1));
     expect(result.current.s.rooms.find(r => r.number === room)?.hk).toBe('cleaning');
     await act(async () => {
       result.current.actions.roomOp(room, 'dirty');
@@ -83,7 +84,7 @@ describe('Sprint 02 — limpieza consistente', () => {
       result.current.actions.finishTask(task.id);
       result.current.actions.startTask(task.id);
     });
-    expect(result.current.s.clock).toBe(clock + 2);
+    expect(result.current.s.clock).toBe(clock + (real ? 0 : 2));
     expect(result.current.s.rooms.find(r => r.number === room)?.hk).toBe('clean');
     await act(async () => { result.current.actions.roomOp(room, 'dirty'); });
     expect(result.current.s.tasks.filter(t => t.room === room)).toHaveLength(before + 2);
@@ -103,7 +104,8 @@ afterEach(cleanup);
 describe('Sprint 02 — operaciones honestas', () => {
   it.each([true, false])('check-in solo simula bienvenida en demo (real=%s)', async real => {
     mock.real = real;
-    mock.stored.reservations = mock.stored.reservations.map(r => ({ ...r, stay: 'none', inDay: 0, outDay: 2 }));
+    const arrivalDay = real ? todayOffset('real', 'Europe/Madrid') : 0;
+    mock.stored.reservations = mock.stored.reservations.map(r => ({ ...r, stay: 'none', inDay: arrivalDay, outDay: arrivalDay + 2 }));
     const { result } = await mount();
     const reservation = result.current.s.reservations.find(r => r.stay === 'none' && result.current.roomState(r.room) === 'ready');
     if (!reservation) throw new Error('Missing arrival');

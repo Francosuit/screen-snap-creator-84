@@ -28,7 +28,7 @@ function StayActions({ resId }: { resId: string }) {
   const { s, actions, roomState, today } = useSuite();
   const r = s.reservations.find((x) => x.id === resId)!;
   const [confirm, setConfirm] = useState<null | "in" | "out">(null);
-  const canIn = r.status === "confirmed" && r.stay === "none" && r.inDay <= today;
+  const canIn = r.status === "confirmed" && r.stay === "none" && r.inDay <= today && r.outDay > today;
   const canOut = r.stay === "inhouse";
   const roomReady = roomState(r.room) === "ready";
   if (!["owner", "director", "reception"].includes(s.role)) return null;

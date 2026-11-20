@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Reservation, Task } from "@/lib/suite/data";
 import { convertTemporalData, reservationCalendar, syncReservationCalendar, validatedTaskDate, withReservationCalendar, withTaskCalendar } from "@/lib/suite/temporal";
+import { offsetToYmd, ymdToOffset } from "@/lib/suite/clock";
 
 const reservation = (overrides: Partial<Reservation> = {}): Reservation => ({
   id: "R-TEMP", guestId: "G-TEMP", room: "101", inDay: 0, outDay: 2, createdDay: -1,
@@ -44,6 +45,12 @@ describe("núcleo temporal persistente y compatible", () => {
   it("rechaza fechas inexistentes y desplazamientos incompletos", () => {
     expect(() => withReservationCalendar(reservation({ checkInDate: "2026-02-30" }))).toThrow();
     expect(() => withTaskCalendar(task({ day: 0.5 }))).toThrow("día de calendario");
+  });
+
+  it("rechaza estancias sin noches y conversiones directas inválidas", () => {
+    expect(() => reservationCalendar(2, 2, 0)).toThrow("al menos 1 noche");
+    expect(() => ymdToOffset("2026-02-30")).toThrow("Fecha de calendario inválida");
+    expect(() => offsetToYmd(0.5)).toThrow("Desplazamiento de calendario inválido");
   });
 
   it("una modificación posterior mantiene sincronizadas ambas representaciones", () => {

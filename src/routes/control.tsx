@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -22,10 +22,12 @@ export const Route = createFileRoute("/control")({
   component: Control,
 });
 
-const forecast = Array.from({ length: 21 }, (_, i) => {
-  const base = [64, 70, 58, 52, 61, 78, 81, 66, 60, 72, 84, 82, 79, 63, 48, 44, 41, 55, 69, 74, 71][i] ?? 60;
-  return { d: dayDate(i).getDate(), dia: dayDate(i).toLocaleDateString("es-ES", { weekday: "short" }), off: i, occ: base, ly: base - 8 + ((i * 7) % 11) - 5 };
-});
+export function buildForecast(today: number) {
+  return Array.from({ length: 21 }, (_, i) => {
+    const base = [64, 70, 58, 52, 61, 78, 81, 66, 60, 72, 84, 82, 79, 63, 48, 44, 41, 55, 69, 74, 71][i] ?? 60;
+    return { d: dayDate(today + i).getDate(), dia: dayDate(today + i).toLocaleDateString("es-ES", { weekday: "short" }), off: i, occ: base, ly: base - 8 + ((i * 7) % 11) - 5 };
+  });
+}
 const pickup = [["L", 3], ["M", 5], ["X", 2], ["J", 7], ["V", 9], ["S", 6], ["D", 4]].map(([d, v]) => ({ d, v }));
 const pace = ["Sep", "Oct", "Nov", "Dic", "Ene", "Feb"].map((m, i) => ({ m, actual: [58, 66, 74, 61, 45, 52][i], ly: [55, 62, 63, 59, 47, 49][i] }));
 const bookingWindow = [["0–3 d", 18], ["4–7 d", 24], ["8–14 d", 21], ["15–30 d", 19], ["31–60 d", 12], ["60+ d", 6]].map(([k, v]) => ({ k, v }));
@@ -42,7 +44,8 @@ function Chart({ title, children, h = 180 }: { title: string; children: React.Re
 }
 
 function Control() {
-  const { s, actions } = useSuite();
+  const { s, actions, today } = useSuite();
+  const forecast = useMemo(() => buildForecast(today), [today]);
   const [open, setOpen] = useState<string | null>(null);
   const o = s.opportunities.find((x) => x.id === open);
   return (

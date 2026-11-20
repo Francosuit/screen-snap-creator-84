@@ -24,8 +24,14 @@ export function hotelYmd(tz: string, now: Date): string {
   const g = (t: string) => p.find((x) => x.type === t)!.value;
   return `${g("year")}-${g("month")}-${g("day")}`;
 }
-export const ymdToOffset = (ymd: string) => Math.round((utcOf(ymd) - utcOf(EPOCH_YMD)) / DAY);
-export const offsetToYmd = (off: number) => new Date(utcOf(EPOCH_YMD) + off * DAY).toISOString().slice(0, 10);
+export const ymdToOffset = (ymd: string) => {
+  assertCalendarDate(ymd);
+  return Math.round((utcOf(ymd) - utcOf(EPOCH_YMD)) / DAY);
+};
+export const offsetToYmd = (off: number) => {
+  if (!Number.isSafeInteger(off)) throw new Error(`Desplazamiento de calendario inválido: ${off}`);
+  return new Date(utcOf(EPOCH_YMD) + off * DAY).toISOString().slice(0, 10);
+};
 /** Absolute offset of "today": demo is fixed at 0, real hotels follow the real clock in their zone. */
 export const todayOffset = (mode: "demo" | "real", tz: string = DEFAULT_TZ, now: Date = new Date()) =>
   mode === "demo" ? 0 : ymdToOffset(hotelYmd(tz, now));

@@ -12,6 +12,7 @@ export function reservationCalendar(inDay: number, outDay: number, createdDay: n
   assertOffset(inDay, "inDay");
   assertOffset(outDay, "outDay");
   assertOffset(createdDay, "createdDay");
+  if (outDay <= inDay) throw new Error("La estancia debe tener al menos 1 noche");
   return {
     checkInDate: offsetToYmd(inDay),
     checkOutDate: offsetToYmd(outDay),

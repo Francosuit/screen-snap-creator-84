@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
@@ -6,6 +7,7 @@ import { actionRules } from "@/lib/suite/data";
 import { useSuite } from "@/lib/suite/store";
 import { Card, PageHeader, SectionTitle } from "@/components/suite/ui";
 import { HistoryPanel, TeamPanel } from "@/components/suite/TeamPanel";
+import { resolveTimeZone, timeZoneOptions } from "@/lib/suite/clock";
 
 export const Route = createFileRoute("/configuracion")({
   head: () => ({
@@ -27,7 +29,8 @@ function Configuracion() {
     <div>
       <PageHeader title="Configuración" sub="Evento → Contexto → Reglas → Acciones → Verificación" />
       <Tabs defaultValue="engine">
-        <TabsList className="mb-4"><TabsTrigger value="engine">Action Engine</TabsTrigger><TabsTrigger value="log">Trazabilidad</TabsTrigger><TabsTrigger value="team">Personal y puestos</TabsTrigger><TabsTrigger value="history">Historial</TabsTrigger><TabsTrigger value="group">Multi-hotel</TabsTrigger><TabsTrigger value="new">Crear hotel</TabsTrigger></TabsList>
+        <TabsList className="mb-4"><TabsTrigger value="engine">Action Engine</TabsTrigger><TabsTrigger value="hotel">Hotel</TabsTrigger><TabsTrigger value="log">Trazabilidad</TabsTrigger><TabsTrigger value="team">Personal y puestos</TabsTrigger><TabsTrigger value="history">Historial</TabsTrigger><TabsTrigger value="group">Multi-hotel</TabsTrigger><TabsTrigger value="new">Crear hotel</TabsTrigger></TabsList>
+        <TabsContent value="hotel"><HotelSettings /></TabsContent>
         <TabsContent value="team"><TeamPanel hotelKey={s.hotel} /></TabsContent>
         <TabsContent value="history"><HistoryPanel hotelKey={s.hotel} /></TabsContent>
         <TabsContent value="engine">
@@ -84,6 +87,33 @@ function Configuracion() {
         <TabsContent value="new"><CreateHotel /></TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+function HotelSettings() {
+  const { hotel, actions, canEditHotelConfig, timeZone, todayYmd, hotelClock, isDemo } = useSuite();
+  const options = useMemo(timeZoneOptions, []);
+  const [zone, setZone] = useState(resolveTimeZone(hotel.timezone));
+  const [saving, setSaving] = useState(false);
+  useEffect(() => setZone(resolveTimeZone(hotel.timezone)), [hotel.id, hotel.timezone]);
+  const save = async () => {
+    setSaving(true);
+    try { await actions.updateHotelTimezone(zone); }
+    finally { setSaving(false); }
+  };
+  return (
+    <Card className="max-w-xl">
+      <SectionTitle>Fecha y hora de {hotel.name}</SectionTitle>
+      <p className="mb-4 text-sm text-muted-foreground">Día operativo: {todayYmd} · {hotelClock} ({timeZone}). Las reservas y tareas conservan sus fechas absolutas al cambiar la zona.</p>
+      <label className="block space-y-1.5 text-sm font-medium">Zona horaria IANA
+        <select aria-label="Zona horaria IANA" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={zone} disabled={!canEditHotelConfig || saving} onChange={(e) => setZone(e.target.value)}>
+          {options.map((option) => <option key={option} value={option}>{option}</option>)}
+        </select>
+      </label>
+      {!canEditHotelConfig && <p className="mt-2 text-xs text-muted-foreground">Solo propietario o dirección pueden modificarla.</p>}
+      {isDemo && <p className="mt-2 text-xs text-muted-foreground">La demostración conserva siempre el 10/11/2026; esta preferencia es local y no afecta a cuentas reales.</p>}
+      <Button className="mt-4" disabled={!canEditHotelConfig || saving || zone === timeZone} onClick={save}>{saving ? "Guardando…" : "Guardar zona horaria"}</Button>
+    </Card>
   );
 }
 

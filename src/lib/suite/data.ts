@@ -333,11 +333,13 @@ export const OCCUPANCY = [{ label: "Individual", n: 1 }, { label: "Doble", n: 2 
 export const ROOM_EXTRAS = ["Minibar", "Cafetera", "Caja fuerte", "Aire acondicionado", "Bañera de hidromasaje", "Escritorio", "Sofá", "Smart TV", "Adaptada (accesible)", "Comunicada", "Cuna disponible", "Mascotas"];
 
 /** Checks a stay change (extend/shorten) and returns the new amount, or an error message */
-export function checkStayChange(list: Reservation[], id: string, outDay: number, nightly: number): { amount: number } | { error: string } {
+export function checkStayChange(list: Reservation[], id: string, outDay: number, nightly: number, today?: number): { amount: number } | { error: string } {
   const r = list.find((x) => x.id === id);
   if (!r) return { error: "Reserva no encontrada" };
   if (r.status !== "confirmed" || r.stay === "finished") return { error: "Esta reserva ya no se puede modificar" };
+  if (!Number.isInteger(outDay)) return { error: "La salida debe ser un día de calendario válido" };
   if (outDay <= r.inDay) return { error: "La estancia debe tener al menos 1 noche" };
+  if (today !== undefined && outDay < today) return { error: "La salida no puede ser anterior a hoy" };
   const clash = list.find((x) => x.id !== id && x.room === r.room && x.status === "confirmed" && x.stay !== "finished" && x.inDay < outDay && r.inDay < x.outDay);
   if (clash) return { error: `Choca con la reserva ${clash.id}` };
   return { amount: stayAmount(nightly, outDay - r.inDay) };

@@ -8,7 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { ROLES, type RoleKey } from "@/lib/suite/data";
-import { fmtClock, useSuite } from "@/lib/suite/store";
+import { dayDate, useSuite } from "@/lib/suite/store";
 import { NoAccess } from "./ui";
 import { Button } from "@/components/ui/button";
 
@@ -82,11 +82,13 @@ function Sidebar() {
 }
 
 function Topbar() {
-  const { s, actions, hotel, hotels, cloud, isDemo, user, org } = useSuite();
+  const { s, actions, hotel, hotels, cloud, isDemo, user, org, today, hotelClock } = useSuite();
   const [open, setOpen] = useState(false);
   const person = isDemo ? ROLES[s.role].person : [user?.name, user?.surname].filter(Boolean).join(" ") || user?.email || "Mi cuenta";
   const notifs = s.notifications.filter((n) => n.roles.includes(s.role));
   const unread = notifs.filter((n) => !n.read).length;
+  const formattedDate = dayDate(today).toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "short", year: "numeric" });
+  const dateLabel = formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
   return (
     <header className="sticky top-0 z-30 border-b bg-background/85 backdrop-blur">
       <div className="flex h-14 items-center gap-2 px-4 sm:gap-3 sm:px-6">
@@ -118,7 +120,7 @@ function Topbar() {
 
         <div className="ml-auto hidden text-sm text-muted-foreground md:block">
           <span className="mr-3 text-xs">{{ local: "Guardado solo en este navegador", loading: "Cargando…", saved: "Guardado en la nube", pending: "Guardando…", error: "Error al guardar" }[cloud]}</span>
-          Martes, 10 nov 2026 · <span className="tnum font-medium text-foreground">{fmtClock(s.clock)}</span>
+          {dateLabel} · <span className="tnum font-medium text-foreground">{hotelClock}</span>
         </div>
 
         <Popover onOpenChange={(o) => !o && actions.readAll()}>

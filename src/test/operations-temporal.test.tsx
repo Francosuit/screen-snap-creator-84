@@ -4,7 +4,7 @@ import { SuiteProvider, useSuite } from '@/lib/suite/store';
 import type { Reservation } from '@/lib/suite/data';
 import type { Operations } from '@/lib/suite/operations';
 
-const mock = vi.hoisted(() => ({ real: true, stored: {} as Operations, save: vi.fn() }));
+const mock = vi.hoisted(() => ({ real: true, stored: {} as Operations, save: vi.fn(), timezone: vi.fn() }));
 vi.mock('@/integrations/supabase/client', () => ({ supabase: {
   auth: {
     onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
@@ -23,7 +23,7 @@ vi.mock('@/lib/suite/cloud', () => ({
     floors: [],
   }),
   myMemberships: async () => [{ hotel_id: 'temporal-hotel', role: 'director', modules: null }],
-  overlayHotel: (hotel: unknown, rooms: unknown) => ({ hotel, rooms }), saveRoomConfig: vi.fn(),
+  overlayHotel: (hotel: unknown, rooms: unknown) => ({ hotel, rooms }), saveRoomConfig: vi.fn(), saveHotelTimezone: (...args: unknown[]) => mock.timezone(...args), persistHotelTimezones: async () => false,
 }));
 vi.mock('@/lib/suite/operations', async importOriginal => ({
   ...await importOriginal<typeof import('@/lib/suite/operations')>(),
@@ -49,6 +49,7 @@ beforeEach(() => {
   localStorage.clear();
   mock.real = true;
   mock.save.mockReset();
+  mock.timezone.mockReset();
   mock.stored = {
     guests: [
       { id: 'g-test', name: 'Huésped Actual', doc: '—', phone: '—', email: '—', lang: '—', country: '—', companions: [], notes: '', messaging: true },
@@ -129,6 +130,65 @@ describe('operaciones con el día real del hotel', () => {
   });
 });
 
+describe('validaciones temporales imprescindibles', () => {
+  it('rechaza reservas manuales pasadas, fraccionadas o sin noches', async () => {
+    const { result } = await mount();
+    const before = result.current.s.reservations.length;
+    await act(async () => {
+      expect(result.current.actions.createReservation({ name: 'Pasada', room: '102', inDay: 7, outDay: 9, pax: 2, notes: '' })).toBe(false);
+      expect(result.current.actions.createReservation({ name: 'Fraccionada', room: '102', inDay: 8.5, outDay: 10, pax: 2, notes: '' })).toBe(false);
+      expect(result.current.actions.createReservation({ name: 'Sin noches', room: '102', inDay: 8, outDay: 8, pax: 2, notes: '' })).toBe(false);
+    });
+    expect(result.current.s.reservations).toHaveLength(before);
+    expect(mock.save).not.toHaveBeenCalled();
+  });
+
+  it('check-in exige una reserva confirmada y vigente hoy', async () => {
+    mock.stored.reservations = [
+      reservation({ id: 'r-future', inDay: 9, outDay: 11, stay: 'none' }),
+      reservation({ id: 'r-expired', room: '102', inDay: 5, outDay: 7, stay: 'none' }),
+      reservation({ id: 'r-current', inDay: 8, outDay: 10, stay: 'none' }),
+    ];
+    const { result } = await mount();
+    await act(async () => {
+      expect(result.current.actions.checkIn('r-future')).toBe(false);
+      expect(result.current.actions.checkIn('r-expired')).toBe(false);
+      expect(result.current.actions.checkIn('r-current')).toBe(true);
+    });
+    expect(result.current.s.reservations.find(r => r.id === 'r-current')?.stay).toBe('inhouse');
+    expect(result.current.s.reservations.find(r => r.id === 'r-future')?.stay).toBe('none');
+    expect(result.current.s.reservations.find(r => r.id === 'r-expired')?.stay).toBe('none');
+  });
+
+  it('checkout no convierte una estancia en cero noches', async () => {
+    mock.stored.reservations = [reservation({ inDay: 8, outDay: 10, stay: 'inhouse' })];
+    const { result } = await mount();
+    await act(async () => { expect(result.current.actions.checkOut('r-base')).toBe(false); });
+    expect(result.current.s.reservations[0]).toMatchObject({ stay: 'inhouse', inDay: 8, outDay: 10 });
+    expect(mock.save).not.toHaveBeenCalled();
+  });
+
+  it('guarda la zona del hotel y recalcula día y hora sin alterar fechas de reservas', async () => {
+    vi.setSystemTime(new Date('2026-11-18T23:30:00Z'));
+    const { result } = await mount();
+    const before = structuredClone(result.current.s.reservations);
+    await act(async () => { expect(await result.current.actions.updateHotelTimezone('America/New_York')).toBe(true); });
+    expect(mock.timezone).toHaveBeenCalledWith('temporal-hotel', 'America/New_York');
+    expect(result.current.timeZone).toBe('America/New_York');
+    expect(result.current.todayYmd).toBe('2026-11-18');
+    expect(result.current.hotelClock).toBe('18:30');
+    expect(result.current.s.reservations).toEqual(before);
+  });
+
+  it('no cambia la zona local si el guardado falla', async () => {
+    mock.timezone.mockRejectedValueOnce(new Error('sin permiso'));
+    const { result } = await mount();
+    await act(async () => { expect(await result.current.actions.updateHotelTimezone('America/New_York')).toBe(false); });
+    expect(result.current.timeZone).toBe('Europe/Madrid');
+    expect(result.current.todayYmd).toBe('2026-11-18');
+  });
+});
+
 describe('la demostración conserva su reloj separado', () => {
   it('checkout, incidencias y hotel digital usan el día 0 sin fechas de producción', async () => {
     mock.real = false;
@@ -159,5 +219,15 @@ describe('la demostración conserva su reloj separado', () => {
     expect(result.current.alerts.some(alert => alert.id === 'a-ci-R-2044')).toBe(true);
     expect(result.current.today).toBe(0);
     expect(result.current.todayYmd).toBe('2026-11-10');
+  });
+
+  it('cambiar la zona demo no altera su fecha ni escribe en Cloud', async () => {
+    mock.real = false;
+    const { result } = await mount();
+    await act(async () => { expect(await result.current.actions.updateHotelTimezone('Asia/Tokyo')).toBe(true); });
+    expect(result.current.timeZone).toBe('Asia/Tokyo');
+    expect(result.current.todayYmd).toBe('2026-11-10');
+    expect(mock.timezone).not.toHaveBeenCalled();
+    expect(mock.save).not.toHaveBeenCalled();
   });
 });

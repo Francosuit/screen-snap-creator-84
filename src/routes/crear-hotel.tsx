@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSuite } from "@/lib/suite/store";
 import { BATH_OPTIONS, BED_KINDS, DEPT_OPTIONS, OCCUPANCY, ROOM_EXTRAS, WINDOW_SIDES, ZONE_OPTIONS, bedSleeps, bedsText, parseBeds, type Floor, type Room, type TypeDetail, type WindowSide } from "@/lib/suite/data";
+import { DEFAULT_TZ, timeZoneOptions } from "@/lib/suite/clock";
 
 export const Route = createFileRoute("/crear-hotel")({
   head: () => ({
@@ -93,8 +94,9 @@ function FacadePreview({ facade, floors }: { facade: Facade; floors: number }) {
 function Builder() {
   const { actions, org, user } = useSuite();
   const navigate = useNavigate();
+  const timeZones = useMemo(timeZoneOptions, []);
   const [step, setStep] = useState(0);
-  const [h, setH] = useState({ name: "", category: "4★", address: "", city: org?.city ?? "", description: "", checkIn: "14:00", checkOut: "12:00" });
+  const [h, setH] = useState({ name: "", category: "4★", address: "", city: org?.city ?? "", description: "", checkIn: "14:00", checkOut: "12:00", timezone: DEFAULT_TZ });
   const [floors, setFloors] = useState(3);
   const [facade, setFacade] = useState<Facade>({ primary: FACADE_PRIMARY[0].v, secondary: FACADE_SECONDARY[0].v });
   const [perFloor, setPerFloor] = useState(8);
@@ -156,6 +158,7 @@ function Builder() {
               <div className="sm:col-span-2 space-y-1.5"><Label>Dirección</Label><Input value={h.address} onChange={(e) => setH({ ...h, address: e.target.value })} /></div>
               <div className="space-y-1.5"><Label>Hora check-in</Label><Input type="time" value={h.checkIn} onChange={(e) => setH({ ...h, checkIn: e.target.value })} /></div>
               <div className="space-y-1.5"><Label>Hora check-out</Label><Input type="time" value={h.checkOut} onChange={(e) => setH({ ...h, checkOut: e.target.value })} /></div>
+              <div className="sm:col-span-2 space-y-1.5"><Label>Zona horaria del hotel</Label><select aria-label="Zona horaria del hotel" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={h.timezone} onChange={(e) => setH({ ...h, timezone: e.target.value })}>{timeZones.map((zone) => <option key={zone} value={zone}>{zone}</option>)}</select><p className="text-xs text-muted-foreground">Define el día operativo, llegadas, salidas y vencimientos. No cambia las fechas guardadas.</p></div>
               <div className="sm:col-span-2 grid gap-4 rounded-lg border p-4 sm:grid-cols-[1fr_180px]">
                 <div className="space-y-3">
                   <Label>Identidad del edificio</Label>

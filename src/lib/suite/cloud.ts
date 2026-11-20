@@ -3,6 +3,7 @@ import type { Json } from "@/integrations/supabase/types";
 import { applyRoomEdit, validateRoomEdit, type Hotel, type Room, type RoomEdit, type WindowSide } from "./data";
 import { canEditRoom } from "./room-permissions";
 import { isInside, type FurnitureItem } from "./layout";
+import { isTimeZone } from "./clock";
 
 export type HotelRole = "owner" | "director" | "reception" | "housekeeping" | "maintenance" | "revenue";
 export const ROLE_LABELS: Record<HotelRole, string> = {
@@ -73,6 +74,36 @@ export async function saveRoomConfig(hotelId: string, room: Room, edit: RoomEdit
   if (failure) throw new Error(failure.message);
   const saved = data as unknown as CloudRoom;
   return applyRoomEdit(room, { type: saved.type, rate: Number(saved.rate), capacity: nn(saved.capacity), beds: nn(saved.beds), bath: nn(saved.bath), terrace: nn(saved.terrace), view: nn(saved.view), sqm: nn(saved.sqm), notes: nn(saved.notes), extras: saved.extras ?? [], window: nn(saved.window_side ?? null) as WindowSide | undefined, layout: nn(saved.layout ?? null) ?? undefined }).room;
+}
+
+/** Saves only the hotel zone; authenticated membership and RLS enforce owner/director access. */
+export async function saveHotelTimezone(hotelId: string, timezone: string): Promise<void> {
+  if (!isTimeZone(timezone)) throw new Error("Zona horaria IANA inválida");
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) throw new Error("Inicia sesión para configurar el hotel");
+  const [{ data: hotel, error: hotelError }, { data: membership, error: membershipError }] = await Promise.all([
+    supabase.from("hotels").select("org_owner").eq("id", hotelId).single(),
+    supabase.from("hotel_members").select("role").eq("hotel_id", hotelId).eq("user_id", auth.user.id).eq("active", true).maybeSingle(),
+  ]);
+  if (hotelError || membershipError || !hotel) throw new Error("No se pudo comprobar el acceso al hotel");
+  if (hotel.org_owner !== auth.user.id && !canEditRoom(membership?.role)) throw new Error("Solo propietario o dirección pueden cambiar la zona horaria");
+  const { data, error } = await supabase.from("hotels").update({ timezone }).eq("id", hotelId).select("id, timezone").single();
+  if (error) throw new Error(error.message);
+  if (!data || data.timezone !== timezone) throw new Error("La zona horaria no quedó guardada");
+}
+
+/** Completes the relational zone after the existing world trigger creates a hotel. */
+export async function persistHotelTimezones(hotels: Hotel[], cfg: CloudConfig): Promise<boolean> {
+  let changed = false;
+  for (const hotel of hotels) {
+    if (hotel.timezone === undefined) continue;
+    const record = cfg.hotels.find((h) => h.key === hotel.id && !h.archived);
+    if (record && record.timezone !== hotel.timezone) {
+      await saveHotelTimezone(record.id, hotel.timezone);
+      changed = true;
+    }
+  }
+  return changed;
 }
 
 export async function roomHistory(hotelId: string, number: string) {

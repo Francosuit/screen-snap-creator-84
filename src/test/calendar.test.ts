@@ -29,4 +29,8 @@ describe("moving check-out", () => {
     expect(checkStayChange([R("A", 0, 3), R("C", 3, 5, { status: "cancelled" as Reservation["status"] })], "A", 5, 120)).toEqual({ amount: 600 });
   });
   it("finished stays cannot be changed", () => expect(checkStayChange([R("A", 0, 3, { stay: "finished" as Reservation["stay"] })], "A", 4, 120)).toHaveProperty("error"));
+  it("rejects fractional or past check-out days", () => {
+    expect(checkStayChange([R("A", 0, 3)], "A", 2.5, 120, 1)).toHaveProperty("error", "La salida debe ser un día de calendario válido");
+    expect(checkStayChange([R("A", 0, 3)], "A", 1, 120, 2)).toHaveProperty("error", "La salida no puede ser anterior a hoy");
+  });
 });

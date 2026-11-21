@@ -186,3 +186,20 @@ Implementar el núcleo temporal compartido (hotelToday en store y todas las pant
 - [x] 47/47 pruebas específicas de pantalla y operaciones tras la integración.
 - [ ] Pendiente: suite completa posterior a pantallas, compilación final y validación visual demo/real de solo lectura.
 - [ ] Después: zona horaria individual, validaciones estrictas de fechas/horas y procedimientos de backup/migración/rollback. NO ejecutar migraciones ni escribir en hoteles reales.
+
+## Cierre Sprint 02 — 21/11/2026 — CERRADO
+- [x] Suite completa 162 pasadas / 6 omitidas (integración sin PostgreSQL local); typecheck OK.
+- [x] Aislamiento «Validación P0» confirmado por consulta: único hotel de la cuenta de validación, 1 miembro, propietario propio; la sesión no ve Hotel Homeless.
+- [x] Recorrido visual con escrituras bloqueadas (solo se permitió la lectura `suite_load_operations`, verificada como de solo lectura): Panel, Reservas, Control, Habitaciones, Huéspedes, Tareas y Hotel en PC (1280) y móvil (390); sin desbordamiento horizontal.
+- [x] Demo: cabecera «Martes, 10 de nov de 2026» fija. Real: «Sábado, 21 de nov de 2026 · 10:46» (hora local Madrid), calendario de Control empieza en sáb 21.
+- [x] Hotel Homeless sin cambios: 25 huéspedes, 25 reservas, 66 tareas, última escritura 04-11-2026 antes y después.
+- Criterio de cierre: pruebas + compilación + recorrido visual demo/real + aislamiento verificado. Cumplido.
+### Pendientes no críticos
+- Saludo del Panel fijo «Buenas tardes» y nombre del rol de demo («Juan») en cuenta real.
+- Al cargar, la app intenta guardar el mundo (company_worlds) aunque no haya cambios.
+- Zona horaria vacía en los 3 hoteles: usan Europe/Madrid por defecto hasta que el dueño la configure.
+- Indicadores superiores de Control siguen siendo de demostración (rotulados como tal).
+- Migración de fechas absolutas de registros antiguos: pendiente de aprobación.
+
+## Sprint 03 — PMS y recepción — PREPARADO, NO INICIADO
+- Auditoría y plan: `docs/sprint03-plan.md`. Esperando aprobación para la Tarea 1 (cancelación y no-show).

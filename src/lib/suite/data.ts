@@ -78,6 +78,8 @@ export interface Reservation {
   pax: number; channel: Channel; amount: number; status: BookingStatus; stay: StayStatus; notes: string; createdDay: number;
   /** Absolute calendar dates (YYYY-MM-DD); legacy rows gain them only through the approved migration. */
   checkInDate?: string; checkOutDate?: string; createdDate?: string;
+  /** Per-reservation event history (creation, edits, cancellation, check-in/out). */
+  history?: { at: string; day: number; actor: string; text: string }[];
 }
 export interface Task {
   id: string; title: string; room: string; assignee: string; dept: Dept; priority: Priority;

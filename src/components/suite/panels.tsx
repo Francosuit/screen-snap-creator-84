@@ -65,6 +65,62 @@ function StayActions({ resId }: { resId: string }) {
   );
 }
 
+/** Edit, cancel and no-show for front-office roles */
+function BookingActions({ resId }: { resId: string }) {
+  const { s, actions, today } = useSuite();
+  const r = s.reservations.find((x) => x.id === resId)!;
+  const [mode, setMode] = useState<null | "edit" | "cancel" | "noshow">(null);
+  const [reason, setReason] = useState("");
+  const [f, setF] = useState({ room: r.room, inDay: r.inDay, nights: r.outDay - r.inDay, pax: r.pax, notes: r.notes });
+  if (!["owner", "director", "reception"].includes(s.role)) return null;
+  const editable = r.status === "confirmed" && r.stay !== "finished";
+  const cancellable = r.status === "confirmed" && r.stay === "none";
+  const noShow = cancellable && r.inDay <= today;
+  const inhouse = r.stay === "inhouse";
+  const free = actions.freeRooms(inhouse ? Math.max(today, f.inDay) : f.inDay, f.inDay + f.nights, r.id);
+  const roomOptions = free.some((x) => x.number === r.room) ? free : [...(s.rooms.filter((x) => x.number === r.room)), ...free];
+  const open = (m: "edit" | "cancel" | "noshow") => { setF({ room: r.room, inDay: r.inDay, nights: r.outDay - r.inDay, pax: r.pax, notes: r.notes }); setReason(""); setMode(m); };
+  const save = () => { if (actions.editReservation(r.id, { room: f.room, inDay: f.inDay, outDay: f.inDay + f.nights, pax: f.pax, notes: f.notes })) setMode(null); };
+  return (
+    <div className="flex flex-wrap gap-2 px-6 pb-6">
+      <Button size="sm" variant="outline" disabled={!editable} onClick={() => open("edit")}>Editar reserva</Button>
+      <Button size="sm" variant="outline" disabled={!cancellable} onClick={() => open("cancel")}>Cancelar reserva</Button>
+      <Button size="sm" variant="outline" disabled={!noShow} onClick={() => open("noshow")}>No presentado</Button>
+      <Dialog open={mode === "edit"} onOpenChange={(o) => !o && setMode(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Editar reserva {r.id}</DialogTitle><DialogDescription>{inhouse ? "Estancia en curso: puedes cambiar habitación (traslado desde hoy), salida, huéspedes y notas." : "Suite solo ofrece habitaciones libres en las fechas elegidas."}</DialogDescription></DialogHeader>
+          <div className="grid grid-cols-2 gap-2">
+            <label className="text-xs text-muted-foreground">Entrada
+              <Select disabled={inhouse} value={String(f.inDay)} onValueChange={(v) => setF({ ...f, inDay: Number(v) })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{Array.from(new Set([f.inDay, ...Array.from({ length: 60 }, (_, i) => today + i)])).map((d) => <SelectItem key={d} value={String(d)}>{fmtDay(d, today)}</SelectItem>)}</SelectContent></Select>
+            </label>
+            <label className="text-xs text-muted-foreground">Noches<Input type="number" min={1} value={f.nights} onChange={(e) => setF({ ...f, nights: Math.max(1, Number(e.target.value)) })} /></label>
+            <label className="text-xs text-muted-foreground">Habitación
+              <Select value={f.room} onValueChange={(v) => setF({ ...f, room: v })}><SelectTrigger aria-label="Habitación"><SelectValue /></SelectTrigger><SelectContent>{roomOptions.map((x) => <SelectItem key={x.number} value={x.number}>Hab. {x.number} · {x.type}</SelectItem>)}</SelectContent></Select>
+            </label>
+            <label className="text-xs text-muted-foreground">Huéspedes<Input type="number" min={1} value={f.pax} onChange={(e) => setF({ ...f, pax: Math.max(1, Number(e.target.value)) })} /></label>
+          </div>
+          <p className="text-xs text-muted-foreground">Salida {fmtDay(f.inDay + f.nights, today)} · {free.length} habitación(es) libres en esas fechas</p>
+          <Input placeholder="Observaciones" value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} />
+          <Button onClick={save}>Guardar cambios</Button>
+        </DialogContent>
+      </Dialog>
+      <AlertDialog open={mode === "cancel" || mode === "noshow"} onOpenChange={(o) => !o && setMode(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{mode === "cancel" ? `Cancelar reserva ${r.id}` : `Marcar ${r.id} como no presentado`}</AlertDialogTitle>
+            <AlertDialogDescription>La reserva se conserva en el historial y la habitación {r.room} queda libre para esas fechas.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <Input placeholder="Motivo (opcional)" value={reason} onChange={(e) => setReason(e.target.value)} />
+          <AlertDialogFooter>
+            <AlertDialogCancel>Volver</AlertDialogCancel>
+            <AlertDialogAction onClick={() => (mode === "cancel" ? actions.cancelReservation(r.id, reason) : actions.markNoShow(r.id, reason))}>Confirmar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+
 export function ReservationSheet({ resId, onClose }: { resId: string | null; onClose: () => void }) {
   const { s, guest, hotel, today } = useSuite();
   const dateLabel = (offset: number) => fmtDay(offset, today);
@@ -96,8 +152,12 @@ export function ReservationSheet({ resId, onClose }: { resId: string | null; onC
             </Section>
             <Section title="Notas"><p className="py-2 text-sm">{r.notes || g.notes || "—"}</p></Section>
             <div className="px-6 pb-2"><Link to="/hotel" search={{ room: r.room }} onClick={onClose} className="inline-flex w-full items-center justify-center rounded-md border px-3 py-2 text-sm font-medium hover:bg-accent">Localizar habitación {r.room} en Mi mundo</Link></div>
-            <Section title="Historial">{s.log.filter((l) => l.text.includes(r.id)).map((l) => <p key={l.id} className="py-1 text-xs"><span className="tnum text-muted-foreground">{l.time}</span> · {l.text}</p>)}{!s.log.some((l) => l.text.includes(r.id)) && <p className="py-2 text-xs text-muted-foreground">Sin cambios registrados.</p>}</Section>
+            <Section title="Historial de la reserva">
+              {[...(r.history ?? [])].reverse().map((ev, i) => <p key={i} className="py-1 text-xs"><span className="tnum text-muted-foreground">{dateLabel(ev.day)} {ev.at}</span> · {ev.text} <span className="text-muted-foreground">· {ev.actor}</span></p>)}
+              {!r.history?.length && <p className="py-2 text-xs text-muted-foreground">Sin eventos guardados en esta reserva.</p>}
+            </Section>
             <StayActions resId={r.id} />
+            <BookingActions resId={r.id} />
           </>
         )}
       </SheetContent>

@@ -26,6 +26,7 @@ import {
 } from "./data";
 import { SuiteCtx } from "./context";
 import { DEFAULT_TZ, hotelToday, hotelMinutes, hotelTime, isTimeZone, offsetToYmd } from "./clock";
+import { availableRooms, canCancel, canNoShow, checkReservationEdit, withEvent, type ResEdit } from "./reservations";
 import { syncReservationCalendar, withReservationCalendar, withTaskCalendar } from "./temporal";
 import { supabase } from "@/integrations/supabase/client";
 interface CloudState { account?: Account; hotels?: Hotel[]; data?: Record<string, Data> }
@@ -475,7 +476,7 @@ function useSuiteState() {
         setS((p) => {
           let n: State = {
             ...p,
-            reservations: p.reservations.map((x) => (x.id === resId ? { ...x, stay: "inhouse" } : x)),
+            reservations: p.reservations.map((x) => (x.id === resId ? withEvent({ ...x, stay: "inhouse" }, { at: fmtClock(actionClock(p)), day: T, actor, text: `Check-in en habitación ${x.room}` }) : x)),
             guests: uid ? p.guests : p.guests.map((g) => (g.id === r.guestId ? { ...g, messaging: true } : g)),
             sent: uid ? p.sent : [{ id: id("s"), time: fmtClock(actionClock(p)), guest: gName, rule: "Bienvenida", result: "enviado" }, ...p.sent],
           };
@@ -509,7 +510,7 @@ function useSuiteState() {
         setS((p) => {
           let n: State = {
             ...p,
-            reservations: p.reservations.map((x) => (x.id === resId ? syncReservationCalendar({ ...x, stay: "finished", outDay: Math.min(x.outDay, T) }) : x)),
+            reservations: p.reservations.map((x) => (x.id === resId ? withEvent(syncReservationCalendar({ ...x, stay: "finished", outDay: Math.min(x.outDay, T) }), { at: fmtClock(actionClock(p)), day: T, actor, text: `Check-out de habitación ${x.room}` }) : x)),
             guests: p.guests.map((g) => (g.id === r.guestId ? { ...g, messaging: false } : g)),
             rooms: p.rooms.map((x) => (x.number === r.room ? { ...x, hk: "dirty" } : x)),
             tasks: p.tasks.some(t => t.room === r.room && t.dept === "housekeeping" && t.status !== "completada") ? p.tasks : [task, ...p.tasks],
@@ -690,7 +691,10 @@ function useSuiteState() {
 
     /** One controlled event that mutates the real demo state */
     /** Manual booking from reception — rejects overlapping stays in the same room */
-    const createReservation = (input: { name: string; room: string; inDay: number; outDay: number; pax: number; notes: string }) => {
+    const createReservation = (input: { name: string; room: string; inDay: number; outDay: number; pax: number; notes: string; guestId?: string }) => {
+      const existing = input.guestId ? s.guests.find((g) => g.id === input.guestId) : undefined;
+      if (input.guestId && !existing) { say.error("Huésped no encontrado"); return false; }
+      if (existing) input = { ...input, name: existing.name };
       if (!input.name.trim() || !Number.isInteger(input.inDay) || !Number.isInteger(input.outDay) || !Number.isInteger(input.pax) || input.inDay < T || input.outDay <= input.inDay || input.pax < 1) {
         say.error("Revisa nombre, fechas y número de huéspedes; la entrada no puede ser anterior a hoy");
         return false;
@@ -699,10 +703,11 @@ function useSuiteState() {
       if (!room || room.oos) { say.error("Habitación no disponible"); return false; }
       const clash = s.reservations.find((x) => x.room === input.room && x.status === "confirmed" && x.stay !== "finished" && x.inDay < input.outDay && input.inDay < x.outDay);
       if (clash) { say.error(`Habitación ${input.room} ocupada en esas fechas`, { description: `Choca con ${clash.id}` }); return false; }
-      const gid = id("g");
-      const g: Guest = { id: gid, name: input.name.trim(), doc: "—", phone: "—", email: "—", lang: "—", companions: [], notes: "", country: "—", messaging: false };
-      const res: Reservation = stampRes({ id: id("R"), guestId: gid, room: room.number, inDay: input.inDay, outDay: input.outDay, eta: "—", pax: input.pax, channel: "Recepción", amount: stayAmount(room.rate, input.outDay - input.inDay), status: "confirmed", stay: "none", notes: input.notes, createdDay: T });
-      setS((p) => notify(push({ ...p, guests: [g, ...p.guests], reservations: [res, ...p.reservations] }, [
+      const gid = existing?.id ?? id("g");
+      const g: Guest = existing ?? { id: gid, name: input.name.trim(), doc: "—", phone: "—", email: "—", lang: "—", companions: [], notes: "", country: "—", messaging: false };
+      const created: Reservation = stampRes({ id: id("R"), guestId: gid, room: room.number, inDay: input.inDay, outDay: input.outDay, eta: "—", pax: input.pax, channel: "Recepción", amount: stayAmount(room.rate, input.outDay - input.inDay), status: "confirmed", stay: "none", notes: input.notes, createdDay: T });
+      const res = withEvent(created, { at: fmtClock(s.clock), day: T, actor, text: `Reserva creada · habitación ${room.number} · ${input.outDay - input.inDay} noche(s) · ${input.pax} pax` });
+      setS((p) => notify(push({ ...p, guests: existing ? p.guests : [g, ...p.guests], reservations: [res, ...p.reservations] }, [
         { actor, text: `Reserva manual ${res.id} · ${g.name} · habitación ${room.number} · ${fmtDay(input.inDay, T).toLowerCase()} → ${fmtDay(input.outDay, T).toLowerCase()}.`, kind: "human" },
       ]), ["reception", "owner", "director"], `Reserva manual · ${g.name} · ${room.number}.`, "ok"));
       say.success("Reserva creada");
@@ -716,12 +721,53 @@ function useSuiteState() {
       if ("error" in res) { say.error(res.error); return false; }
       if (!r || r.outDay === outDay) return false;
       const longer = outDay > r.outDay;
-      setS((p) => notify(push({ ...p, reservations: p.reservations.map((x) => x.id === rid ? syncReservationCalendar({ ...x, outDay, amount: res.amount }) : x) }, [
+      setS((p) => notify(push({ ...p, reservations: p.reservations.map((x) => x.id === rid ? withEvent(syncReservationCalendar({ ...x, outDay, amount: res.amount }), { at: fmtClock(actionClock(p)), day: T, actor, text: `Salida ${fmtDay(r.outDay, T).toLowerCase()} → ${fmtDay(outDay, T).toLowerCase()} · ${res.amount} €` }) : x) }, [
         { actor, text: `Estancia ${rid} ${longer ? "ampliada" : "acortada"}: salida ${fmtDay(r.outDay, T).toLowerCase()} → ${fmtDay(outDay, T).toLowerCase()} · importe ${r.amount} € → ${res.amount} €.`, kind: "human" },
       ]), ["reception", "housekeeping", "owner", "director"], `Habitación ${r.room}: salida ${longer ? "retrasada" : "adelantada"} a ${fmtDay(outDay, T).toLowerCase()}. Ajusta la limpieza de salida.`, "info"));
       say.success(longer ? "Estancia ampliada" : "Estancia acortada", { description: `Nuevo importe: ${res.amount} €` });
       return true;
     };
+    /** Cancel or mark no-show: keeps the row (traceability) and frees the room for new bookings */
+    const closeReservation = (rid: string, kind: "cancelled" | "noshow", reason: string) => {
+      const r = rootRef.current.data[hotel.id]?.reservations.find((x) => x.id === rid);
+      if (!r || !(kind === "cancelled" ? canCancel(r) : canNoShow(r, T))) { say.error(kind === "cancelled" ? "Solo se pueden cancelar reservas sin check-in" : "No-show solo es posible desde el día de llegada y sin check-in"); return false; }
+      const label = kind === "cancelled" ? "cancelada" : "marcada como no presentado";
+      const why = reason.trim();
+      setS((p) => notify(push({ ...p, reservations: p.reservations.map((x) => x.id === rid ? withEvent({ ...x, status: kind }, { at: fmtClock(actionClock(p)), day: T, actor, text: `Reserva ${label}${why ? ` · motivo: ${why}` : ""}` }) : x) }, [
+        { actor, text: `Reserva ${rid} ${label} · habitación ${r.room} liberada${why ? ` · ${why}` : ""}.`, kind: "human" },
+      ]), ["reception", "owner", "director"], `Reserva ${rid} ${label} · habitación ${r.room} libre.`, "info"));
+      say.success(kind === "cancelled" ? "Reserva cancelada" : "Marcada como no presentado", { description: `Habitación ${r.room} disponible en esas fechas` });
+      return true;
+    };
+    const cancelReservation = (rid: string, reason = "") => closeReservation(rid, "cancelled", reason);
+    const markNoShow = (rid: string, reason = "") => closeReservation(rid, "noshow", reason);
+    /** Full edit: dates, room (moves mid-stay leave the old room dirty with a cleaning task), pax and notes */
+    const editReservation = (rid: string, e: ResEdit) => {
+      const r = rootRef.current.data[hotel.id]?.reservations.find((x) => x.id === rid);
+      const res = checkReservationEdit(s.reservations, s.rooms, rid, e, T);
+      if ("error" in res) { say.error(res.error); return false; }
+      if (!r) return false;
+      const parts: string[] = [];
+      if (e.room !== r.room) parts.push(`habitación ${r.room} → ${e.room}`);
+      if (e.inDay !== r.inDay) parts.push(`entrada ${fmtDay(r.inDay, T).toLowerCase()} → ${fmtDay(e.inDay, T).toLowerCase()}`);
+      if (e.outDay !== r.outDay) parts.push(`salida ${fmtDay(r.outDay, T).toLowerCase()} → ${fmtDay(e.outDay, T).toLowerCase()}`);
+      if (e.pax !== r.pax) parts.push(`huéspedes ${r.pax} → ${e.pax}`);
+      if (e.notes.trim() !== r.notes) parts.push("observaciones");
+      if (!parts.length) { say("Sin cambios"); return true; }
+      if (res.amount !== r.amount) parts.push(`importe ${r.amount} € → ${res.amount} €`);
+      const moveInHouse = res.moved && r.stay === "inhouse";
+      const task: Task | null = moveInHouse ? stampTask({ id: id("T"), title: "Limpieza tras cambio de habitación", room: r.room, assignee: "", dept: "housekeeping", priority: "media", day: T, deadline: fmtClock(s.clock + 120), status: "pendiente", kind: "limpieza", comments: `Huésped trasladado a ${e.room}.` }) : null;
+      setS((p) => notify(push({
+        ...p,
+        reservations: p.reservations.map((x) => x.id === rid ? withEvent(syncReservationCalendar({ ...x, room: e.room, inDay: e.inDay, outDay: e.outDay, pax: e.pax, notes: e.notes.trim(), amount: res.amount }), { at: fmtClock(actionClock(p)), day: T, actor, text: `Editada: ${parts.join(" · ")}` }) : x),
+        rooms: moveInHouse ? p.rooms.map((x) => x.number === r.room ? { ...x, hk: "dirty" } : x) : p.rooms,
+        tasks: task && !p.tasks.some((t) => t.room === r.room && t.dept === "housekeeping" && t.status !== "completada") ? [task, ...p.tasks] : p.tasks,
+      }, [{ actor, text: `Reserva ${rid} editada: ${parts.join(" · ")}.`, kind: "human" }]),
+      moveInHouse ? ["reception", "housekeeping", "owner", "director"] : ["reception", "owner", "director"], moveInHouse ? `Cambio de habitación ${r.room} → ${e.room}. Limpieza pendiente en ${r.room}.` : `Reserva ${rid} actualizada.`, "info"));
+      say.success(res.moved ? `Reserva movida a la habitación ${e.room}` : "Reserva actualizada");
+      return true;
+    };
+    const freeRooms = (inDay: number, outDay: number, ignoreId?: string) => availableRooms(s.reservations, s.rooms, inDay, outDay, ignoreId);
     const simulateStep = () => {
       const opts: (() => unknown)[] = [];
       const inhouse = s.reservations.filter((r) => r.stay === "inhouse");
@@ -799,10 +845,10 @@ function useSuiteState() {
       if (!uid) say.success("Ficha actualizada");
       return true;
     };
-    const collection = { ...api, roomOp, simulateStep, createReservation, updateRoom, updateHotelTimezone, changeStay, updateGuest };
+    const collection = { ...api, roomOp, simulateStep, createReservation, updateRoom, updateHotelTimezone, changeStay, updateGuest, cancelReservation, markNoShow, editReservation, freeRooms };
     // Cloud actions report success only after the atomic write, not optimistic UI changes.
     if (!uid) return collection;
-    const persisted = new Set(['checkIn','checkOut','startTask','finishTask','reportIssue','arriveIncident','roomOp','createReservation','changeStay','updateGuest']);
+    const persisted = new Set(['checkIn','checkOut','startTask','finishTask','reportIssue','arriveIncident','roomOp','createReservation','changeStay','updateGuest','cancelReservation','markNoShow','editReservation']);
     return Object.fromEntries(Object.entries(collection).map(([name, action]) => [name, persisted.has(name) ? (...args: unknown[]) => {
       quiet = true;
       try { return (action as (...values: unknown[]) => unknown)(...args); }

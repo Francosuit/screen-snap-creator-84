@@ -187,21 +187,23 @@ function Timeline({ ids, onOpen }: { ids: Set<string>; onOpen: (id: string) => v
 function NewReservation({ open, onOpenChange, prefill }: { open: boolean; onOpenChange: (o: boolean) => void; prefill?: { room: string; inDay: number; nights: number } | undefined }) {
   const { s, actions } = useSuite();
   const today = useToday();
-  const [f, setF] = useState({ name: "", room: prefill?.room ?? s.rooms[0]?.number ?? "", inDay: prefill?.inDay ?? today, nights: prefill?.nights ?? 1, pax: 2, notes: "" });
-  const save = () => { if (actions.createReservation({ name: f.name, room: f.room, inDay: f.inDay, outDay: f.inDay + f.nights, pax: f.pax, notes: f.notes })) onOpenChange(false); };
+  const [f, setF] = useState({ name: "", guestId: "", room: prefill?.room ?? s.rooms[0]?.number ?? "", inDay: prefill?.inDay ?? today, nights: prefill?.nights ?? 1, pax: 2, notes: "" });
+  const free = actions.freeRooms(f.inDay, f.inDay + f.nights);
+  const save = () => { if (actions.createReservation({ name: f.name, room: f.room, inDay: f.inDay, outDay: f.inDay + f.nights, pax: f.pax, notes: f.notes, ...(f.guestId ? { guestId: f.guestId } : {}) })) onOpenChange(false); };
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader><DialogTitle>Nueva reserva manual</DialogTitle><DialogDescription>Se registra como canal «Manual». Suite comprueba que la habitación esté libre.</DialogDescription></DialogHeader>
         <div className="grid gap-3">
-          <Input placeholder="Nombre del huésped" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
+          <Select value={f.guestId || "new"} onValueChange={(v) => setF({ ...f, guestId: v === "new" ? "" : v })}><SelectTrigger aria-label="Huésped"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="new">Nuevo huésped</SelectItem>{s.guests.filter((g) => g.name.trim()).map((g) => <SelectItem key={g.id} value={g.id}>{g.name}{g.doc && g.doc !== "—" ? ` · ${g.doc}` : ""}</SelectItem>)}</SelectContent></Select>
+          {!f.guestId && <Input placeholder="Nombre del huésped" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />}
           <div className="grid grid-cols-2 gap-2">
-            <Select value={f.room} onValueChange={(v) => setF({ ...f, room: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{s.rooms.map((r) => <SelectItem key={r.number} value={r.number}>Hab. {r.number} · {r.type}</SelectItem>)}</SelectContent></Select>
+            <Select value={f.room} onValueChange={(v) => setF({ ...f, room: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{s.rooms.map((r) => { const ok = free.some((x) => x.number === r.number); return <SelectItem key={r.number} value={r.number} disabled={!ok}>Hab. {r.number} · {r.type}{ok ? "" : " · ocupada"}</SelectItem>; })}</SelectContent></Select>
             <Select value={String(f.inDay)} onValueChange={(v) => setF({ ...f, inDay: Number(v) })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{Array.from({ length: 30 }, (_, i) => today + i).map((d) => <SelectItem key={d} value={String(d)}>Entrada {fmtDay(d, today)}</SelectItem>)}</SelectContent></Select>
             <label className="text-xs text-muted-foreground">Noches<Input type="number" min={1} value={f.nights} onChange={(e) => setF({ ...f, nights: Math.max(1, Number(e.target.value)) })} /></label>
             <label className="text-xs text-muted-foreground">Huéspedes<Input type="number" min={1} value={f.pax} onChange={(e) => setF({ ...f, pax: Math.max(1, Number(e.target.value)) })} /></label>
           </div>
-          <p className="text-sm text-muted-foreground">Importe: {(s.rooms.find((r) => r.number === f.room)?.rate ?? 0)} € × {f.nights} noche(s) = <b className="text-foreground">{stayAmount(s.rooms.find((r) => r.number === f.room)?.rate ?? 0, f.nights)} €</b> · salida {fmtDay(f.inDay + f.nights, today)}</p>
+          <p className="text-sm text-muted-foreground">Importe: {(s.rooms.find((r) => r.number === f.room)?.rate ?? 0)} € × {f.nights} noche(s) = <b className="text-foreground">{stayAmount(s.rooms.find((r) => r.number === f.room)?.rate ?? 0, f.nights)} €</b> · salida {fmtDay(f.inDay + f.nights, today)} · {free.length} libre(s) en esas fechas</p>
           <Input placeholder="Observaciones (opcional)" value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} />
         </div>
         <DialogFooter><Button onClick={save}>Crear reserva</Button></DialogFooter>

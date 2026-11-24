@@ -248,7 +248,7 @@ export function IsoBuilding({ layout, info, focusFloor, selected, onSelect, laye
               const sel = selected === s.room.number;
               const dim = selected && !sel;
               const badge = layer.badge(s.room, s.info.state);
-              const lit = s.info.state === "occupied";
+              const lit = s.info.state === "occupied" || s.info.state === "departure";
               return (
                 <g key={s.key} className="twin-room" style={{ opacity: dim ? 0.55 : 1 }}
                   onPointerEnter={(e) => { const r = wrap.current!.getBoundingClientRect(); setHover({ room: s.room, x: e.clientX - r.left, y: e.clientY - r.top }); }}

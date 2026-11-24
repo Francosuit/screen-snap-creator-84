@@ -63,7 +63,7 @@ function Dashboard() {
   const isRevenue = s.role === "revenue";
   const a = alerts.find((x) => x.id === openAlert);
   const counts = { ready: 0, dirty: 0 };
-  s.rooms.forEach((r) => { const st = roomState(r.number); if (st === "ready") counts.ready++; if (st === "dirty" || st === "cleaning") counts.dirty++; });
+  s.rooms.forEach((r) => { const st = roomState(r.number); if (st === "ready" || st === "arrival") counts.ready++; if (st === "dirty" || st === "cleaning") counts.dirty++; });
 
   return (
     <div className="glass-dash">

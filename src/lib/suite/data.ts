@@ -14,7 +14,7 @@ export type StayStatus = "none" | "inhouse" | "finished";
 /** Housekeeping state of the room */
 export type HkStatus = "clean" | "dirty" | "inspect" | "cleaning";
 /** Derived display state of a room */
-export type RoomState = "ready" | "occupied" | "dirty" | "cleaning" | "maintenance" | "oos";
+export type RoomState = "ready" | "arrival" | "occupied" | "departure" | "dirty" | "cleaning" | "maintenance" | "oos";
 
 export type Priority = "baja" | "media" | "alta" | "urgente";
 export type TaskStatus = "pendiente" | "en_proceso" | "completada" | "bloqueada";

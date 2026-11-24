@@ -107,7 +107,7 @@ describe('Sprint 02 — operaciones honestas', () => {
     const arrivalDay = real ? todayOffset('real', 'Europe/Madrid') : 0;
     mock.stored.reservations = mock.stored.reservations.map(r => ({ ...r, stay: 'none', inDay: arrivalDay, outDay: arrivalDay + 2 }));
     const { result } = await mount();
-    const reservation = result.current.s.reservations.find(r => r.stay === 'none' && result.current.roomState(r.room) === 'ready');
+    const reservation = result.current.s.reservations.find(r => r.stay === 'none' && ['ready', 'arrival'].includes(result.current.roomState(r.room)));
     if (!reservation) throw new Error('Missing arrival');
     const count = result.current.s.sent.length;
     await act(async () => { result.current.actions.checkIn(reservation.id); });

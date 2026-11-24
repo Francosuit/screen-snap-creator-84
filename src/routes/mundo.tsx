@@ -8,6 +8,7 @@ import { useSuite } from "@/lib/suite/store";
 import type { Hotel, Room, RoomState } from "@/lib/suite/data";
 import { box, center, pts, STATE_VAR, type Pt } from "@/components/suite/twin/geometry";
 import { techPhase } from "@/components/suite/twin/useTwin";
+import { deriveRoomState } from "@/lib/suite/room-state";
 
 export const Route = createFileRoute("/mundo")({
   head: () => ({
@@ -27,12 +28,7 @@ type Slice = ReturnType<typeof useSuite>["world"][string];
 
 /** Same derivation rules as the store's roomState, applied to any hotel slice */
 function stateOf(d: Slice, r: Room): RoomState {
-  if (r.oos) return "oos";
-  if (d.incidents.some((i) => i.room === r.number && i.blocking && i.status !== "resuelta")) return "maintenance";
-  if (d.reservations.some((x) => x.room === r.number && x.stay === "inhouse")) return "occupied";
-  if (r.hk === "cleaning") return "cleaning";
-  if (r.hk === "dirty" || r.hk === "inspect") return "dirty";
-  return "ready";
+  return deriveRoomState(r, d.reservations, d.incidents);
 }
 
 function stats(h: Hotel, d: Slice) {

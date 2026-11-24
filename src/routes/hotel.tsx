@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AlertTriangle, LogIn, LogOut, Play, CheckCircle2, Sparkles, Ban, Plus, Globe2, Wrench, MapPin, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,11 @@ function HotelTwin() {
   const { room: wanted } = Route.useSearch();
   const [floor, setFloor] = useState<number | null>(() => s.rooms.find((r) => r.number === wanted)?.floor ?? null);
   const [sel, setSel] = useState<string | null>(wanted && s.rooms.some((r) => r.number === wanted) ? wanted : null);
+  useEffect(() => {
+    if (!wanted) return;
+    const room = s.rooms.find((r) => r.number === wanted);
+    if (room) { setSel(wanted); setFloor(room.floor); }
+  }, [wanted, hotel.id, s.rooms]);
   const counts = {} as Record<RoomState, number>;
   s.rooms.forEach((r) => { const st = roomState(r.number); counts[st] = (counts[st] ?? 0) + 1; });
 
@@ -63,7 +68,7 @@ function HotelTwin() {
                 {([["ready", "Listas"], ["occupied", "Ocupadas"], ["dirty", "Por limpiar"]] as [RoomState, string][]).map(([k, l]) => (
                   <div key={k} className="rounded-xl border p-3">
                     <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground"><span className="h-2 w-2 rounded-full" style={{ background: STATE_VAR[k] }} />{l}</div>
-                    <div className="tnum mt-1 text-2xl font-semibold">{counts[k] ?? 0}</div>
+                    <div className="tnum mt-1 text-2xl font-semibold">{k === "ready" ? (counts.ready ?? 0) + (counts.arrival ?? 0) : k === "occupied" ? (counts.occupied ?? 0) + (counts.departure ?? 0) : counts[k] ?? 0}</div>
                   </div>
                 ))}
               </div>
@@ -127,10 +132,10 @@ function RoomPanel({ num, onClose, onFloor }: { num: string; onClose: () => void
 
       <div className="grid gap-2 p-5">
         {occ && <Button onClick={() => actions.checkOut(occ.id)}><LogOut className="mr-1.5 h-4 w-4" />Hacer check-out · {guest(occ.guestId).name}</Button>}
-        {!occ && next && next.inDay === today && <Button disabled={st !== "ready"} onClick={() => actions.checkIn(next.id)}><LogIn className="mr-1.5 h-4 w-4" />Hacer check-in · {guest(next.guestId).name}</Button>}
+        {!occ && next && next.inDay === today && <Button disabled={!["ready", "arrival"].includes(st)} onClick={() => actions.checkIn(next.id)}><LogIn className="mr-1.5 h-4 w-4" />Hacer check-in · {guest(next.guestId).name}</Button>}
         {st === "dirty" && <Button variant="secondary" onClick={() => actions.roomOp(num, "start")}><Play className="mr-1.5 h-4 w-4" />Empezar limpieza</Button>}
         {st === "cleaning" && <Button variant="secondary" onClick={() => actions.roomOp(num, "finish")}><CheckCircle2 className="mr-1.5 h-4 w-4" />Finalizar limpieza</Button>}
-        {st === "ready" && <Button variant="outline" onClick={() => actions.roomOp(num, "dirty")}><Sparkles className="mr-1.5 h-4 w-4" />Marcar pendiente de limpieza</Button>}
+        {(st === "ready" || st === "arrival") && <Button variant="outline" onClick={() => actions.roomOp(num, "dirty")}><Sparkles className="mr-1.5 h-4 w-4" />Marcar pendiente de limpieza</Button>}
         <div className="grid grid-cols-2 gap-2">
           <Button variant="outline" size="sm" onClick={() => setReport(true)}><AlertTriangle className="mr-1.5 h-3.5 w-3.5" />Incidencia</Button>
           <Button variant="outline" size="sm" disabled={!!occ} onClick={() => actions.roomOp(num, "oos")}><Ban className="mr-1.5 h-3.5 w-3.5" />{room.oos ? "Poner en servicio" : "Fuera de servicio"}</Button>

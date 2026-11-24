@@ -124,7 +124,7 @@ export const pts = (p: Pt[]) => p.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1
 export const center = (p: Pt[]): Pt => [p.reduce((a, q) => a + q[0], 0) / p.length, p.reduce((a, q) => a + q[1], 0) / p.length];
 
 export const STATE_VAR: Record<RoomState, string> = {
-  ready: "var(--st-ready)", occupied: "var(--st-occupied)", dirty: "var(--st-dirty)",
+  ready: "var(--st-ready)", arrival: "var(--st-ready)", occupied: "var(--st-occupied)", departure: "var(--st-cleaning)", dirty: "var(--st-dirty)",
   cleaning: "var(--st-cleaning)", maintenance: "var(--st-maint)", oos: "var(--st-oos)",
 };
 

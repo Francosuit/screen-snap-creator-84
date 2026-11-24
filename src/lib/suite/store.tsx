@@ -28,6 +28,7 @@ import { SuiteCtx } from "./context";
 import { DEFAULT_TZ, hotelToday, hotelMinutes, hotelTime, isTimeZone, offsetToYmd } from "./clock";
 import { availableRooms, canCancel, canNoShow, checkReservationEdit, withEvent, type ResEdit } from "./reservations";
 import { syncReservationCalendar, withReservationCalendar, withTaskCalendar } from "./temporal";
+import { deriveRoomState } from "./room-state";
 import { supabase } from "@/integrations/supabase/client";
 interface CloudState { account?: Account; hotels?: Hotel[]; data?: Record<string, Data> }
 /** Only the most recent save may set the save status */
@@ -361,12 +362,7 @@ function useSuiteState() {
     const guest = (gid: string) => s.guests.find((g) => g.id === gid)!;
     const roomState = (num: string): RoomState => {
       const room = s.rooms.find((x) => x.number === num)!;
-      if (room.oos) return "oos";
-      if (s.incidents.some((i) => i.room === num && i.blocking && i.status !== "resuelta")) return "maintenance";
-      if (occupant(num)) return "occupied";
-      if (room.hk === "cleaning") return "cleaning";
-      if (room.hk === "dirty" || room.hk === "inspect") return "dirty";
-      return "ready";
+      return deriveRoomState(room, s.reservations, s.incidents, T);
     };
     return { occupant, nextArrival, guest, roomState, today: T, todayYmd: today.ymd, timeZone: today.zone };
   }, [s, T, today.ymd, today.zone]);
@@ -377,7 +373,7 @@ function useSuiteState() {
     s.reservations.filter((r) => r.inDay === T && r.stay === "none" && r.status === "confirmed").forEach((r) => {
       const st = helpers.roomState(r.room);
       const mins = toMin(r.eta) - s.clock;
-      if (st !== "ready" && mins <= 120) {
+      if (st !== "ready" && st !== "arrival" && mins <= 120) {
         out.push({
           id: `a-ci-${r.id}`, level: "URGENTE",
           title: `Habitación ${r.room} todavía no está lista.`,
@@ -469,7 +465,7 @@ function useSuiteState() {
           return false;
         }
         const gName = helpers.guest(r.guestId).name;
-        if (helpers.roomState(r.room) !== "ready") {
+        if (!["ready", "arrival"].includes(helpers.roomState(r.room))) {
           say.error(`Habitación ${r.room} no está lista`, { description: "Suite bloquea el check-in hasta que housekeeping la marque como LISTA." });
           return false;
         }
@@ -771,7 +767,7 @@ function useSuiteState() {
     const simulateStep = () => {
       const opts: (() => unknown)[] = [];
       const inhouse = s.reservations.filter((r) => r.stay === "inhouse");
-      const arrivals = s.reservations.filter((r) => r.inDay === T && r.status === "confirmed" && r.stay === "none" && helpers.roomState(r.room) === "ready");
+      const arrivals = s.reservations.filter((r) => r.inDay === T && r.status === "confirmed" && r.stay === "none" && ["ready", "arrival"].includes(helpers.roomState(r.room)));
       const hkPend = s.tasks.filter((t) => t.dept === "housekeeping" && t.status === "pendiente" && helpers.roomState(t.room) === "dirty");
       const hkProg = s.tasks.filter((t) => t.dept === "housekeeping" && t.status === "en_proceso");
       const mtPend = s.tasks.filter((t) => t.dept === "mantenimiento" && t.status === "pendiente");

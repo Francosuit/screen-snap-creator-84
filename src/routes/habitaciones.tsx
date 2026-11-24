@@ -5,6 +5,7 @@ import type { RoomState } from "@/lib/suite/data";
 import { fmtDay, useSuite } from "@/lib/suite/store";
 import { Dot, PageHeader, ROOM_STATE } from "@/components/suite/ui";
 import { ReservationSheet, RoomSheet } from "@/components/suite/panels";
+import { floorsOf } from "@/components/suite/twin/geometry";
 
 export const Route = createFileRoute("/habitaciones")({
   head: () => ({
@@ -38,11 +39,11 @@ function Habitaciones() {
         ))}
       </div>
       <div className="space-y-6">
-        {[3, 2, 1].map((floor) => (
-          <div key={floor}>
-            <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Planta {floor}</div>
+        {[...floorsOf(hotel, s.rooms)].sort((a, b) => b.number - a.number).map((floor) => (
+          <div key={floor.number}>
+            <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{floor.name}</div>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-              {s.rooms.filter((r) => r.floor === floor).map((r) => {
+              {s.rooms.filter((r) => r.floor === floor.number).map((r) => {
                 const st = roomState(r.number);
                 const occ = occupant(r.number);
                 const next = nextArrival(r.number);
@@ -60,7 +61,7 @@ function Habitaciones() {
                       {occ ? (
                         <>
                           <div className="truncate text-sm font-medium">{guest(occ.guestId).name}</div>
-                          <div className="font-semibold text-st-occupied">IN HOUSE</div>
+                          <div className="font-semibold text-st-occupied">{st === "departure" ? "SALIDA HOY" : "IN HOUSE"}</div>
                           <div className="text-muted-foreground">Salida: {fmtDay(occ.outDay, today)} {hotel.checkOut ?? "11:00"}</div>
                         </>
                       ) : (

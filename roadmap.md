@@ -1,5 +1,10 @@
 # Roadmap
 
+## Trabajo autorizado — 24 nov 2026
+- [ ] Cerrar Sprint 03: persistencia en «Validación P0», pruebas completas, tipos/compilación y recorrido visual en PC y móvil, sin escribir en hoteles reales.
+- [ ] Consultar Plan Maestro y auditar una sola vez el alcance de Sprint 04; implementar en bloques lo validable con datos aislados.
+- [ ] Validar Sprint 04 y documentar únicamente pendientes reales; no iniciar Sprint 05 si no puede probarse.
+
 ## Cierre solicitado — Sprint 02 (20 nov 2026)
 - [ ] Corregir duplicaciones y terminar únicamente la integración temporal esencial, con zona horaria por hotel y demo separada.
 - [ ] Comprobar reservas, check-in, checkout, habitaciones y tareas; repetir validación visual demo/real en escritorio y móvil.

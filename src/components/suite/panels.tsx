@@ -30,7 +30,7 @@ function StayActions({ resId }: { resId: string }) {
   const [confirm, setConfirm] = useState<null | "in" | "out">(null);
   const canIn = r.status === "confirmed" && r.stay === "none" && r.inDay <= today && r.outDay > today;
   const canOut = r.stay === "inhouse";
-  const roomReady = roomState(r.room) === "ready";
+  const roomReady = ["ready", "arrival"].includes(roomState(r.room));
   if (!["owner", "director", "reception"].includes(s.role)) return null;
   return (
     <div className="flex gap-2 border-t px-6 py-4">

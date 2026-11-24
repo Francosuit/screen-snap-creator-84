@@ -5,7 +5,9 @@ import type { ResDisplay } from "@/lib/suite/store";
 
 export const ROOM_STATE: Record<RoomState, { label: string; dot: string; tint: string; text: string }> = {
   ready: { label: "Lista", dot: "bg-st-ready", tint: "bg-st-ready/10 border-st-ready/30", text: "text-st-ready" },
+  arrival: { label: "Llegada hoy", dot: "bg-st-ready", tint: "bg-st-ready/10 border-st-ready/30", text: "text-st-ready" },
   occupied: { label: "Ocupada", dot: "bg-st-occupied", tint: "bg-st-occupied/10 border-st-occupied/30", text: "text-st-occupied" },
+  departure: { label: "Salida hoy", dot: "bg-st-cleaning", tint: "bg-st-cleaning/12 border-st-cleaning/40", text: "text-st-cleaning" },
   dirty: { label: "Pendiente limpieza", dot: "bg-st-dirty", tint: "bg-st-dirty/15 border-st-dirty/50", text: "text-foreground" },
   cleaning: { label: "Limpieza en proceso", dot: "bg-st-cleaning", tint: "bg-st-cleaning/12 border-st-cleaning/40", text: "text-st-cleaning" },
   maintenance: { label: "Mantenimiento", dot: "bg-st-maint", tint: "bg-st-maint/10 border-st-maint/35", text: "text-st-maint" },

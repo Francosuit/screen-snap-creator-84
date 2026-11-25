@@ -222,3 +222,8 @@ Implementar el núcleo temporal compartido (hotelToday en store y todas las pant
 - Mejora menor: cabecera de «Hotel digital» apretada en móvil.
 - Comprobaciones: 173 pruebas pasadas, 6 omitidas; tipos OK; compilación de producción OK.
 - Sin migraciones; sin escrituras en Hotel Homeless.
+
+## Sprint 05 — revisión inicial (25 nov 2026)
+- Ya existe y se reutiliza: estado de limpieza `hk` (sucia/en limpieza/a revisar/limpia) guardado aparte de la ocupación; checkout deja la habitación sucia; iniciar tarea de limpieza → en limpieza; completar → limpia.
+- Sin código nuevo en esta sesión (sin créditos). Sprint 05 NO iniciado.
+- Siguiente paso: botón directo para cambiar el estado de limpieza en la ficha de la habitación, con pruebas de transición y persistencia en Validación P0.

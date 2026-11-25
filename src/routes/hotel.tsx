@@ -24,7 +24,7 @@ export const Route = createFileRoute("/hotel")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  validateSearch: (q: Record<string, unknown>): { room?: string } => (typeof q["room"] === "string" ? { room: q["room"] as string } : {}),
+  validateSearch: (q: Record<string, unknown>): { room?: string } => (typeof q["room"] === "string" || typeof q["room"] === "number" ? { room: String(q["room"]) } : {}),
   component: HotelTwin,
 });
 

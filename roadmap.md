@@ -208,3 +208,14 @@ Implementar el núcleo temporal compartido (hotelToday en store y todas las pant
 
 ## Sprint 03 — PMS y recepción — PREPARADO, NO INICIADO
 - Auditoría y plan: `docs/sprint03-plan.md`. Esperando aprobación para la Tarea 1 (cancelación y no-show).
+
+## Resultados 25 nov 2026 — cierre Sprint 03 / Sprint 04
+- Sprint 03 CERRADO (validado 24 nov en Validación P0 con recargas): crear/editar reserva, huésped existente, check-in, traslado, check-out, cancelación, disponibilidad liberada, no-show, historial.
+- Sprint 04 validado en navegador (Validación P0, PC 1280 y móvil 390, sin errores de consola ni desbordamiento):
+  - [x] Enlace directo `/hotel?room=102` abre la ficha. Corregido: el número llegaba como valor numérico y se descartaba.
+  - [x] Editor de mobiliario: añadir, mover, girar, guardar → persiste tras recargar; eliminar y guardar restauró las 3 piezas originales.
+  - [x] Plantas leídas de los datos del hotel (P1/P2) en Habitaciones y mapa.
+  - [x] Estados Llegada hoy / Salida hoy / Ocupada / Lista coinciden en Habitaciones, mapa y ficha (hab. 203).
+  - [ ] Crear una planta nueva y comprobar que persiste: NO ejecutado en navegador (solo pruebas unitarias).
+- Comprobaciones: 173 pruebas pasadas, 6 omitidas; tipos OK; compilación de producción OK.
+- Sin migraciones; sin escrituras en Hotel Homeless.

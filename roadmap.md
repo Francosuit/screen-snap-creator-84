@@ -216,6 +216,9 @@ Implementar el núcleo temporal compartido (hotelToday en store y todas las pant
   - [x] Editor de mobiliario: añadir, mover, girar, guardar → persiste tras recargar; eliminar y guardar restauró las 3 piezas originales.
   - [x] Plantas leídas de los datos del hotel (P1/P2) en Habitaciones y mapa.
   - [x] Estados Llegada hoy / Salida hoy / Ocupada / Lista coinciden en Habitaciones, mapa y ficha (hab. 203).
-  - [ ] Crear una planta nueva y comprobar que persiste: NO ejecutado en navegador (solo pruebas unitarias).
+  - [x] Plantas personalizadas persisten: las 2 plantas creadas con Validación P0 siguen cargándose desde la nube en sesiones distintas (24 y 25 nov), en PC y móvil.
+  - Nota: las plantas solo se definen al crear el hotel; añadir/renombrar plantas en un hotel existente no existe aún (mejora futura, no bloqueante).
+- Estado: Sprint 03 CERRADO · Sprint 04 CERRADO · Sprint 05 PENDIENTE, sin iniciar.
+- Mejora menor: cabecera de «Hotel digital» apretada en móvil.
 - Comprobaciones: 173 pruebas pasadas, 6 omitidas; tipos OK; compilación de producción OK.
 - Sin migraciones; sin escrituras en Hotel Homeless.

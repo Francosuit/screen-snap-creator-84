@@ -7,6 +7,7 @@ import { useSuite } from "@/lib/suite/store";
 import { Card, PageHeader, PrioPill, TaskPill } from "@/components/suite/ui";
 import { ReportIssueDialog } from "@/components/suite/panels";
 import { taskDayLabel } from "@/lib/suite/task-date";
+import { CleaningTimer } from "@/components/suite/CleaningTimer";
 
 export const Route = createFileRoute("/tareas")({
   head: () => ({
@@ -54,6 +55,7 @@ function Tareas() {
                   <span>{t.assignee}</span><span>{DEPT[t.dept]}</span><span>{taskDayLabel(t.day, isDemo ? "demo" : "real", t.taskDate, today)} · límite {t.deadline}</span>
                   {t.nextCheckIn && <span>Próx. check-in {t.nextCheckIn}</span>}
                   {t.startedAt && <span>Inicio {t.startedAt}</span>}{t.endedAt && <span>Fin {t.endedAt}</span>}
+                  {t.startedIso && <span>Tiempo <CleaningTimer startIso={t.startedIso} endIso={t.endedIso} /></span>}{t.approvedIso && <span>Aprobada · {t.approvedBy}</span>}{t.returnedIso && <span>Devuelta · {t.returnedBy}</span>}
                 </div>
                 {t.comments && <div className="mt-1 text-sm text-muted-foreground">{t.comments}</div>}
               </div>

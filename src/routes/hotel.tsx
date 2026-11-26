@@ -11,6 +11,7 @@ import { STATE_VAR } from "@/components/suite/twin/geometry";
 import { LayoutEditor } from "@/components/suite/twin/LayoutEditor";
 import { PageHeader, RoomPill, Row } from "@/components/suite/ui";
 import { ReportIssueDialog, RoomSheet } from "@/components/suite/panels";
+import { CleaningTimer, hotelTime } from "@/components/suite/CleaningTimer";
 import type { RoomState } from "@/lib/suite/data";
 
 export const Route = createFileRoute("/hotel")({
@@ -92,7 +93,8 @@ function HotelTwin() {
 }
 
 function RoomPanel({ num, onClose, onFloor }: { num: string; onClose: () => void; onFloor: (f: number) => void }) {
-  const { s, actions, roomState, occupant, nextArrival, guest, canEditRoomConfig, today } = useSuite();
+  const { s, actions, roomState, occupant, nextArrival, guest, canEditRoomConfig, today, timeZone } = useSuite();
+  const [returnNote, setReturnNote] = useState("");
   const [report, setReport] = useState(false);
   const [sheet, setSheet] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -133,9 +135,16 @@ function RoomPanel({ num, onClose, onFloor }: { num: string; onClose: () => void
       <div className="grid gap-2 p-5">
         {occ && <Button onClick={() => actions.checkOut(occ.id)}><LogOut className="mr-1.5 h-4 w-4" />Hacer check-out · {guest(occ.guestId).name}</Button>}
         {!occ && next && next.inDay === today && <Button disabled={!["ready", "arrival"].includes(st)} onClick={() => actions.checkIn(next.id)}><LogIn className="mr-1.5 h-4 w-4" />Hacer check-in · {guest(next.guestId).name}</Button>}
-        {st === "dirty" && <Button variant="secondary" onClick={() => actions.roomOp(num, "start")}><Play className="mr-1.5 h-4 w-4" />Empezar limpieza</Button>}
-        {st === "cleaning" && <Button variant="secondary" onClick={() => actions.roomOp(num, "finish")}><CheckCircle2 className="mr-1.5 h-4 w-4" />Finalizar limpieza</Button>}
-        {(st === "ready" || st === "arrival") && <Button variant="outline" onClick={() => actions.roomOp(num, "dirty")}><Sparkles className="mr-1.5 h-4 w-4" />Marcar pendiente de limpieza</Button>}
+        {(() => { const c = s.tasks.find((t) => t.room === num && t.dept === "housekeeping" && t.status === "en_proceso" && t.startedIso);
+          return c?.startedIso ? <div className="rounded-lg border p-3 text-sm"><div className="flex items-center justify-between"><span>Limpieza en curso</span><CleaningTimer startIso={c.startedIso} /></div><div className="text-xs text-muted-foreground">Inicio {hotelTime(c.startedIso, timeZone)} · {c.cleanedBy}</div></div> : null; })()}
+        {st === "dirty" && room.hk !== "inspect" && <Button variant="secondary" onClick={() => actions.roomOp(num, "start")}><Play className="mr-1.5 h-4 w-4" />Iniciar limpieza</Button>}
+        {st === "cleaning" && <Button variant="secondary" onClick={() => actions.roomOp(num, "finish")}><CheckCircle2 className="mr-1.5 h-4 w-4" />Terminar limpieza</Button>}
+        {room.hk === "inspect" && !occ && <div className="grid gap-2 rounded-lg border p-3">
+          <div className="text-sm font-medium">A revisar</div>
+          <input className="rounded-md border bg-background px-2 py-1.5 text-sm" placeholder="Motivo si se devuelve (opcional)" value={returnNote} onChange={(e) => setReturnNote(e.target.value)} />
+          <div className="grid grid-cols-2 gap-2"><Button onClick={() => actions.roomOp(num, "approve")}>Aprobar</Button><Button variant="outline" onClick={() => { actions.roomOp(num, "return", returnNote); setReturnNote(""); }}>Devolver</Button></div>
+        </div>}
+        {(st === "ready" || st === "arrival") && <Button variant="outline" onClick={() => actions.roomOp(num, "dirty")}><Sparkles className="mr-1.5 h-4 w-4" />Marcar sucia</Button>}
         <div className="grid grid-cols-2 gap-2">
           <Button variant="outline" size="sm" onClick={() => setReport(true)}><AlertTriangle className="mr-1.5 h-3.5 w-3.5" />Incidencia</Button>
           <Button variant="outline" size="sm" disabled={!!occ} onClick={() => actions.roomOp(num, "oos")}><Ban className="mr-1.5 h-3.5 w-3.5" />{room.oos ? "Poner en servicio" : "Fuera de servicio"}</Button>

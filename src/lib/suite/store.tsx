@@ -528,7 +528,7 @@ function useSuiteState() {
         setS((p) => {
           let n: State = {
             ...p,
-            tasks: p.tasks.map((x) => (x.id === taskId ? { ...x, status: "en_proceso", startedAt: fmtClock(actionClock(p)), assignee: x.assignee || actor } : x)),
+            tasks: p.tasks.map((x) => (x.id === taskId ? { ...x, status: "en_proceso", startedAt: fmtClock(actionClock(p)), assignee: x.assignee || actor, ...(t.dept === "housekeeping" ? { startedIso: new Date().toISOString(), cleanedBy: actor } : {}) } : x)),
             rooms: t.dept === "housekeeping" ? p.rooms.map((x) => (x.number === t.room ? { ...x, hk: "cleaning" } : x)) : p.rooms,
             incidents: t.incidentId ? p.incidents.map((i) => (i.id === t.incidentId ? { ...i, status: "en_proceso", startedAt: fmtClock(actionClock(p)) } : i)) : p.incidents,
           };
@@ -548,17 +548,16 @@ function useSuiteState() {
         setS((p) => {
           let n: State = {
             ...p,
-            tasks: p.tasks.map((x) => (x.id === taskId ? { ...x, status: "completada", endedAt: fmtClock(actionClock(p)) } : x)),
-            rooms: t.dept === "housekeeping" ? p.rooms.map((x) => (x.number === t.room ? { ...x, hk: "clean" } : x)) : p.rooms,
+            tasks: p.tasks.map((x) => (x.id === taskId ? { ...x, status: "completada", endedAt: fmtClock(actionClock(p)), ...(t.dept === "housekeeping" ? cycleEnd(x) : {}) } : x)),
+            rooms: t.dept === "housekeeping" ? p.rooms.map((x) => (x.number === t.room ? { ...x, hk: "inspect" } : x)) : p.rooms,
             incidents: t.incidentId ? p.incidents.map((i) => (i.id === t.incidentId ? { ...i, status: "resuelta", arrivedAt: i.arrivedAt ?? fmtClock(actionClock(p)), resolvedAt: fmtClock(actionClock(p)) } : i)) : p.incidents,
           };
           if (t.dept === "housekeeping") {
             n = push(n, [
-              { actor, text: `Marcó habitación ${t.room} como limpia.`, kind: "human" },
-              { actor: "Suite", text: `Habitación ${t.room} → LISTA.`, kind: "suite" },
-              { actor: "Suite", text: `Recepción recibió actualización: ${t.room} disponible.`, kind: "suite" },
+              { actor, text: `Terminó limpieza habitación ${t.room}.`, kind: "human" },
+              { actor: "Suite", text: `Habitación ${t.room} → A REVISAR.`, kind: "suite" },
             ]);
-            n = notify(n, ["reception", "director", "owner"], `Habitación ${t.room} lista para check-in.`, "ok");
+            n = notify(n, ["housekeeping", "director", "owner"], `Habitación ${t.room} lista para revisión.`, "info");
           } else {
             n = push(n, [
               { actor, text: `Resolvió: ${t.title.toLowerCase()} habitación ${t.room}.`, kind: "human" },
@@ -568,7 +567,7 @@ function useSuiteState() {
           }
           return n;
         });
-        say.success(t.dept === "housekeeping" ? `Habitación ${t.room} LISTA` : `Resuelto · ${t.room}`, {
+        say.success(t.dept === "housekeeping" ? `Habitación ${t.room} A REVISAR` : `Resuelto · ${t.room}`, {
           description: uid ? "Estado operativo actualizado" : t.dept === "housekeeping" ? "✓ Recepción notificada\n✓ Alerta de check-in actualizada" : "✓ Incidencia cerrada\n✓ Responsables notificados",
         });
         return true;
@@ -642,7 +641,12 @@ function useSuiteState() {
     };
 
     /** Direct room operations from the digital twin — all go through the same tasks/state */
-    const roomOp = (num: string, op: "dirty" | "start" | "finish" | "oos") => {
+    const cycleEnd = (x: Task) => {
+      const endedIso = new Date().toISOString();
+      const start = x.startedIso ? Date.parse(x.startedIso) : NaN;
+      return { endedIso, cleanedBy: x.cleanedBy || actor, ...(Number.isFinite(start) ? { durationSec: Math.max(0, Math.round((Date.parse(endedIso) - start) / 1000)) } : {}) };
+    };
+    const roomOp = (num: string, op: "dirty" | "start" | "finish" | "oos" | "approve" | "return", reason = "") => {
       const current = rootRef.current.data[hotel.id];
       const room = current?.rooms.find((r) => r.number === num);
       if (!room) return false;
@@ -654,11 +658,31 @@ function useSuiteState() {
         say(room.oos ? `Habitación ${num} en servicio` : `Habitación ${num} fuera de servicio`);
         return;
       }
+      if (op === "approve" || op === "return") {
+        const cycle = room.hk === "inspect" && !open ? current?.tasks.find((t) => t.room === num && t.dept === "housekeeping" && t.status === "completada" && !t.approvedIso && !t.returnedIso) : undefined;
+        if (!cycle) return false;
+        const at = new Date().toISOString();
+        if (op === "approve") {
+          setS((p) => notify(push({ ...p, tasks: p.tasks.map((t) => (t.id === cycle.id ? { ...t, approvedBy: actor, approvedIso: at } : t)), rooms: p.rooms.map((r) => (r.number === num ? { ...r, hk: "clean" } : r)) }, [
+            { actor, text: `Aprobó limpieza habitación ${num}.`, kind: "human" },
+            { actor: "Suite", text: `Habitación ${num} → LISTA.`, kind: "suite" },
+          ]), ["reception", "director", "owner"], `Habitación ${num} lista para check-in.`, "ok"));
+          say.success(`Habitación ${num} LISTA`);
+          return true;
+        }
+        const task: Task = stampTask({ id: id("T"), title: "Limpieza devuelta", room: num, assignee: cycle.cleanedBy || cycle.assignee, dept: "housekeeping", priority: "alta", day: T, deadline: fmtClock(s.clock + 60), status: "pendiente", comments: reason.trim() ? `Devuelta: ${reason.trim()}` : "Devuelta en revisión.", kind: "repaso" });
+        setS((p) => notify(push({ ...p, tasks: [task, ...p.tasks.map((t) => (t.id === cycle.id ? { ...t, returnedBy: actor, returnedIso: at, ...(reason.trim() ? { returnReason: reason.trim() } : {}) } : t))], rooms: p.rooms.map((r) => (r.number === num ? { ...r, hk: "dirty" } : r)) }, [
+          { actor, text: `Devolvió limpieza habitación ${num}${reason.trim() ? ` · ${reason.trim()}` : ""}.`, kind: "human" },
+          { actor: "Suite", text: `Habitación ${num} → PENDIENTE DE LIMPIEZA.`, kind: "suite" },
+        ]), ["housekeeping"], `Limpieza devuelta: ${num}.`));
+        say(`Habitación ${num} devuelta a limpieza`);
+        return true;
+      }
       if (op === "start" && open && open.status === "pendiente") return api.startTask(open.id);
       if (op === "finish" && open && open.status === "en_proceso") return api.finishTask(open.id);
       if (open || op === "finish") return false;
       if (op === "dirty" || (op === "start" && !open)) {
-        const task: Task = stampTask({ id: id("T"), title: op === "dirty" ? "Limpieza solicitada" : "Limpieza", room: num, assignee: uid ? op === "start" ? actor : "" : "María López", dept: "housekeeping", priority: "media", day: T, deadline: fmtClock(s.clock + 90), status: op === "start" ? "en_proceso" : "pendiente", comments: "Creada desde el hotel digital.", kind: "limpieza", ...(op === "start" ? { startedAt: fmtClock(s.clock + 1) } : {}) });
+        const task: Task = stampTask({ id: id("T"), title: op === "dirty" ? "Limpieza solicitada" : "Limpieza", room: num, assignee: uid ? op === "start" ? actor : "" : "María López", dept: "housekeeping", priority: "media", day: T, deadline: fmtClock(s.clock + 90), status: op === "start" ? "en_proceso" : "pendiente", comments: "Creada desde el hotel digital.", kind: "limpieza", ...(op === "start" ? { startedAt: fmtClock(s.clock + 1), startedIso: new Date().toISOString(), cleanedBy: actor } : {}) });
         setS((p) => notify(push({ ...p, tasks: [task, ...p.tasks], rooms: p.rooms.map((r) => (r.number === num ? { ...r, hk: op === "start" ? "cleaning" : "dirty" } : r)) }, [
           { actor, text: op === "dirty" ? `Marcó habitación ${num} pendiente de limpieza.` : `Empezó limpieza habitación ${num}.`, kind: "human" },
           { actor: "Suite", text: `Habitación ${num} → ${op === "dirty" ? "PENDIENTE DE LIMPIEZA" : "LIMPIEZA EN PROCESO"}. ${uid ? "Tarea creada." : "Tarea asignada a María López."}`, kind: "suite" },

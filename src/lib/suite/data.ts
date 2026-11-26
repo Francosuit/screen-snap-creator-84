@@ -87,6 +87,9 @@ export interface Task {
   /** Absolute task date; offsets remain stored for compatibility and rollback. */
   taskDate?: string;
   kind: "limpieza" | "repaso" | "mantenimiento" | "general"; incidentId?: string; startedAt?: string; endedAt?: string;
+  /** Housekeeping cycle: persisted ISO timestamps are the timer's source of truth. */
+  startedIso?: string; endedIso?: string; durationSec?: number; cleanedBy?: string;
+  approvedBy?: string; approvedIso?: string; returnedBy?: string; returnedIso?: string; returnReason?: string;
 }
 export interface Incident {
   id: string; room: string; category: string; description: string; photo: boolean; blocking: boolean;

@@ -85,7 +85,7 @@ describe('Sprint 02 — limpieza consistente', () => {
       result.current.actions.startTask(task.id);
     });
     expect(result.current.s.clock).toBe(clock + (real ? 0 : 2));
-    expect(result.current.s.rooms.find(r => r.number === room)?.hk).toBe('clean');
+    expect(result.current.s.rooms.find(r => r.number === room)?.hk).toBe('inspect');
     await act(async () => { result.current.actions.roomOp(room, 'dirty'); });
     expect(result.current.s.tasks.filter(t => t.room === room)).toHaveLength(before + 2);
   });
@@ -224,5 +224,51 @@ describe('Sprint 02 — personal sin inventar', () => {
     first.unmount();
     const second = await mount();
     expect(operationSnapshot(second.result.current.s).tasks[0]?.assignee).toBe('Usuario Prueba');
+  });
+});
+describe('Sprint 05 — ciclo de limpieza con cronómetro', () => {
+  it('registra inicio/fin persistidos, duración, revisión, devolución y nuevo ciclo sin sobrescribir', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true, now: new Date('2026-11-26T10:00:00Z') });
+    try {
+      const { result } = await mount();
+      const hk = () => result.current.s.rooms.find(r => r.number === '101')?.hk;
+      const resBefore = JSON.stringify(result.current.s.reservations);
+      await act(async () => { result.current.actions.roomOp('101', 'start'); });
+      const c1 = result.current.s.tasks.find(t => t.room === '101' && t.status === 'en_proceso');
+      expect(c1?.startedIso).toBe('2026-11-26T10:00:00.000Z');
+      expect(c1?.cleanedBy).toBeTruthy();
+      expect(hk()).toBe('cleaning');
+      expect(mock.stored.tasks.find(t => t.id === c1?.id)?.startedIso).toBe('2026-11-26T10:00:00.000Z');
+      await act(async () => { expect(result.current.actions.roomOp('101', 'start')).toBe(false); });
+      expect(result.current.s.tasks.filter(t => t.room === '101' && t.status === 'en_proceso')).toHaveLength(1);
+      vi.setSystemTime(new Date('2026-11-26T10:25:30Z'));
+      await act(async () => { result.current.actions.roomOp('101', 'finish'); });
+      const done = result.current.s.tasks.find(t => t.id === c1?.id);
+      expect(done?.durationSec).toBe(1530);
+      expect(done?.endedIso).toBe('2026-11-26T10:25:30.000Z');
+      expect(hk()).toBe('inspect');
+      expect(result.current.roomState('101')).not.toBe('ready');
+      await act(async () => { result.current.actions.roomOp('101', 'return', 'Baño sin reponer'); });
+      expect(hk()).toBe('dirty');
+      const old = result.current.s.tasks.find(t => t.id === c1?.id);
+      expect(old?.returnReason).toBe('Baño sin reponer');
+      expect(old?.durationSec).toBe(1530);
+      await act(async () => { result.current.actions.roomOp('101', 'start'); });
+      vi.setSystemTime(new Date('2026-11-26T10:40:30Z'));
+      await act(async () => { result.current.actions.roomOp('101', 'finish'); });
+      await act(async () => { result.current.actions.roomOp('101', 'approve'); });
+      expect(hk()).toBe('clean');
+      const cycles = result.current.s.tasks.filter(t => t.room === '101' && t.dept === 'housekeeping');
+      expect(cycles).toHaveLength(2);
+      expect(cycles.find(t => t.id !== c1?.id)?.durationSec).toBe(900);
+      expect(cycles.find(t => t.id !== c1?.id)?.approvedIso).toBe('2026-11-26T10:40:30.000Z');
+      expect(cycles.every(t => t.status === 'completada')).toBe(true);
+      expect(JSON.stringify(result.current.s.reservations)).toBe(resBefore);
+    } finally { vi.useRealTimers(); }
+  });
+  it('el cronómetro se calcula desde las horas guardadas', async () => {
+    const { elapsed } = await import('@/components/suite/CleaningTimer');
+    expect(elapsed('2026-11-26T10:00:00Z', '2026-11-26T11:02:03Z')).toBe('01:02:03');
+    expect(elapsed('2026-11-26T10:00:00Z', undefined, Date.parse('2026-11-26T10:00:59Z'))).toBe('00:00:59');
   });
 });

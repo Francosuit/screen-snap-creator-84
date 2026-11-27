@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -31,6 +31,8 @@ function Tareas() {
   const [dept, setDept] = useState<string>("todas");
   const [report, setReport] = useState(false);
   const list = s.tasks.filter((t) => (scope ? t.dept === scope : dept === "todas" || t.dept === dept));
+  const review = s.rooms.filter((r) => r.hk === "inspect").map((r) => ({ room: r.number, cycle: s.tasks.find((t) => t.room === r.number && t.dept === "housekeeping" && t.status === "completada" && !t.approvedIso && !t.returnedIso) }));
+  const fmtDur = (sec?: number) => (sec == null ? "—" : `${Math.floor(sec / 60)} min ${sec % 60} s`);
   return (
     <div>
       <PageHeader title="Tareas" sub={`${list.filter((t) => t.status !== "completada").length} abiertas · ${s.incidents.filter((i) => i.status !== "resuelta").length} incidencias activas`}
@@ -41,6 +43,29 @@ function Tareas() {
             <TabsList className="min-w-max"><TabsTrigger value="todas">Todas</TabsTrigger><TabsTrigger value="housekeeping">Housekeeping</TabsTrigger><TabsTrigger value="mantenimiento">Mantenimiento</TabsTrigger><TabsTrigger value="recepcion">Recepción</TabsTrigger></TabsList>
           </Tabs>
         </div>
+      )}
+      {(!scope || scope === "housekeeping") && review.length > 0 && (
+        <section aria-label="Habitaciones a revisar" className="mb-4">
+          <h2 className="mb-2 text-sm font-semibold">A revisar · {review.length}</h2>
+          <div className="grid gap-2">
+            {review.map(({ room, cycle }) => (
+              <Card key={room} className="p-3">
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="grid h-10 w-12 place-items-center rounded-lg bg-muted font-semibold">{room}</div>
+                  <div className="tnum min-w-0 flex-1 text-xs text-muted-foreground">
+                    <div className="text-sm font-medium text-foreground">Limpieza terminada, pendiente de aprobación</div>
+                    <span>{cycle?.cleanedBy || cycle?.assignee || "—"}</span> · <span>Fin {cycle?.endedAt ?? "—"}</span> · <span>Duración {fmtDur(cycle?.durationSec)}</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" variant="outline" asChild><Link to="/hotel" search={{ room }}>Ver ficha</Link></Button>
+                    {cycle && <Button size="sm" variant="outline" onClick={() => { const r = window.prompt("Motivo de la devolución (opcional)"); if (r !== null) actions.roomOp(room, "return", r); }}>Devolver</Button>}
+                    {cycle && <Button size="sm" onClick={() => actions.roomOp(room, "approve")}>Aprobar</Button>}
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </section>
       )}
       <div className="grid gap-3">
         {list.map((t) => (

@@ -233,6 +233,7 @@ describe('Sprint 05 — ciclo de limpieza con cronómetro', () => {
       const { result } = await mount();
       const hk = () => result.current.s.rooms.find(r => r.number === '101')?.hk;
       const resBefore = JSON.stringify(result.current.s.reservations);
+      vi.setSystemTime(new Date('2026-11-26T10:00:00Z'));
       await act(async () => { result.current.actions.roomOp('101', 'start'); });
       const c1 = result.current.s.tasks.find(t => t.room === '101' && t.status === 'en_proceso');
       expect(c1?.startedIso).toBe('2026-11-26T10:00:00.000Z');
@@ -253,9 +254,11 @@ describe('Sprint 05 — ciclo de limpieza con cronómetro', () => {
       const old = result.current.s.tasks.find(t => t.id === c1?.id);
       expect(old?.returnReason).toBe('Baño sin reponer');
       expect(old?.durationSec).toBe(1530);
+      vi.setSystemTime(new Date('2026-11-26T10:25:30Z'));
       await act(async () => { result.current.actions.roomOp('101', 'start'); });
       vi.setSystemTime(new Date('2026-11-26T10:40:30Z'));
       await act(async () => { result.current.actions.roomOp('101', 'finish'); });
+      vi.setSystemTime(new Date('2026-11-26T10:40:30Z'));
       await act(async () => { result.current.actions.roomOp('101', 'approve'); });
       expect(hk()).toBe('clean');
       const cycles = result.current.s.tasks.filter(t => t.room === '101' && t.dept === 'housekeeping');

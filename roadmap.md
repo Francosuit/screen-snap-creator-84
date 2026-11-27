@@ -227,3 +227,9 @@ Implementar el núcleo temporal compartido (hotelToday en store y todas las pant
 - Ya existe y se reutiliza: estado de limpieza `hk` (sucia/en limpieza/a revisar/limpia) guardado aparte de la ocupación; checkout deja la habitación sucia; iniciar tarea de limpieza → en limpieza; completar → limpia.
 - Sin código nuevo en esta sesión (sin créditos). Sprint 05 NO iniciado.
 - Siguiente paso: botón directo para cambiar el estado de limpieza en la ficha de la habitación, con pruebas de transición y persistencia en Validación P0.
+
+## Sprint 05 — estado 27 nov 2026
+- Checkpoint guardado (commits df6877c / 4e2cf03) antes de continuar.
+- Corregida la prueba del ciclo de limpieza (reloj controlado en cada paso). Verificado por prueba: inicio con responsable y hora exacta, fin y duración (inicio→fin), bloqueo de ciclo duplicado, devolución con motivo conservando el ciclo anterior, nuevo ciclo independiente, aprobación con fecha, reservas intactas, cronómetro desde horas guardadas.
+- Suite completa: 175 pasadas, 6 omitidas. Typecheck limpio.
+- PENDIENTE (Sprint 05 sigue ABIERTO): aprobar/devolver desde Tareas con las acciones centrales; acceso a ficha desde Tareas para «A revisar»; validación visual PC/móvil; recorrido P0 con recargas (check-in bloqueado en sucia/en limpieza/a revisar, zona horaria); revisión de la demo.

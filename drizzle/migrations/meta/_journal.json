@@ -85,6 +85,13 @@
       "when": 1794472175153,
       "tag": "0011_hotel_timezone_nullable",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1795869559986,
+      "tag": "0012_suite_own_api_integrations",
+      "breakpoints": true
     }
   ]
 }

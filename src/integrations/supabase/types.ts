@@ -557,6 +557,208 @@ export type Database = {
         }
         Relationships: []
       }
+      suite_api_events: {
+        Row: {
+          attempts: number
+          direction: string
+          error_code: string | null
+          event_id: string
+          event_type: string
+          hotel_id: string
+          http_status: number | null
+          id: string
+          integration_id: string | null
+          payload_hash: string
+          processed_at: string | null
+          received_at: string
+          reservation_id: string | null
+          response: Json | null
+          status: string
+        }
+        Insert: {
+          attempts?: number
+          direction: string
+          error_code?: string | null
+          event_id: string
+          event_type: string
+          hotel_id: string
+          http_status?: number | null
+          id?: string
+          integration_id?: string | null
+          payload_hash: string
+          processed_at?: string | null
+          received_at?: string
+          reservation_id?: string | null
+          response?: Json | null
+          status: string
+        }
+        Update: {
+          attempts?: number
+          direction?: string
+          error_code?: string | null
+          event_id?: string
+          event_type?: string
+          hotel_id?: string
+          http_status?: number | null
+          id?: string
+          integration_id?: string | null
+          payload_hash?: string
+          processed_at?: string | null
+          received_at?: string
+          reservation_id?: string | null
+          response?: Json | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suite_api_events_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suite_api_events_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "suite_api_integrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suite_api_integrations: {
+        Row: {
+          api_key_ciphertext: string
+          created_at: string
+          created_by: string | null
+          credential_version: number
+          hotel_id: string
+          id: string
+          key_hash: string
+          key_prefix: string
+          last_used_at: string | null
+          name: string
+          organization_id: string
+          permissions: string[]
+          property_id: string
+          request_limit_per_minute: number
+          revoked_at: string | null
+          rotated_at: string | null
+          signing_secret_ciphertext: string
+          status: string
+        }
+        Insert: {
+          api_key_ciphertext: string
+          created_at?: string
+          created_by?: string | null
+          credential_version?: number
+          hotel_id: string
+          id?: string
+          key_hash: string
+          key_prefix: string
+          last_used_at?: string | null
+          name: string
+          organization_id: string
+          permissions?: string[]
+          property_id: string
+          request_limit_per_minute?: number
+          revoked_at?: string | null
+          rotated_at?: string | null
+          signing_secret_ciphertext: string
+          status?: string
+        }
+        Update: {
+          api_key_ciphertext?: string
+          created_at?: string
+          created_by?: string | null
+          credential_version?: number
+          hotel_id?: string
+          id?: string
+          key_hash?: string
+          key_prefix?: string
+          last_used_at?: string | null
+          name?: string
+          organization_id?: string
+          permissions?: string[]
+          property_id?: string
+          request_limit_per_minute?: number
+          revoked_at?: string | null
+          rotated_at?: string | null
+          signing_secret_ciphertext?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suite_api_integrations_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suite_api_mappings: {
+        Row: {
+          external_code: string
+          hotel_id: string
+          integration_id: string
+          room_number: string
+        }
+        Insert: {
+          external_code: string
+          hotel_id: string
+          integration_id: string
+          room_number: string
+        }
+        Update: {
+          external_code?: string
+          hotel_id?: string
+          integration_id?: string
+          room_number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suite_api_mappings_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suite_api_mappings_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "suite_api_integrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suite_api_rate_buckets: {
+        Row: {
+          integration_id: string
+          request_count: number
+          window_start: string
+        }
+        Insert: {
+          integration_id: string
+          request_count?: number
+          window_start: string
+        }
+        Update: {
+          integration_id?: string
+          request_count?: number
+          window_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suite_api_rate_buckets_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "suite_api_integrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           role: string
@@ -590,6 +792,40 @@ export type Database = {
         Returns: boolean
       }
       suite_accept_invite: { Args: { _token: string }; Returns: Json }
+      suite_api_claim_event: {
+        Args: {
+          _event_id: string
+          _event_type: string
+          _integration: string
+          _payload_hash: string
+        }
+        Returns: Json
+      }
+      suite_api_consume_rate_limit: {
+        Args: { _integration: string; _limit: number }
+        Returns: boolean
+      }
+      suite_api_finish_event: {
+        Args: {
+          _error_code: string
+          _event_id: string
+          _http_status: number
+          _integration: string
+          _reservation_id: string
+          _response: Json
+          _status: string
+        }
+        Returns: undefined
+      }
+      suite_apply_api_reservation: {
+        Args: {
+          _expected_version: number
+          _guest: Json
+          _integration: string
+          _reservation: Json
+        }
+        Returns: Json
+      }
       suite_apply_operations: {
         Args: { _changes: Json; _hotel: string }
         Returns: undefined
@@ -599,15 +835,55 @@ export type Database = {
         Returns: boolean
       }
       suite_claim_invites: { Args: never; Returns: number }
+      suite_configure_api_integration: {
+        Args: {
+          _hotel: string
+          _integration: string
+          _mappings: Json
+          _name: string
+          _permissions: string[]
+        }
+        Returns: undefined
+      }
+      suite_create_api_integration: {
+        Args: {
+          _api_key_ciphertext: string
+          _created_by: string
+          _hotel: string
+          _id: string
+          _key_hash: string
+          _key_prefix: string
+          _mappings: Json
+          _name: string
+          _permissions: string[]
+          _secret: string
+        }
+        Returns: undefined
+      }
       suite_edit_room: {
         Args: { _edit: Json; _hotel: string; _number: string }
         Returns: Json
       }
       suite_invite_info: { Args: { _token: string }; Returns: Json }
       suite_load_operations: { Args: { _hotel: string }; Returns: Json }
+      suite_revoke_api_integration: {
+        Args: { _hotel: string; _integration: string }
+        Returns: undefined
+      }
       suite_role_modules: {
         Args: { _role: Database["public"]["Enums"]["hotel_role"] }
         Returns: string[]
+      }
+      suite_rotate_api_integration: {
+        Args: {
+          _api_key_ciphertext: string
+          _hash: string
+          _hotel: string
+          _integration: string
+          _prefix: string
+          _secret: string
+        }
+        Returns: undefined
       }
     }
     Enums: {

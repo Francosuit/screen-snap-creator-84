@@ -6,7 +6,13 @@
 - [x] Implementados administrador de integraciones, creación/configuración/rotación/revocación, documentación de endpoints reales y resumen de actividad.
 - [x] Añadidos endpoints propios de reservas y disponibilidad; escritura propia preparada para transacción huésped+reserva, idempotencia durable, límite y recuperación.
 - [x] Pruebas locales: 14/14 nuevas y del procesador; 43/43 regresión Quendoo. Sin escrituras nuevas en hoteles durante esta fase.
-- [ ] Aplicar esquema aditivo `docs/suite-api-schema.draft.sql` solo con autorización explícita; después regenerar tipos y probar en «Validación P0» creación→endpoint→PMS→modificación/cancelación→duplicado→aislamiento→revocación→recarga.
+- [x] Autorizado y aplicado esquema aditivo exacto como `0012_suite_own_api_integrations.sql`; tipos regenerados automáticamente, sin alterar filas existentes.
+- [x] Validación real en P0: integración `2ec01ca6-f673-4f87-a0ce-ef7ea0981da6`; reserva `A-P0API-52CCC065` creada (101, 1–3 dic, 240 €), modificada (1–4 dic, 360 €) y cancelada. Cada estado leído en Reservas y tras recarga; replay y revisión duplicada sin duplicar filas; propiedad de otro hotel rechazada (422).
+- [x] Probar credencial: 200; rotación invalida clave anterior (401), nueva clave acepta evento firmado (200); revocación persiste tras recarga y rechaza clave (401). Integración de prueba revocada; reserva cancelada conservada como evidencia.
+- [x] Integridad: hashes de las 15 reservas, 17 huéspedes, 13 tareas, 10 incidencias y 5 operaciones anteriores de P0 intactos; hashes de entidades y configuración de Hotel Homeless intactos. Escrituras del mundo bloqueadas en navegador.
+- [x] Suite 290 pasadas / 6 omitidas; build automático OK 12:42:26 UTC; git diff --check limpio. Reservas e Integraciones revisadas visualmente en PC; Integraciones móvil 390×844 sin overflow.
+- [ ] Consultas reservas/disponibilidad BLOQUEADAS en P0 por registro histórico `R-mvv3vm96t50p` con entrada=salida=0: respuesta explícita 422 `invalid_pms_calendar` en lugar de 503 genérico. No inventar noches ni modificar registro existente sin autorización. Prueba nueva confirma detección sin mutación.
+- [ ] Pendiente menor: optimizar tres políticas nuevas con `(select auth.uid())`, manteniendo exactamente permisos; advertencias del analizador documentadas, no certificado global de seguridad.
 - [ ] Pendiente de proveedor real: credenciales sandbox y verificación externa; no se declara ninguna conexión OTA activa. No publicar ni tocar Hotel Homeless.
 
 ## Recepción de reservas externas por API — 28 nov 2026

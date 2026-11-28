@@ -6,6 +6,14 @@ import { counts, nightlyRates } from '../revenue';
 import { calendarDate, reservationChange } from './contracts';
 import type { DistributionDay } from './contracts';
 
+/** Identify invalid PMS calendars without rewriting history or returning guest data. */
+export function invalidReservationCalendarIds(reservations: Reservation[]): string[] {
+  return reservations.filter(reservation => {
+    try { withReservationCalendar(reservation); return false; }
+    catch { return true; }
+  }).map(reservation => reservation.id);
+}
+
 /** Read-only distribution projection. Uses PMS availability, including OOS and cancellations. */
 export function distributionSnapshot(reservations: Reservation[], rooms: Room[], date: string): DistributionDay[] {
   const day = ymdToOffset(calendarDate.parse(date));

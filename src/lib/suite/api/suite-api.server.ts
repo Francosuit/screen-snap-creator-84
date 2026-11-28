@@ -22,7 +22,7 @@ import type {
 } from "./suite-api-contracts";
 import type { InboundBinding } from "./inbound";
 import { receiveRevision, supabaseInboundStore } from "./inbound.server";
-import { distributionSnapshot, reservationSnapshot } from "./pms";
+import { distributionSnapshot, reservationSnapshot, invalidReservationCalendarIds } from "./pms";
 import type { ExternalReservation } from "./inbound";
 
 // The additive schema is applied separately; these DTOs keep this module compilable before regeneration.
@@ -432,6 +432,8 @@ export async function handleSuiteApiRead(
     return responseFor({ error: "invalid_date" }, 400);
   const store = supabaseInboundStore(admin);
   const snapshot = await store.load(auth.row.hotel_id, "__read__", "__guest__");
+  const invalidIds = invalidReservationCalendarIds(snapshot.reservations);
+  if (invalidIds.length) return responseFor({ error: "invalid_pms_calendar", reservationIds: invalidIds }, 422);
   const payloadHash = await sha256Hex(`${kind}:${date ?? ""}`);
   const recordRead = async () => {
     const { error } = await admin.from("suite_api_events").insert({
@@ -459,7 +461,8 @@ export async function handleSuiteApiRead(
     await recordRead();
     return responseFor({ hotelId: auth.row.hotel_id, reservations: rows }, 200);
   }
-  const availability = distributionSnapshot(snapshot.reservations, snapshot.rooms as never, date!);
+  if (!date) return responseFor({ error: "invalid_date" }, 400);
+  const availability = distributionSnapshot(snapshot.reservations, snapshot.rooms as never, date);
   await recordRead();
   return responseFor({ hotelId: auth.row.hotel_id, date, availability }, 200);
 }

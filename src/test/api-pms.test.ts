@@ -1,11 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { distributionSnapshot, prepareReservationChange, reservationSnapshot, revenueNightSnapshot } from '../lib/suite/api/pms';
+import { distributionSnapshot, prepareReservationChange, reservationSnapshot, revenueNightSnapshot, invalidReservationCalendarIds } from '../lib/suite/api/pms';
 import { comparePrices } from '../lib/suite/api/competitive';
 import type { Reservation, Room } from '../lib/suite/data';
 
 const rooms: Room[] = [{ number: '101', floor: 1, type: 'Doble', hk: 'dirty', oos: false, rate: 120 }, { number: '102', floor: 1, type: 'Doble', hk: 'clean', oos: true, rate: 120 }];
 const reservation: Reservation = { id: 'local-a', guestId: 'private-guest', room: '101', inDay: 18, outDay: 20, createdDay: 17, eta: '14:00', pax: 2, channel: 'Recepción', amount: 240, status: 'confirmed', stay: 'none', notes: 'private-notes' };
 describe('API PMS projections use existing rules without writes', () => {
+  it('identifies invalid historical calendars without changing them or inventing nights', () => {
+    const invalid = { ...reservation, id: 'historical-zero-night', inDay: 0, outDay: 0, stay: 'finished' as const };
+    const before = JSON.stringify(invalid);
+    expect(invalidReservationCalendarIds([reservation, invalid])).toEqual(['historical-zero-night']);
+    expect(JSON.stringify(invalid)).toBe(before);
+    expect(invalidReservationCalendarIds([reservation])).toEqual([]);
+  });
   it('uses PMS overlap and out-of-service availability, not housekeeping state', () => {
     expect(distributionSnapshot([reservation], rooms, '2026-11-28').map(r => r.available)).toEqual([false, false]);
     expect(distributionSnapshot([{ ...reservation, status: 'cancelled' }], rooms, '2026-11-28').map(r => r.available)).toEqual([true, false]);

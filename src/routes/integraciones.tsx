@@ -3,14 +3,15 @@ import { Button } from "@/components/ui/button";
 import { integrations } from "@/lib/suite/data";
 import { useSuite } from "@/lib/suite/store";
 import { Card, PageHeader, Pill } from "@/components/suite/ui";
+import { IntegrationConsole } from "@/components/suite/IntegrationConsole";
 
 export const Route = createFileRoute("/integraciones")({
   head: () => ({
     meta: [
       { title: "Integraciones — Suite Hotel OS" },
-      { name: "description", content: "Estado de conexiones externas y proveedores de Suite Hotel OS. Ninguna conexión está activada todavía." },
+      { name: "description", content: "Administración y comprobación de conectividad externa del PMS Suite Hotel OS, con autorización independiente por hotel." },
       { property: "og:title", content: "Integraciones — Suite Hotel OS" },
-      { property: "og:description", content: "Proveedores y conexiones externas pendientes de activación en Suite Hotel OS." },
+      { property: "og:description", content: "Consola de autorización y prueba de proveedores externos para el PMS Suite Hotel OS." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -25,19 +26,16 @@ const ST = {
 } as const;
 
 function Integraciones() {
-  const { isDemo } = useSuite();
+  const { isDemo, authReady, cloudHotelId, hotel, user } = useSuite();
   const cats = [...new Set(integrations.map((i) => i.cat))];
   return (
     <div>
-      <PageHeader title="Integraciones" sub="Ninguna integración está conectada todavía · estado real de cada una" />
-      <section className="mb-6">
-        <h2 className="mb-2 text-sm font-semibold text-muted-foreground">Proveedor hotelero</h2>
-        <Card className="flex flex-col sm:max-w-md">
-          <div className="flex items-center justify-between gap-2"><span className="font-semibold">Quendoo Connect</span><Pill className="bg-muted text-muted-foreground">NO CONECTADA</Pill></div>
-          <div className="mt-3 text-sm text-muted-foreground">Acceso al entorno de pruebas pendiente.</div>
-          <Button className="mt-4 self-end" size="sm" variant="outline" disabled>No conectada</Button>
-        </Card>
-      </section>
+      <PageHeader title="Integraciones" sub={`Suite Hotel OS · PMS central · ${hotel.name}`} />
+      {isDemo ? <section className="border-y py-5"><h2 className="text-lg font-semibold">Conectividad externa</h2><p className="mt-2 text-sm text-muted-foreground">Modo demo · no se autentican proveedores ni se sincronizan reservas.</p></section>
+        : authReady && cloudHotelId && user ? <IntegrationConsole key={`${cloudHotelId}:${user.email}`} hotelId={cloudHotelId} identity={user.email} />
+        : <p className="border-y py-5 text-sm text-muted-foreground">{authReady ? "Selecciona un hotel autorizado para administrar conexiones." : "Cargando tu hotel autorizado…"}</p>}
+      <details className="mt-6">
+      <summary className="mb-5 cursor-pointer text-sm font-semibold text-muted-foreground">{isDemo ? "Catálogo de demostración" : "Otros servicios · sin adaptador activo"}</summary>
       {cats.map((c) => (
         <section key={c} className="mb-6">
           <h2 className="mb-2 text-sm font-semibold text-muted-foreground">{c}</h2>
@@ -59,6 +57,7 @@ function Integraciones() {
           </div>
         </section>
       ))}
+      </details>
     </div>
   );
 }

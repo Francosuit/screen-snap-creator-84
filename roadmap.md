@@ -1,5 +1,14 @@
 # Roadmap
 
+## Plan completo de integraciones — ejecución 28 nov 2026
+- [x] Leído el documento completo: Suite Hotel OS es el PMS central; los terceros son proveedores de conectividad, no sustitutos ni elección definitiva.
+- [x] Incorporada la instrucción adicional: conservar lo ya creado y funcional; priorizar integraciones conectadas al PMS antes que módulos nuevos.
+- [x] Primer bloque operativo sobre adaptador existente: dos RPCs autenticados, permisos módulo + owner/director, organización derivada del hotel, configuración segura hotel-scoped y prueba real de lectura propiedad/tipos/planes. Sin configuración devuelve bloqueo verdadero; sin conexión ficticia ni escritura.
+- [x] Documentado privilegio insuficiente del borrador para transacción invoker PMS+mapeo+revisión. No listo para aplicar; corregir/probar en base aislada antes de solicitar autorización. Configuración segura y requisitos externos exactos: `docs/integrations-connection-checkpoint-2026-11-28.md`.
+- [x] Suite 274 pasadas / 6 omitidas / cero fallos; 18 nuevas. Build automático/tipos OK 09:14:09 UTC. P0 PC/móvil: Conectar/Probar/recarga verificados, sin errores runtime/overflow; escrituras bloqueadas. Quendoo candidato, no elección definitiva: salida depende de su propio calendario/distribución legacy.
+- [x] Demo móvil conserva catálogo separado, sin llamadas a funciones de conexión ni botones de prueba reales; último build automático OK 09:16:10 UTC.
+- [ ] Flujo vertical externo → PMS → pantallas → ACK y salida durable: pendiente de sandbox, credenciales y persistencia autorizada; no declarar conseguido con pruebas aisladas.
+
 ## Misión maestra — bloque en ejecución (28 nov 2026)
 - [x] Verificación puntual de la fuente PMS en código: store compartido + suite_load/apply_operations; no certificación nueva de escrituras/RLS. Conservados Sprint 05 y «A revisar».
 - [x] Corregidas cifras/previsiones estáticas de Control en cuentas reales; Panel usa revenue.ts (noches, no-show/cancelación, ingresos no cobros); retiradas promesas de sincronización/actividad compartida y atribuciones demo en Integraciones reales. No es auditoría completa de todo el producto.

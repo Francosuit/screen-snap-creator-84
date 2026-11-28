@@ -1,5 +1,17 @@
 # Roadmap
 
+## Misión maestra — bloque en ejecución (28 nov 2026)
+- [x] Verificación puntual de la fuente PMS en código: store compartido + suite_load/apply_operations; no certificación nueva de escrituras/RLS. Conservados Sprint 05 y «A revisar».
+- [x] Corregidas cifras/previsiones estáticas de Control en cuentas reales; Panel usa revenue.ts (noches, no-show/cancelación, ingresos no cobros); retiradas promesas de sincronización/actividad compartida y atribuciones demo en Integraciones reales. No es auditoría completa de todo el producto.
+- [x] Comparados Quendoo Connect/Channex/Mews con fuentes oficiales. Quendoo elegido por costes publicados; implementado HTTP real, OAuth/token, propiedades/tipos/planes, feed/ACK tras guardado y read-back, ARI y verificación HMAC en el núcleo existente. Sin repositorio/escritor durable activo ni webhook desplegado.
+- [x] Suite completa 256 pasadas / 6 omitidas / cero fallos; 36 adaptador + 5 ingresos nuevos. build automático/tipos OK 08:59:09 UTC; sin ejecución manual independiente. git diff --check limpio.
+- [x] Visual PC 1072×831/móvil 390×844 en P0: Panel, Control, Reservas, Integraciones y Tareas, sin errores runtime/overflow. Demo Control conserva indicadores rotulados. Todas las escrituras bloqueadas (6 intentos company_worlds); no prueba de guardado.
+- [ ] Bloqueado hasta autorización: migración aditiva y datos aislados P0; sandbox externo aún no disponible. No publicar ni escribir en hoteles reales.
+- Prioridad de esta misión: API exclusivamente; no scraping, automatización de navegador ni CSV como sustituto de sincronización.
+- [ ] Sandbox Quendoo: Franco confirmó «Todavía no». Cero reservas externas recibidas; cero pruebas contra proveedor; no se piden credenciales aún. Integraciones muestra NO CONECTADA.
+- [ ] Siguiente bloque: completar/probar transacción PMS+mapeo+revisión y runs en base aislada; pedir autorización del esquema completo antes de aplicar; depois flujo sandbox guardado→pantallas→ACK, sin hoteles reales.
+- Informe concreto, archivos, costes, fuentes y límites: `docs/master-mission-2026-11-28.md`. Revisión profunda previa sin hallazgos pero desactualizada; no certifica cambios nuevos. No se marca la misión ni Sprint 05 terminados.
+
 ## Bloque actual — validación API y primer proveedor (28 nov 2026)
 - [x] Revisados los cuatro módulos API y sus pruebas; corregidos reintentos de errores permanentes, consistencia de fechas en disponibilidad y orden del hash. No se tocó Sprint 05.
 - [x] Preparado `docs/api-persistence.draft.sql`: cinco tablas, GRANT/RLS, índices y relaciones de ámbito; parser PostgreSQL acepta 43 sentencias. NO aplicado ni probado con RLS real.

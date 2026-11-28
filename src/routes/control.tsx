@@ -44,13 +44,14 @@ function Chart({ title, children, h = 180 }: { title: string; children: React.Re
 }
 
 function Control() {
-  const { s, actions, today } = useSuite();
+  const { s, actions, today, isDemo } = useSuite();
   const forecast = useMemo(() => buildForecast(today), [today]);
   const [open, setOpen] = useState<string | null>(null);
   const o = s.opportunities.find((x) => x.id === open);
   return (
     <div>
       <PageHeader title="Control" sub="Revenue Intelligence · Suite recomienda, una persona decide" />
+      {isDemo && <>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Kpi label="Ocupación (mes)" value="71%" delta="+6 pp" hint="vs. LY" />
         <Kpi label="ADR (mes)" value="162 €" delta="+4,2%" />
@@ -58,9 +59,11 @@ function Control() {
         <Kpi label="Pickup 7 días" value="+36 rn" delta="+31%" />
       </div>
       <p className="mt-2 text-xs text-muted-foreground">Indicadores, calendario y gráficos de abajo: datos de demostración.</p>
+      </>}
 
       <RevenueBoard />
 
+      {isDemo && <>
       <Card className="mt-6">
         <SectionTitle right={<span className="text-xs text-muted-foreground">Próximos 21 días · forecast ocupación</span>}>Calendario Revenue</SectionTitle>
         <div className="grid grid-cols-7 gap-1.5">
@@ -154,6 +157,7 @@ function Control() {
           )}
         </DialogContent>
       </Dialog>
+      </>}
     </div>
   );
 }

@@ -8,12 +8,13 @@ import { ROLES } from "@/lib/suite/data";
 import { dayDate, eur, useSuite } from "@/lib/suite/store";
 import { Card, Kpi, PageHeader, SectionTitle } from "@/components/suite/ui";
 import { HousekeepingHome, MaintenanceHome } from "@/components/suite/RoleHomes";
+import { roomRevenueForOffsets } from "@/lib/suite/revenue";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Inicio — Suite Hotel OS" },
-      { name: "description", content: "Qué está pasando hoy en tu hotel: facturación, ocupación, llegadas, salidas y lo que requiere tu atención." },
+      { name: "description", content: "Qué está pasando hoy en tu hotel: ingresos de habitaciones según reservas, ocupación, llegadas, salidas y lo que requiere tu atención." },
       { property: "og:title", content: "Inicio — Suite Hotel OS" },
       { property: "og:description", content: "Qué está pasando hoy en tu hotel, en una sola pantalla." },
       { property: "og:type", content: "website" },
@@ -38,7 +39,7 @@ const LEVEL = {
 } as const;
 
 function Dashboard() {
-  const { s, alerts, roomState, hotel, today } = useSuite();
+  const { s, alerts, roomState, hotel, today, isDemo, user } = useSuite();
   const nav = useNavigate();
   const [openAlert, setOpenAlert] = useState<string | null>(null);
   const AVAIL = s.rooms.filter((r) => !r.oos).length;
@@ -46,18 +47,13 @@ function Dashboard() {
   const arrivalsToday = s.reservations.filter((r) => r.inDay === today && r.status === "confirmed" && r.stay !== "finished" || (r.inDay === today && r.stay === "inhouse"));
   const pendingIn = s.reservations.filter((r) => r.inDay === today && r.status === "confirmed" && r.stay === "none");
   const departures = s.reservations.filter((r) => r.outDay === today && r.status === "confirmed" && r.inDay < today);
-  const nightly = (r: (typeof s.reservations)[number]) => r.amount / Math.max(1, r.outDay - r.inDay);
-  const sold = [...inhouse, ...pendingIn];
-  const revToday = sold.reduce((a, r) => a + nightly(r), 0);
-  const occ = AVAIL ? Math.round((sold.length / AVAIL) * 100) : 0;
-  const adr = sold.length ? revToday / sold.length : 0;
+  const { revenue: revToday, roomNights: sold } = roomRevenueForOffsets(s.reservations, today, today + 1);
+  const occ = AVAIL ? Math.round((sold / AVAIL) * 100) : 0;
+  const adr = sold ? revToday / sold : 0;
   // Current hotel month, including tonight and excluding future nights.
   const todayDate = dayDate(today);
   const monthStart = today - todayDate.getDate() + 1;
-  const monthRev = s.reservations.filter((r) => r.status !== "cancelled").reduce((acc, r) => {
-    const from = Math.max(r.inDay, monthStart), to = Math.min(r.outDay, today + 1);
-    return acc + Math.max(0, to - from) * nightly(r);
-  }, 0);
+  const { revenue: monthRev } = roomRevenueForOffsets(s.reservations, monthStart, today + 1);
   const monthHint = `${todayDate.getDate() === 1 ? "1" : `1–${todayDate.getDate()}`} ${todayDate.toLocaleDateString("es-ES", { month: "short" })}`;
   const tomorrowStays = s.reservations.filter((r) => r.status === "confirmed" && r.stay !== "finished" && r.inDay <= today + 1 && r.outDay > today + 1);
   const isRevenue = s.role === "revenue";
@@ -67,12 +63,12 @@ function Dashboard() {
 
   return (
     <div className="glass-dash">
-      <PageHeader title={`Buenas tardes, ${ROLES[s.role].person.split(" ")[0]}`} sub={`Esto es lo que está pasando hoy en ${hotel.name}.`} />
+      <PageHeader title={isDemo ? `Buenas tardes, ${ROLES[s.role].person.split(" ")[0]}` : `Inicio${user?.name ? ` · ${user.name}` : ""}`} sub={`Esto es lo que está pasando hoy en ${hotel.name}.`} />
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
-        <Kpi className="glass glass-kpi" accent="var(--st-ready)" label="Facturación hoy" value={eur(revToday)} hint={`${sold.length} hab. vendidas`} />
-        <Kpi className="glass glass-kpi" accent="var(--suite-gold)" label="Facturación mes" value={eur(monthRev)} hint={monthHint} />
-        <Kpi className="glass glass-kpi" accent="var(--st-occupied)" label="Ocupación" value={`${occ}%`} hint={`${sold.length}/${AVAIL} hab.`} />
+        <Kpi className="glass glass-kpi" accent="var(--st-ready)" label="Ingresos habitaciones hoy" value={eur(revToday)} hint={`${sold} hab. vendidas · reservas`} />
+        <Kpi className="glass glass-kpi" accent="var(--suite-gold)" label="Ingresos habitaciones mes" value={eur(monthRev)} hint={monthHint} />
+        <Kpi className="glass glass-kpi" accent="var(--st-occupied)" label="Ocupación" value={`${occ}%`} hint={`${sold}/${AVAIL} hab.`} />
         <Kpi className="glass glass-kpi" accent="var(--chart-2)" label="ADR" value={eur(adr)} hint="tarifa media" />
         <Kpi className="glass glass-kpi" accent="var(--st-cleaning)" label="RevPAR" value={eur(AVAIL ? revToday / AVAIL : 0)} hint="por hab. disponible" />
       </div>
@@ -121,7 +117,7 @@ function Dashboard() {
         </div>
 
         <Card className="glass">
-          <SectionTitle right={<span className="flex items-center gap-1.5 text-xs text-muted-foreground"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-st-ready" />En vivo</span>}>Actividad en tiempo real</SectionTitle>
+          <SectionTitle>Actividad registrada en esta sesión</SectionTitle>
           <ol className="relative space-y-4 before:absolute before:left-[47px] before:top-1 before:h-[calc(100%-8px)] before:w-px before:bg-border">
             {s.log.slice(0, 11).map((l) => (
               <li key={l.id} className="relative flex gap-3 text-sm">

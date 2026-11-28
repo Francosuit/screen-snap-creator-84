@@ -49,7 +49,7 @@ function Reservas() {
 
   return (
     <div>
-      <PageHeader title="Reservas" sub={`${s.reservations.length} reservas · datos sincronizados con canales`}
+      <PageHeader title="Reservas" sub={`${s.reservations.length} reservas guardadas del hotel`}
         right={<Tabs value={view} onValueChange={setView}><TabsList><TabsTrigger value="lista">Lista</TabsTrigger><TabsTrigger value="calendario">Calendario</TabsTrigger></TabsList></Tabs>} />
       <div className="mb-4 grid gap-2 sm:grid-cols-[minmax(0,1fr)_200px_180px]">
         <div className="relative"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input className="pl-9" placeholder="Buscar huésped, habitación o reserva…" value={q} onChange={(e) => setQ(e.target.value)} /></div>

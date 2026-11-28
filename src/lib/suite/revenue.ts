@@ -25,6 +25,18 @@ export function nightlyRates(r: Reservation & { nightly?: number[] }): number[] 
 export const avgNightly = (r: Reservation) => (nightsOf(r) ? r.amount / nightsOf(r) : 0);
 export const counts = (r: Reservation) => r.status === "confirmed";
 
+/** Same stored-night counting for the dashboard and distribution; [from, to). */
+export function roomRevenueForOffsets(list: Reservation[], from: number, to: number) {
+  let revenue = 0, roomNights = 0;
+  for (const r of list.filter(counts)) {
+    nightlyRates(r).forEach((amount, i) => {
+      const day = r.inDay + i;
+      if (day >= from && day < to) { revenue += amount; roomNights++; }
+    });
+  }
+  return { revenue, roomNights };
+}
+
 export function nights(list: Reservation[], toDate: (off: number) => Date): Night[] {
   return list.filter(counts).flatMap((r) => nightlyRates(r).map((amount, i) => ({ date: toDate(r.inDay + i), amount, res: r.id })));
 }

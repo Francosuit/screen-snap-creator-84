@@ -299,3 +299,10 @@ Implementar el núcleo temporal compartido (hotelToday en store y todas las pant
 - Compilación automática observada: build OK, 28 nov 08:01:20 UTC; no se ejecutó un build ni typecheck manual. `git diff --check` sin errores.
 - Flujo aislado probado: autorización → claim → ejecución → historial → replay; petición concurrente bloqueada, reutilización de clave con otro payload rechazada, reintentos acotados y sin credenciales en resultados/historial. Esto NO valida un proveedor real ni persistencia en producción.
 - Pendientes: selección/provisión del primer proveedor y almacenamiento autorizado; conectar comandos entrantes a operaciones PMS existentes con mapeo externo/versiones y conflictos; aplicar monedas/unidades del proveedor; comprobación real de conexión, webhooks firmados y reconciliación manual de operaciones inciertas. Pickup/forecast/ADR/RevPAR y alertas competitivas no se implementaron en este bloque; se preparó únicamente su fuente de datos, sin inventar valores.
+
+## Etapa post-auditoría — Prioridad 1 (28 nov 2026)
+- [x] R-mvv3vm96t50p (P0, 0 noches, finalizada): sin modificar fila. Lecturas API excluyen estancias sin noches y las informan en `excludedZeroNight`; otras incoherencias siguen bloqueando (422).
+- [x] Funciones internas de base sin ejecución anónima (migración 0013).
+- [x] Zona horaria por hotel ya implementada; los 3 hoteles siguen sin elegirla (decisión de cada dueño, no se escribió).
+- [ ] Verificar GET reservas/disponibilidad con credencial activa en P0 (la integración de prueba está revocada; crear una nueva desde la interfaz).
+- [ ] Prioridad 2: validación visual PC/móvil/tablet. Prioridad 3–5 pendientes.

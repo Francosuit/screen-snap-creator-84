@@ -52,3 +52,13 @@ describe('competitive observations are comparable and sourced', () => {
     expect(() => comparePrices(price, { ...price, source: '' })).toThrow();
   });
 });
+import { partitionInvalidCalendars as __part } from '@/lib/suite/api/pms';
+describe('partitionInvalidCalendars', () => {
+  it('excludes zero-night legacy stays and reports them, without mutating', () => {
+    const zero = { id: 'R-zero', inDay: 0, outDay: 0, room: '203', status: 'confirmed', stay: 'finished', amount: 600, pax: 2, guestId: 'g', channel: 'x', createdDay: 0 } as never;
+    const res = __part([zero]);
+    expect(res.zeroNight).toEqual(['R-zero']);
+    expect(res.blocking).toEqual([]);
+    expect(res.valid).toHaveLength(0);
+  });
+});

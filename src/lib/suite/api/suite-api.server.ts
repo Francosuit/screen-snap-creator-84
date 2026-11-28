@@ -22,7 +22,7 @@ import type {
 } from "./suite-api-contracts";
 import type { InboundBinding } from "./inbound";
 import { receiveRevision, supabaseInboundStore } from "./inbound.server";
-import { distributionSnapshot, reservationSnapshot, invalidReservationCalendarIds } from "./pms";
+import { distributionSnapshot, reservationSnapshot, partitionInvalidCalendars } from "./pms";
 import type { ExternalReservation } from "./inbound";
 
 // The additive schema is applied separately; these DTOs keep this module compilable before regeneration.
@@ -432,8 +432,10 @@ export async function handleSuiteApiRead(
     return responseFor({ error: "invalid_date" }, 400);
   const store = supabaseInboundStore(admin);
   const snapshot = await store.load(auth.row.hotel_id, "__read__", "__guest__");
-  const invalidIds = invalidReservationCalendarIds(snapshot.reservations);
-  if (invalidIds.length) return responseFor({ error: "invalid_pms_calendar", reservationIds: invalidIds }, 422);
+  const calendars = partitionInvalidCalendars(snapshot.reservations);
+  if (calendars.blocking.length)
+    return responseFor({ error: "invalid_pms_calendar", reservationIds: calendars.blocking }, 422);
+  const excludedZeroNight = calendars.zeroNight;
   const payloadHash = await sha256Hex(`${kind}:${date ?? ""}`);
   const recordRead = async () => {
     const { error } = await admin.from("suite_api_events").insert({
@@ -450,7 +452,7 @@ export async function handleSuiteApiRead(
     if (error) throw new Error("No se pudo registrar la consulta API.");
   };
   if (kind === "reservations") {
-    const rows = snapshot.reservations.slice(0, 500).map((r) => {
+    const rows = calendars.valid.slice(0, 500).map((r) => {
       const external = (r as ExternalReservation).external;
       return {
         ...reservationSnapshot(r),
@@ -459,12 +461,12 @@ export async function handleSuiteApiRead(
       };
     });
     await recordRead();
-    return responseFor({ hotelId: auth.row.hotel_id, reservations: rows }, 200);
+    return responseFor({ hotelId: auth.row.hotel_id, reservations: rows, excludedZeroNight }, 200);
   }
   if (!date) return responseFor({ error: "invalid_date" }, 400);
-  const availability = distributionSnapshot(snapshot.reservations, snapshot.rooms as never, date);
+  const availability = distributionSnapshot(calendars.valid, snapshot.rooms as never, date);
   await recordRead();
-  return responseFor({ hotelId: auth.row.hotel_id, date, availability }, 200);
+  return responseFor({ hotelId: auth.row.hotel_id, date, availability, excludedZeroNight }, 200);
 }
 
 export async function testSuiteApiCredential(

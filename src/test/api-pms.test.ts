@@ -18,6 +18,7 @@ describe('API PMS projections use existing rules without writes', () => {
   });
   it('rejects inconsistent stored calendars', () => {
     expect(() => reservationSnapshot({ ...reservation, checkInDate: '2026-11-29' })).toThrow();
+    expect(() => distributionSnapshot([{ ...reservation, checkInDate: '2026-11-29' }], rooms, '2026-11-28')).toThrow();
   });
   it('normalizes external changes preserving absolute dates and legacy offsets', () => {
     const input = { externalId: 'ext-a', revision: 'v1', action: 'create', room: '101', checkInDate: '2026-11-28', checkOutDate: '2026-11-30', pax: 2, amount: 240, currency: 'EUR' };

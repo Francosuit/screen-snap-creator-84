@@ -76,6 +76,25 @@ describe('API engine: isolated dependencies, no network or production repository
     vi.mocked(f.adapter.execute).mockRejectedValue(new ProviderFailure('unavailable', true));
     expect(await runApiOperation(request, 'user-a', f.deps)).toEqual({ status: 'failed', attempts: 1, code: 'unavailable' }); expect(f.deps.sleep).not.toHaveBeenCalled();
   });
+  it.each(['provider_auth', 'invalid_data', 'unknown'] as const)('never retries a permanent %s failure, even if mislabelled', async code => {
+    const f = fixture(); vi.mocked(f.adapter.execute).mockRejectedValue(new ProviderFailure(code, true));
+    expect(await runApiOperation(request, 'user-a', f.deps)).toEqual({ status: 'failed', attempts: 1, code });
+    expect(f.adapter.execute).toHaveBeenCalledTimes(1); expect(f.deps.sleep).not.toHaveBeenCalled();
+    expect(f.repo.attempt).toHaveBeenLastCalledWith('run-a', 1, '2026-11-28T08:00:00.000Z', code);
+  });
+  it('records credential resolution failure without a remote call', async () => {
+    const f = fixture(); vi.mocked(f.deps.credentials).mockRejectedValue(new Error('private credential detail'));
+    expect(await runApiOperation(request, 'user-a', f.deps)).toEqual({ status: 'failed', attempts: 0, code: 'unknown' });
+    expect(f.adapter.execute).not.toHaveBeenCalled();
+    expect(f.repo.finish).toHaveBeenCalledWith('run-a', { status: 'failed', attempts: 0, code: 'unknown' });
+  });
+  it('leaves uncertain completion unreplayed when history finalization fails', async () => {
+    const f = fixture(); vi.mocked(f.repo.finish).mockRejectedValue(new Error('History unavailable'));
+    await expect(runApiOperation(request, 'user-a', f.deps)).rejects.toThrow('History unavailable');
+    vi.mocked(f.repo.claim).mockResolvedValue({ kind: 'busy' });
+    await expect(runApiOperation(request, 'user-a', f.deps)).rejects.toThrow('Operation in progress');
+    expect(f.adapter.execute).toHaveBeenCalledTimes(1);
+  });
   it('sanitizes unknown errors and never retries them', async () => {
     const f = fixture(); vi.mocked(f.adapter.execute).mockRejectedValue(new Error('secret-provider-response'));
     const outcome = await runApiOperation(request, 'user-a', f.deps);

@@ -53,7 +53,7 @@ function canonical(value: unknown): string {
   if (typeof value === 'number' && Number.isFinite(value)) return JSON.stringify(value);
   if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`;
   if (typeof value === 'object' && Object.getPrototypeOf(value) === Object.prototype) {
-    return `{${Object.entries(value).sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => `${JSON.stringify(k)}:${canonical(v)}`).join(',')}}`;
+    return `{${Object.entries(value).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0).map(([k, v]) => `${JSON.stringify(k)}:${canonical(v)}`).join(',')}}`;
   }
   throw new Error('Payload must be JSON');
 }
@@ -92,7 +92,10 @@ export async function runApiOperation(input: unknown, verifiedUserId: string, de
       const code = error instanceof ProviderFailure ? error.code : 'unknown';
       outcome = { status: 'failed', attempts: attempt, code };
       await repo.attempt(claim.runId, attempt, deps.now().toISOString(), code);
-      if (!(error instanceof ProviderFailure) || !error.retryable || attempt === maxAttempts) break;
+      // Authentication and input errors cannot be repaired by repeating the same call,
+      // even when an adapter incorrectly labels them retryable.
+      const transient = code === 'unavailable' || code === 'rate_limit';
+      if (!(error instanceof ProviderFailure) || !error.retryable || !transient || attempt === maxAttempts) break;
       await deps.sleep(1000 * 2 ** (attempt - 1));
     }
   }

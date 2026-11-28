@@ -306,3 +306,10 @@ Implementar el núcleo temporal compartido (hotelToday en store y todas las pant
 - [x] Zona horaria por hotel ya implementada; los 3 hoteles siguen sin elegirla (decisión de cada dueño, no se escribió).
 - [ ] Verificar GET reservas/disponibilidad con credencial activa en P0 (la integración de prueba está revocada; crear una nueva desde la interfaz).
 - [ ] Prioridad 2: validación visual PC/móvil/tablet. Prioridad 3–5 pendientes.
+
+### Prioridad 1 — cierre con servidor real (28/11/2026)
+- Credenciales nuevas «PRUEBA P1 API» y «PRUEBA P1 API 2» creadas desde Integraciones en Validación P0; ambas revocadas al terminar.
+- GET reservas 200 (hotel P0) y GET disponibilidad 200 con `excludedZeroNight: [R-mvv3vm96t50p]`; sin permiso de disponibilidad → 403.
+- Clave inválida, firma inválida, timestamp caducado, ID de otra integración y clave revocada → 401.
+- 0 funciones públicas ejecutables sin sesión; la sesión autorizada sigue operando. Typecheck OK.
+- **Prioridad 1 cerrada.** Prioridad 2 (validación visual PC/móvil/tablet) pendiente por presupuesto.

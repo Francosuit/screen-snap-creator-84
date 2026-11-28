@@ -6,7 +6,7 @@
 - [x] Channex staging recomendado por feed de revisiones/ACK e inventario; alternativa Mews comparada con fuentes oficiales. Requisitos y resultados en `docs/api-validation-2026-11-28.md`.
 - [x] Suite completa 215 pasadas / 6 omitidas / cero fallos; API/PMS 40 pasadas. Compilación automática OK 08:21:50 UTC. Comprobación independiente de tipos NO ejecutada.
 - [x] Revisión básica de seguridad sin hallazgos en sus comprobaciones; revisión profunda iniciada, resultado pendiente.
-- [ ] Integración real BLOQUEADA: falta selección/acceso sandbox y credenciales, autorización de migración y de datos aislados P0. No hay repositorio persistente, adaptador activo ni importación vertical; los mocks no demuestran persistencia ni aislamiento backend real.
+- [ ] Integración real BLOQUEADA: confirmado el 28 nov que todavía no existe acceso a un entorno privado de pruebas de Channex o Mews; no se solicitan credenciales ni se simula una conexión. También faltan autorización de migración y de datos aislados P0. No hay repositorio persistente, adaptador activo ni importación vertical; los mocks no demuestran persistencia ni aislamiento backend real.
 - Pendiente después de autorización: funciones atómicas claim/journal/finish y PMS+mapeo+revisión, asignación por tipos, firma webhook/ACK, pruebas de dos hoteles y recuperación tras interrupción. No se publica ni se escriben datos reales; Hotel Homeless intacto.
 
 ## Trabajo autorizado — 24 nov 2026

@@ -46,7 +46,7 @@ Documentación oficial consultada:
 - [Mews: eventos](https://docs.mews.com/connector-api/events)
 
 ## Impedimentos exactos para el recorrido real
-1. Confirmar proveedor y acceso de pruebas: cuenta staging, API key por canal seguro, property ID, tipos de habitación y planes tarifarios ficticios. Ninguna credencial se solicita en el chat.
+1. Confirmado el 28/11/2026: todavía no hay acceso a un entorno privado de pruebas de Channex o Mews. Para continuar harán falta cuenta staging, API key por canal seguro, property ID, tipos de habitación y planes tarifarios ficticios. Ninguna credencial se solicita en el chat; la integración real permanece en pausa y no se simula como conectada.
 2. Autorizar migración aditiva, exclusivamente después de probar el borrador y funciones transaccionales en entorno aislado; aplicar no equivale a autorizar escritura en hoteles reales.
 3. Autorizar datos ficticios únicamente en Validación P0, verificar propietario y aislamiento antes de escribir y enlazar explícitamente esa propiedad de pruebas.
 4. Implementar repositorio duradero y adaptador con endpoints/firmas documentados. No registrar el proveedor como conectado antes de una prueba real.

@@ -17,4 +17,4 @@ export const testRevisionInput = z.object({
 export type TestRevisionInput = z.infer<typeof testRevisionInput>;
 
 export interface SyncLogEntry { at: string; status: string; revisionId: string; bookingCode: string | null; revisionType: string | null; reservationId: string | null; room: string | null; reason: string | null; action: string | null }
-export interface InboundStatus { mode: 'test' | 'staging' | 'none'; propertyId: string | null; roomTypes: { code: string; type: string }[]; endpoint: string; log: SyncLogEntry[] }
+export interface InboundStatus { mode: 'test' | 'staging' | 'production' | 'none'; propertyId: string | null; roomTypes: { code: string; type: string }[]; endpoint: string; log: SyncLogEntry[] }

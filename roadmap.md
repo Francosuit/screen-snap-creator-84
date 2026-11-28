@@ -1,5 +1,14 @@
 # Roadmap
 
+## Fase prioritaria — Centro de Integraciones y API propia (28 nov 2026)
+- [x] Conservado el procesador inbound existente y separadas las credenciales propias de Suite de las credenciales de proveedores externos.
+- [x] Implementados contratos, generación criptográfica, cifrado backend, firma HMAC, expiración, permisos, mapeo exacto de habitaciones y catálogo extensible sin conexiones ficticias.
+- [x] Implementados administrador de integraciones, creación/configuración/rotación/revocación, documentación de endpoints reales y resumen de actividad.
+- [x] Añadidos endpoints propios de reservas y disponibilidad; escritura propia preparada para transacción huésped+reserva, idempotencia durable, límite y recuperación.
+- [x] Pruebas locales: 14/14 nuevas y del procesador; 43/43 regresión Quendoo. Sin escrituras nuevas en hoteles durante esta fase.
+- [ ] Aplicar esquema aditivo `docs/suite-api-schema.draft.sql` solo con autorización explícita; después regenerar tipos y probar en «Validación P0» creación→endpoint→PMS→modificación/cancelación→duplicado→aislamiento→revocación→recarga.
+- [ ] Pendiente de proveedor real: credenciales sandbox y verificación externa; no se declara ninguna conexión OTA activa. No publicar ni tocar Hotel Homeless.
+
 ## Recepción de reservas externas por API — 28 nov 2026
 - [x] Dirección pública `/api/public/quendoo/webhook`: firma oficial X-Qc-Signature-256 (HMAC sobre bytes originales, ±5 min), sin firma → 401, enrutado solo por asociación del servidor.
 - [x] Procesador: formato oficial BookingRevision/getBookings, mapeo código externo → tipo Suite, asignación de habitación libre con reglas del PMS (sin sobreventa, capacidad), duplicados por revisión, modificaciones, cancelaciones, no-show, solicitudes sin bloqueo, estancias en curso a revisión manual.

@@ -25,6 +25,8 @@ import { Route as PersonalRouteImport } from './routes/personal'
 import { Route as ReservasRouteImport } from './routes/reservas'
 import { Route as TareasRouteImport } from './routes/tareas'
 import { Route as ApiPublicQuendooWebhookRouteImport } from './routes/api/public/quendoo/webhook'
+import { Route as ApiPublicSuiteIntegrationIdAvailabilityRouteImport } from './routes/api/public/suite/$integrationId/availability'
+import { Route as ApiPublicSuiteIntegrationIdReservationsRouteImport } from './routes/api/public/suite/$integrationId/reservations'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -106,6 +108,18 @@ const ApiPublicQuendooWebhookRoute = ApiPublicQuendooWebhookRouteImport.update({
   path: '/api/public/quendoo/webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicSuiteIntegrationIdAvailabilityRoute =
+  ApiPublicSuiteIntegrationIdAvailabilityRouteImport.update({
+    id: '/api/public/suite/$integrationId/availability',
+    path: '/api/public/suite/$integrationId/availability',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicSuiteIntegrationIdReservationsRoute =
+  ApiPublicSuiteIntegrationIdReservationsRouteImport.update({
+    id: '/api/public/suite/$integrationId/reservations',
+    path: '/api/public/suite/$integrationId/reservations',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -124,6 +138,8 @@ export interface FileRoutesByFullPath {
   '/reservas': typeof ReservasRoute
   '/tareas': typeof TareasRoute
   '/api/public/quendoo/webhook': typeof ApiPublicQuendooWebhookRoute
+  '/api/public/suite/$integrationId/availability': typeof ApiPublicSuiteIntegrationIdAvailabilityRoute
+  '/api/public/suite/$integrationId/reservations': typeof ApiPublicSuiteIntegrationIdReservationsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -142,6 +158,8 @@ export interface FileRoutesByTo {
   '/reservas': typeof ReservasRoute
   '/tareas': typeof TareasRoute
   '/api/public/quendoo/webhook': typeof ApiPublicQuendooWebhookRoute
+  '/api/public/suite/$integrationId/availability': typeof ApiPublicSuiteIntegrationIdAvailabilityRoute
+  '/api/public/suite/$integrationId/reservations': typeof ApiPublicSuiteIntegrationIdReservationsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -161,6 +179,8 @@ export interface FileRoutesById {
   '/reservas': typeof ReservasRoute
   '/tareas': typeof TareasRoute
   '/api/public/quendoo/webhook': typeof ApiPublicQuendooWebhookRoute
+  '/api/public/suite/$integrationId/availability': typeof ApiPublicSuiteIntegrationIdAvailabilityRoute
+  '/api/public/suite/$integrationId/reservations': typeof ApiPublicSuiteIntegrationIdReservationsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -181,6 +201,8 @@ export interface FileRouteTypes {
     | '/reservas'
     | '/tareas'
     | '/api/public/quendoo/webhook'
+    | '/api/public/suite/$integrationId/availability'
+    | '/api/public/suite/$integrationId/reservations'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -199,6 +221,8 @@ export interface FileRouteTypes {
     | '/reservas'
     | '/tareas'
     | '/api/public/quendoo/webhook'
+    | '/api/public/suite/$integrationId/availability'
+    | '/api/public/suite/$integrationId/reservations'
   id:
     | '__root__'
     | '/'
@@ -217,6 +241,8 @@ export interface FileRouteTypes {
     | '/reservas'
     | '/tareas'
     | '/api/public/quendoo/webhook'
+    | '/api/public/suite/$integrationId/availability'
+    | '/api/public/suite/$integrationId/reservations'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -236,6 +262,8 @@ export interface RootRouteChildren {
   ReservasRoute: typeof ReservasRoute
   TareasRoute: typeof TareasRoute
   ApiPublicQuendooWebhookRoute: typeof ApiPublicQuendooWebhookRoute
+  ApiPublicSuiteIntegrationIdAvailabilityRoute: typeof ApiPublicSuiteIntegrationIdAvailabilityRoute
+  ApiPublicSuiteIntegrationIdReservationsRoute: typeof ApiPublicSuiteIntegrationIdReservationsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -352,6 +380,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicQuendooWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/suite/$integrationId/availability': {
+      id: '/api/public/suite/$integrationId/availability'
+      path: '/api/public/suite/$integrationId/availability'
+      fullPath: '/api/public/suite/$integrationId/availability'
+      preLoaderRoute: typeof ApiPublicSuiteIntegrationIdAvailabilityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/suite/$integrationId/reservations': {
+      id: '/api/public/suite/$integrationId/reservations'
+      path: '/api/public/suite/$integrationId/reservations'
+      fullPath: '/api/public/suite/$integrationId/reservations'
+      preLoaderRoute: typeof ApiPublicSuiteIntegrationIdReservationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -372,6 +414,10 @@ const rootRouteChildren: RootRouteChildren = {
   ReservasRoute: ReservasRoute,
   TareasRoute: TareasRoute,
   ApiPublicQuendooWebhookRoute: ApiPublicQuendooWebhookRoute,
+  ApiPublicSuiteIntegrationIdAvailabilityRoute:
+    ApiPublicSuiteIntegrationIdAvailabilityRoute,
+  ApiPublicSuiteIntegrationIdReservationsRoute:
+    ApiPublicSuiteIntegrationIdReservationsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

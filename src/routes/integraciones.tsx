@@ -4,6 +4,7 @@ import { integrations } from "@/lib/suite/data";
 import { useSuite } from "@/lib/suite/store";
 import { Card, PageHeader, Pill } from "@/components/suite/ui";
 import { IntegrationConsole } from "@/components/suite/IntegrationConsole";
+import { ProviderCatalog } from "@/components/suite/ProviderCatalog";
 
 export const Route = createFileRoute("/integraciones")({
   head: () => ({
@@ -34,9 +35,10 @@ function Integraciones() {
       {isDemo ? <section className="border-y py-5"><h2 className="text-lg font-semibold">Conectividad externa</h2><p className="mt-2 text-sm text-muted-foreground">Modo demo · no se autentican proveedores ni se sincronizan reservas.</p></section>
         : authReady && cloudHotelId && user ? <IntegrationConsole key={`${cloudHotelId}:${user.email}`} hotelId={cloudHotelId} identity={user.email} />
         : <p className="border-y py-5 text-sm text-muted-foreground">{authReady ? "Selecciona un hotel autorizado para administrar conexiones." : "Cargando tu hotel autorizado…"}</p>}
-      <details className="mt-6">
-      <summary className="mb-5 cursor-pointer text-sm font-semibold text-muted-foreground">{isDemo ? "Catálogo de demostración" : "Otros servicios · sin adaptador activo"}</summary>
-      {cats.map((c) => (
+      <details className="mt-6" open={!isDemo}>
+      <summary className="mb-5 cursor-pointer text-sm font-semibold text-muted-foreground">{isDemo ? "Catálogo de demostración" : "Catálogo extensible · conexiones externas no activadas"}</summary>
+      {!isDemo && <ProviderCatalog />}
+      {isDemo && cats.map((c) => (
         <section key={c} className="mb-6">
           <h2 className="mb-2 text-sm font-semibold text-muted-foreground">{c}</h2>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">

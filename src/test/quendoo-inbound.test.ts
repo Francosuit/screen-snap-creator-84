@@ -9,7 +9,7 @@ import type { Guest } from '../lib/suite/data';
 
 beforeAll(() => { if (!globalThis.crypto?.subtle) Object.defineProperty(globalThis, 'crypto', { value: webcrypto, configurable: true }); });
 
-const binding: InboundBinding = { hotelId: '11111111-1111-4111-8111-111111111111', organizationId: '22222222-2222-4222-8222-222222222222', propertyId: 'prop-1', environment: 'test', roomTypes: { 'DBL-STD': 'Doble Estándar', 'DBL-SUP': 'Doble Superior' } };
+const binding: InboundBinding = { hotelId: '11111111-1111-4111-8111-111111111111', organizationId: '22222222-2222-4222-8222-222222222222', propertyId: 'prop-1', provider: 'quendoo', environment: 'test', roomTypes: { 'DBL-STD': 'Doble Estándar', 'DBL-SUP': 'Doble Superior' } };
 const rooms = [{ number: '101', type: 'Doble Estándar', rate: 120, oos: false, capacity: 2 }, { number: '201', type: 'Doble Estándar', rate: 120, oos: false, capacity: 2 }, { number: '102', type: 'Doble Superior', rate: 150, oos: false, capacity: 2 }];
 const NOW = new Date('2026-11-28T10:00:00Z');
 const today = ymdToOffset('2026-11-28');

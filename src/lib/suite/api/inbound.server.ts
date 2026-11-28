@@ -13,7 +13,7 @@ import type { ExternalReservation, IgnoreReason, InboundAction, InboundBinding, 
 /** Isolated test hotel for end-to-end inbound validation. Only it may receive test-signed deliveries. */
 export const TEST_BINDINGS: readonly InboundBinding[] = Object.freeze([{
   hotelId: '8acd9d61-1519-4083-bce4-b22288f36344', organizationId: '3bb2396f-77b9-4263-bc2d-6d3899511546',
-  propertyId: 'suite-sandbox-p0', environment: 'test', roomTypes: { 'DBL-STD': 'Doble Estándar', 'DBL-SUP': 'Doble Superior' },
+  propertyId: 'suite-sandbox-p0', provider: 'quendoo', environment: 'test', roomTypes: { 'DBL-STD': 'Doble Estándar', 'DBL-SUP': 'Doble Superior' },
 }]);
 
 export type InboundOutcome =
@@ -30,6 +30,8 @@ export interface InboundStore {
   saveGuest(hotelId: string, guest: Guest): Promise<void>;
   /** Insert when expectedVersion is null, otherwise compare-and-set on the row version. False = concurrent change. */
   saveReservation(hotelId: string, reservation: ExternalReservation, expectedVersion: number | null): Promise<boolean>;
+  /** Production implementations may provide one transaction for guest + reservation. */
+  apply?(hotelId: string, guest: Guest, reservation: ExternalReservation, expectedVersion: number | null): Promise<'applied' | 'conflict' | 'duplicate' | 'overlap'>;
   read(hotelId: string, reservationId: string): Promise<ExternalReservation | null>;
   log(hotelId: string, binding: InboundBinding, outcome: InboundOutcome, revisionType: string): Promise<void>;
 }
@@ -41,7 +43,7 @@ export async function receiveRevision(store: InboundStore, binding: InboundBindi
   const parsed = qcRevision.safeParse(input);
   const code = parsed.success ? parsed.data.booking_code : 'desconocida';
   const revisionId = parsed.success ? parsed.data.id : 0;
-  const { reservationId, guestId } = externalIds(code);
+  const { reservationId, guestId } = externalIds(code, binding.provider);
   const base = { reservationId, revisionId, bookingCode: code };
   const finish = async (o: InboundOutcome) => { await store.log(binding.hotelId, binding, o, parsed.success ? parsed.data.revision_type : 'invalid'); return o; };
   const hotel = await store.hotel(binding.hotelId);
@@ -54,8 +56,15 @@ export async function receiveRevision(store: InboundStore, binding: InboundBindi
     if (plan.kind === 'ignored') return finish({ status: 'ignored', reason: plan.reason, ...base });
     if (plan.kind === 'rejected') return finish({ status: 'rejected', reason: plan.reason, ...base });
     try {
-      await store.saveGuest(binding.hotelId, plan.guest);
-      if (!await store.saveReservation(binding.hotelId, plan.reservation, snap.version)) continue;
+      if (store.apply && binding.provider === 'suite') {
+        const applied = await store.apply(binding.hotelId, plan.guest, plan.reservation, snap.version);
+        if (applied === 'duplicate') return finish({ status: 'duplicate', ...base });
+        if (applied === 'conflict') continue;
+        if (applied === 'overlap') return finish({ status: 'rejected', reason: 'no_room_available', ...base });
+      } else {
+        await store.saveGuest(binding.hotelId, plan.guest);
+        if (!await store.saveReservation(binding.hotelId, plan.reservation, snap.version)) continue;
+      }
     } catch (error) {
       if (error instanceof Overlap) return finish({ status: 'rejected', reason: 'no_room_available', ...base });
       throw error;
@@ -86,8 +95,18 @@ export function revisionWriter(store: InboundStore, binding: InboundBinding, now
   };
 }
 
-export function supabaseInboundStore(admin: SupabaseClient<Database>): InboundStore {
+export function supabaseInboundStore(admin: SupabaseClient, atomicIntegrationId?: string): InboundStore {
   return {
+    async apply(hotelId, guest, reservation, expectedVersion) {
+      if (!atomicIntegrationId) throw new Error('Atomic inbound integration is not configured');
+      const { data, error } = await admin.rpc('suite_apply_api_reservation', { _integration: atomicIntegrationId, _expected_version: expectedVersion, _guest: guest as unknown as Json, _reservation: reservation as unknown as Json });
+      if (error) {
+        if (error.code === '23P01' || /overlap/i.test(error.message)) return 'overlap';
+        throw new Error('atomic reservation write failed');
+      }
+      const status = (data as { status?: unknown } | null)?.status;
+      return status === 'applied' || status === 'duplicate' || status === 'conflict' || status === 'overlap' ? status : 'conflict';
+    },
     async hotel(hotelId) {
       const { data, error } = await admin.from('hotels').select('id,org_owner,timezone').eq('id', hotelId).eq('archived', false).maybeSingle();
       if (error) throw new Error('hotel read failed');
@@ -132,8 +151,9 @@ export function supabaseInboundStore(admin: SupabaseClient<Database>): InboundSt
       return (data?.data as unknown as ExternalReservation | undefined) ?? null;
     },
     async log(hotelId, binding, o, revisionType) {
-      const after = { provider: 'quendoo', environment: binding.environment, propertyId: binding.propertyId, revisionType, ...o };
-      const { error } = await admin.from('audit_log').insert({ hotel_id: hotelId, entity: 'quendoo_sync', entity_key: String(o.revisionId), action: o.status, after: after as unknown as Json });
+      const after = { provider: binding.provider, environment: binding.environment, propertyId: binding.propertyId, revisionType, ...o };
+      const entity = binding.provider === 'suite' ? 'suite_api_sync' : 'quendoo_sync';
+      const { error } = await admin.from('audit_log').insert({ hotel_id: hotelId, entity, entity_key: String(o.revisionId), action: o.status, after: after as unknown as Json });
       if (error) throw new Error('sync log write failed');
     },
   };

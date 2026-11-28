@@ -154,16 +154,20 @@ export function createQuendooAdapter(binding: QuendooBinding, writer: QuendooRev
       } else throw new ProviderFailure('invalid_data', false);
     },
     async verifyWebhook(body, headers, credentials) {
-      const secret = credentials['signingSecret'];
-      const timestamp = headers.get('X-Qc-Timestamp');
-      const signature = headers.get('X-Qc-Signature-256');
-      if (!secret || !timestamp || !/^\d{1,12}$/.test(timestamp) || !signature || !/^sha256=[a-f0-9]{64}$/.test(signature) || !headers.get('X-Qc-Event-Id')) return false;
-      if (Math.abs(now().getTime() - Number(timestamp) * 1000) > 300000 || new TextEncoder().encode(body).byteLength > 262144) return false;
-      try {
-        const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['verify']);
-        const bytes = Uint8Array.from(signature.slice(7).match(/.{2}/g) ?? [], x => parseInt(x, 16));
-        return await crypto.subtle.verify('HMAC', key, bytes, new TextEncoder().encode(`${timestamp}.${body}`));
-      } catch { return false; }
+      return verifyQuendooSignature(body, headers, credentials['signingSecret'], now());
     },
   };
+}
+
+/** Official webhook signing: HMAC-SHA256 of "<timestamp>.<raw body>", ±5 min, 256KB, event id required. */
+export async function verifyQuendooSignature(body: string, headers: Headers, secret: string | undefined, now: Date): Promise<boolean> {
+  const timestamp = headers.get('X-Qc-Timestamp');
+  const signature = headers.get('X-Qc-Signature-256');
+  if (!secret || !timestamp || !/^\d{1,12}$/.test(timestamp) || !signature || !/^sha256=[a-f0-9]{64}$/.test(signature) || !headers.get('X-Qc-Event-Id')) return false;
+  if (Math.abs(now.getTime() - Number(timestamp) * 1000) > 300000 || new TextEncoder().encode(body).byteLength > 262144) return false;
+  try {
+    const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['verify']);
+    const bytes = Uint8Array.from(signature.slice(7).match(/.{2}/g) ?? [], x => parseInt(x, 16));
+    return await crypto.subtle.verify('HMAC', key, bytes, new TextEncoder().encode(`${timestamp}.${body}`));
+  } catch { return false; }
 }

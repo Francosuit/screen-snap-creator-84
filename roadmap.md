@@ -1,5 +1,14 @@
 # Roadmap
 
+## Recepción de reservas externas por API — 28 nov 2026
+- [x] Dirección pública `/api/public/quendoo/webhook`: firma oficial X-Qc-Signature-256 (HMAC sobre bytes originales, ±5 min), sin firma → 401, enrutado solo por asociación del servidor.
+- [x] Procesador: formato oficial BookingRevision/getBookings, mapeo código externo → tipo Suite, asignación de habitación libre con reglas del PMS (sin sobreventa, capacidad), duplicados por revisión, modificaciones, cancelaciones, no-show, solicitudes sin bloqueo, estancias en curso a revisión manual.
+- [x] Persistencia sin migración: filas `Q-<código>` en reservas/huéspedes existentes (identificador determinista = sin duplicados), lectura de comprobación antes de confirmar, registro de sincronización en audit_log sin datos personales.
+- [x] Demostrado en «Validación P0» (entorno aislado, modo test): SBX-MKPLHB creada (hab. 101, llegada hoy) → Reservas, calendario, ficha, Huéspedes › Llegadas, Habitaciones → modificada (salida 1 dic, 360 €) → cancelada; una sola fila, versión 3. Ensayos SBX-BPTALH/SBX-ZR86OX cancelados por la misma vía. Hotel Homeless intacto.
+- [x] Suite 281 pasadas / 6 omitidas; build OK.
+- [ ] Quendoo real: falta client_id/client_secret de staging (office@quendoo.com), signing secret de la suscripción y la propiedad asociada (SUITE_QUENDOO_INBOUND, SUITE_QUENDOO_WEBHOOK_SECRETS, SUITE_QUENDOO_CREDENTIALS). Lectura del feed + ACK implementada sin probar contra el proveedor.
+- [ ] Pendiente: reservas de varias habitaciones, cursor persistente del feed, monedas distintas de EUR.
+
 ## Plan completo de integraciones — ejecución 28 nov 2026
 - [x] Leído el documento completo: Suite Hotel OS es el PMS central; los terceros son proveedores de conectividad, no sustitutos ni elección definitiva.
 - [x] Incorporada la instrucción adicional: conservar lo ya creado y funcional; priorizar integraciones conectadas al PMS antes que módulos nuevos.

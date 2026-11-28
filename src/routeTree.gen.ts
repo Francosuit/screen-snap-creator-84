@@ -24,6 +24,7 @@ import { Route as MundoRouteImport } from './routes/mundo'
 import { Route as PersonalRouteImport } from './routes/personal'
 import { Route as ReservasRouteImport } from './routes/reservas'
 import { Route as TareasRouteImport } from './routes/tareas'
+import { Route as ApiPublicQuendooWebhookRouteImport } from './routes/api/public/quendoo/webhook'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -100,6 +101,11 @@ const TareasRoute = TareasRouteImport.update({
   path: '/tareas',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicQuendooWebhookRoute = ApiPublicQuendooWebhookRouteImport.update({
+  id: '/api/public/quendoo/webhook',
+  path: '/api/public/quendoo/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -117,6 +123,7 @@ export interface FileRoutesByFullPath {
   '/personal': typeof PersonalRoute
   '/reservas': typeof ReservasRoute
   '/tareas': typeof TareasRoute
+  '/api/public/quendoo/webhook': typeof ApiPublicQuendooWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -134,6 +141,7 @@ export interface FileRoutesByTo {
   '/personal': typeof PersonalRoute
   '/reservas': typeof ReservasRoute
   '/tareas': typeof TareasRoute
+  '/api/public/quendoo/webhook': typeof ApiPublicQuendooWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -152,6 +160,7 @@ export interface FileRoutesById {
   '/personal': typeof PersonalRoute
   '/reservas': typeof ReservasRoute
   '/tareas': typeof TareasRoute
+  '/api/public/quendoo/webhook': typeof ApiPublicQuendooWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -171,6 +180,7 @@ export interface FileRouteTypes {
     | '/personal'
     | '/reservas'
     | '/tareas'
+    | '/api/public/quendoo/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -188,6 +198,7 @@ export interface FileRouteTypes {
     | '/personal'
     | '/reservas'
     | '/tareas'
+    | '/api/public/quendoo/webhook'
   id:
     | '__root__'
     | '/'
@@ -205,6 +216,7 @@ export interface FileRouteTypes {
     | '/personal'
     | '/reservas'
     | '/tareas'
+    | '/api/public/quendoo/webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -223,6 +235,7 @@ export interface RootRouteChildren {
   PersonalRoute: typeof PersonalRoute
   ReservasRoute: typeof ReservasRoute
   TareasRoute: typeof TareasRoute
+  ApiPublicQuendooWebhookRoute: typeof ApiPublicQuendooWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -332,6 +345,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TareasRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/quendoo/webhook': {
+      id: '/api/public/quendoo/webhook'
+      path: '/api/public/quendoo/webhook'
+      fullPath: '/api/public/quendoo/webhook'
+      preLoaderRoute: typeof ApiPublicQuendooWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -351,6 +371,7 @@ const rootRouteChildren: RootRouteChildren = {
   PersonalRoute: PersonalRoute,
   ReservasRoute: ReservasRoute,
   TareasRoute: TareasRoute,
+  ApiPublicQuendooWebhookRoute: ApiPublicQuendooWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

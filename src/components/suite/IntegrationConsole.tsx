@@ -1,12 +1,14 @@
 import { Component, Suspense, useState } from 'react';
 import type { ReactNode } from 'react';
-import { QueryErrorResetBoundary, queryOptions, useMutation, useSuspenseQuery } from '@tanstack/react-query';
+import { QueryErrorResetBoundary, queryOptions, useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { useServerFn } from '@tanstack/react-start';
 import { ArrowDownToLine, ArrowUpFromLine, ExternalLink, LoaderCircle, Plug, RefreshCw, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Pill } from './ui';
 import { inspectHotelConnection, testHotelConnection } from '@/lib/suite/api/connection.functions';
+import { inboundStatus } from '@/lib/suite/api/inbound.functions';
+import { InboundPanel, inboundQuery } from './InboundPanel';
 import type { ConnectionSetup, SetupIssue } from '@/lib/suite/api/connection-contracts';
 
 const issues: Record<SetupIssue, string> = {
@@ -39,6 +41,7 @@ function HotelConsole({ hotelId, identity }: { hotelId: string; identity: string
   const result = probe.data;
   const currentSetup: ConnectionSetup = result?.status === 'blocked' ? result.setup : setup;
   const busy = isFetching || probe.isPending;
+  const inbound = useQuery(inboundQuery(hotelId, identity, useServerFn(inboundStatus)));
   return <section className="border-y py-5">
     <div className="flex flex-wrap items-start justify-between gap-4">
       <div className="min-w-0"><div className="mb-2 flex flex-wrap items-center gap-2"><h2 className="text-lg font-semibold">Quendoo Connect</h2><Pill className="bg-muted text-muted-foreground">NO CONECTADA</Pill><Pill>PRUEBAS</Pill></div><p className="text-sm text-muted-foreground">Conectividad externa · PMS central: Suite Hotel OS</p><p className="mt-1 break-words text-sm">{setup.hotelName}</p></div>
@@ -47,7 +50,7 @@ function HotelConsole({ hotelId, identity }: { hotelId: string; identity: string
     <dl className="mt-5 grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-4">
       <div><dt className="text-xs text-muted-foreground">Autorización</dt><dd className="mt-1 text-sm">{currentSetup.state === 'configured' ? 'Configurada · pendiente de prueba' : currentSetup.state === 'configuration_error' ? 'Requiere intervención' : 'Pendiente de autorización'}</dd></div>
       <div><dt className="text-xs text-muted-foreground">Propiedad externa</dt><dd className="mt-1 break-all text-sm">{currentSetup.propertyId ?? 'Sin asociar'}</dd></div>
-      <div><dt className="flex items-center gap-1 text-xs text-muted-foreground"><ArrowDownToLine className="size-3" />Reservas entrantes</dt><dd className="mt-1 text-sm">No activadas</dd></div>
+      <div><dt className="flex items-center gap-1 text-xs text-muted-foreground"><ArrowDownToLine className="size-3" />Reservas entrantes</dt><dd className="mt-1 text-sm">{inbound.data?.mode === 'test' ? 'Activas · solo entorno aislado de pruebas' : inbound.data?.mode === 'staging' ? 'Configuradas en staging' : 'No activadas'}</dd></div>
       <div><dt className="flex items-center gap-1 text-xs text-muted-foreground"><ArrowUpFromLine className="size-3" />Disponibilidad, tarifas y restricciones</dt><dd className="mt-1 text-sm">No activadas</dd></div>
     </dl>
     {currentSetup.issue && <div className="mt-5 border-l-2 border-st-dirty pl-3 text-sm">{issues[currentSetup.issue]}</div>}
@@ -55,6 +58,7 @@ function HotelConsole({ hotelId, identity }: { hotelId: string; identity: string
     {probe.isError && <p role="alert" className="mt-4 text-sm text-st-maint">No se pudo comprobar la conexión. Verifica la sesión y reintenta.</p>}
     {result?.status === 'failed' && <div role="alert" className="mt-4 border-l-2 border-st-maint pl-3 text-sm"><p>{errorLabels[result.code]}</p><p className="mt-1 text-xs text-muted-foreground">Comprobación: {new Date(result.checkedAt).toLocaleString('es', { timeZone: setup.hotelTimezone })}</p></div>}
     {result?.status === 'verified' && <div className="mt-5 border-t pt-4"><h3 className="flex items-center gap-2 text-sm font-semibold"><ShieldCheck className="size-4 text-st-ready" />Autenticación de pruebas verificada</h3><p className="mt-1 text-xs text-muted-foreground">{new Date(result.checkedAt).toLocaleString('es', { timeZone: setup.hotelTimezone })} · No activa sincronizaciones ni guarda reservas.</p><dl className="mt-3 grid gap-3 text-sm sm:grid-cols-3"><div><dt className="text-muted-foreground">Propiedad</dt><dd className="break-words">{result.property.name ?? result.property.id}</dd></div><div><dt className="text-muted-foreground">Moneda / modo</dt><dd>{result.property.currency} / {result.property.mode}</dd></div><div><dt className="text-muted-foreground">Zona horaria</dt><dd>{result.property.timezone}</dd></div></dl>{!result.timezoneMatches && <p role="alert" className="mt-3 text-sm text-st-maint">Zona horaria distinta de la del hotel: {setup.hotelTimezone}. Resolver antes de activar.</p>}<h4 className="mt-4 text-sm font-semibold">Catálogo autorizado</h4><div className="mt-2 grid gap-4 text-sm sm:grid-cols-2"><div><p className="text-xs text-muted-foreground">Tipos de habitación</p>{result.roomTypes.length ? result.roomTypes.map(r => <div key={r.id} className="break-words border-b py-2">{r.name} · {r.qty}<span className="block break-all text-xs text-muted-foreground">{r.id}</span></div>) : <p className="mt-2">Sin tipos de habitación.</p>}</div><div><p className="text-xs text-muted-foreground">Planes tarifarios</p>{result.ratePlans.length ? result.ratePlans.map(p => <div key={p.id} className="break-words border-b py-2">{p.name}<span className="block break-all text-xs text-muted-foreground">{p.id} → {p.room_type_id}</span></div>) : <p className="mt-2">Sin planes tarifarios.</p>}</div></div></div>}
+    <InboundPanel hotelId={hotelId} identity={identity} timezone={setup.hotelTimezone} />
     <Dialog open={connecting} onOpenChange={setConnecting}><DialogContent className="max-h-[85dvh] overflow-y-auto sm:max-w-lg"><DialogHeader><DialogTitle>Conectar Quendoo · entorno de pruebas</DialogTitle></DialogHeader><ol className="space-y-4 text-sm"><li><strong>1. Autorizar acceso de pruebas.</strong><p className="mt-1 text-muted-foreground">Quendoo entrega client_id y client_secret por solicitud; no ofrece alta OAuth automática.</p><Button asChild variant="outline" className="mt-2"><a href="mailto:office@quendoo.com?subject=Suite%20Hotel%20OS%20%E2%80%94%20sandbox%20Quendoo%20Connect"><ExternalLink className="size-4" />Solicitar acceso oficial</a></Button></li><li><strong>2. Asociar la propiedad autorizada.</strong><p className="mt-1 break-words text-muted-foreground">SUITE_QUENDOO_BINDINGS vincula hotel, organización y propiedad en staging. Configuración exclusiva del servidor.</p></li><li><strong>3. Cargar credenciales de forma segura.</strong><p className="mt-1 break-words text-muted-foreground">Ajustes del proyecto → Secrets → SUITE_QUENDOO_CREDENTIALS. No pegues tokens ni secretos en el chat.</p></li><li><strong>4. Probar conexión.</strong><p className="mt-1 text-muted-foreground">Comprobación autenticada de propiedad, tipos de habitación y planes tarifarios. La importación requiere guardado y correspondencias autorizados.</p></li></ol><div className="flex flex-wrap justify-end gap-2"><Button asChild variant="ghost"><a href="https://api.quendoo.com/v1/qc/docs/authentication.md" target="_blank" rel="noreferrer">Autorización oficial<ExternalLink className="size-4" /></a></Button><Button disabled={busy} onClick={() => { setConnecting(false); probe.mutate(); }}>Probar conexión</Button></div></DialogContent></Dialog>
   </section>;
 }
